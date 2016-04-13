@@ -1,0 +1,147 @@
+```json
+{"exec-mode":"default","platform":"iOS","uti":"com.xamarin.workbook","packages":[{"id":"Accord","targetFramework":null,"version":"3.0.2"},{"id":"SkiaSharp","targetFramework":null,"version":"1.49.1"}]}
+```
+
+# Exploring SkiaSharp
+
+SkiaSharp provides a powerful C# API for doing 2D graphics. It is powered by [Google’s Skia library](http://skia.org/), the same library that powers Google Chrome, Firefox and Android’s graphic stacks.
+
+![](/cvs/build2016-demo/workbooks/skia/ide-sml.png)
+
+SkiaSharp is a Portable Library, and ships conveniently as a [cross-platform NuGet package](https://www.nuget.org/packages/SkiaSharp), and supports the following platforms out of the box: MacOS X, Android and iOS with Mono and the Windows Desktop with .NET.
+
+## Introduction to SkiaSharp
+
+SkiaSharp provides a rich and powerful 2D graphics API that can be used to render into 2D buffers. You can use these to implement custom user interface elements and 2D graphics that can be incorporated into your application. SkiaSharp is a .NET binding to the [Skia](https://skia.org/) library and inherits the features and power of this library
+
+The library is currently available as a cross-platform [NuGet Package](https://www.nuget.org/packages/SkiaSharp), you can it to your project by adding the NuGet reference.
+
+```csharp
+OpenDynamicLibrary ("libskia_ios.framework/libskia_ios")
+```
+
+```csharp
+#r "SkiaSharp.dll"
+```
+
+```csharp
+using SkiaSharp;
+```
+
+To draw, your code will create an `SkCanvas` which describes the surface where the drawing operations will take place.
+
+### **Obtaining an SKCanvas**
+
+```csharp
+var surface = SKSurface.Create((int) UIScreen.MainScreen.Bounds.Width, (int) UIScreen.MainScreen.Bounds.Height, SKColorType.N_32, SKAlphaType.Premul);
+```
+
+```csharp
+var canvas = surface.Canvas;
+canvas.Clear(SKColors.DimGray);
+```
+
+Both the `surface` and the `canvas` are limited resources, so in real code you should wrap them in using statements.
+
+The `SKCanvas` uses a drawing model similar in spirit to other drawing models that you might be familiar with, it uses colors with an optional transparency channel and can draw lines, arcs, text and images.
+
+### Drawing a spiral
+
+This code is based on [http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral](http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral).
+
+```csharp
+//Ref. http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral 
+Tuple<bool, float, float> ZELineIntersection(float m1, float b1, float m2, float b2) {
+	float EPSILON = 0.000001f;
+
+	if (Math.Abs(m1 - m2) < EPSILON) {
+		//Lines are parallel, so they don't intersect
+		return new Tuple<bool, float, float> (false, float.NaN, float.NaN);
+	}
+	float X = (b2 - b1) / (m1 - m2);
+	float Y = m1 * X + b1;
+	return new Tuple<bool, float, float> (true, X, Y);
+}
+
+SKPath BuildPath(SKPoint center, float startRadius, float spacePerLoop, float startTheta, float endTheta, float thetaStep){
+    var path = new SKPath ();
+
+    var oldTheta = startTheta;
+    var newTheta = startTheta;
+    var oldR = startRadius + spacePerLoop * oldTheta;
+    var newR = startRadius + spacePerLoop * newTheta;
+    var oldSlope = float.MaxValue;
+    var newSlope = oldSlope;
+
+    var newPoint = new SKPoint( (float) (center.X + oldR * Math.Cos (oldTheta)), (float) (center.Y + oldR * Math.Sin (oldTheta)));
+	path.MoveTo (newPoint.X, newPoint.Y);
+
+    var firstSlope = true;
+    while (oldTheta < endTheta - thetaStep) {
+        oldTheta = newTheta;
+        newTheta += thetaStep;
+
+        oldR = newR;
+        newR = startRadius + spacePerLoop * newTheta;
+
+        newPoint = new SKPoint ((float) (center.X + newR * Math.Cos (newTheta)), (float) (center.Y + newR * Math.Sin (newTheta)));
+
+        // Slope calculation with the formula:
+        // (spacePerLoop * sinΘ + (startRadius + bΘ) * cosΘ) / (spacePerLoop * cosΘ - (startRadius + bΘ) * sinΘ)
+
+        var aPlusBTheta = startRadius + spacePerLoop * newTheta;
+        if (firstSlope) {
+            oldSlope = (float) (((spacePerLoop * Math.Sin (oldTheta) + aPlusBTheta * Math.Cos (oldTheta)) / (spacePerLoop * Math.Cos (oldTheta) - aPlusBTheta * Math.Sin (oldTheta))));
+            firstSlope = false;
+        } else {
+            oldSlope = newSlope;
+        }
+        newSlope = (float) ((spacePerLoop * Math.Sin (newTheta) + aPlusBTheta * Math.Cos (newTheta)) / (spacePerLoop * Math.Cos (newTheta) - aPlusBTheta * Math.Sin (newTheta)));
+
+        var oldIntercept = (float) -(oldSlope * oldR * Math.Cos (oldTheta) - oldR * Math.Sin (oldTheta));
+        var newIntercept = (float) -(newSlope * newR * Math.Cos (newTheta) - newR * Math.Sin (newTheta));
+
+        var intersection = ZELineIntersection (oldSlope, oldIntercept, newSlope, newIntercept);
+        if (intersection.Item1) {
+            var controlPoint = new SKPoint (intersection.Item2 + center.X, intersection.Item3 + center.Y);
+            path.LineTo (controlPoint.X, controlPoint.Y);
+        } else {
+            throw new ArgumentException ("These lines should never be parallel.");
+        }
+    }
+    return path;
+}
+
+var p = BuildPath(new SKPoint((float) UIScreen.MainScreen.Bounds.GetMidX(), (float) UIScreen.MainScreen.Bounds.GetMidY()), 0, 3.3f, 0, 50, (float) (Math.PI / 16.0));
+```
+
+Now, with a path in hand, we can draw it to the `canvas`:
+
+```csharp
+var canvasColor = new SKColor(127, 127, 127, 127);
+canvas.Clear(canvasColor);
+
+using (var paint = new SKPaint ()) {
+	paint.IsAntialias = true;
+	paint.Color = new SKColor (0x2c, 0x3e, 0x50);
+	paint.StrokeCap = SKStrokeCap.Round;
+	paint.IsStroke = true;
+	canvas.DrawPath (p, paint);
+}
+```
+
+And from there, convert it to PNG format:
+
+```csharp
+var skPngdata = surface.Snapshot().Encode();
+var spiral = UIImage.LoadFromData(NSData.FromBytes(skPngdata.Data, (nuint) skPngdata.Size));
+```
+
+
+
+
+
+
+
+
+
