@@ -1,0 +1,187 @@
+```json
+{"exec-mode":"default","platform":"iOS","uti":"com.xamarin.workbook","packages":[]}
+```
+
+# Exploring SceneKit
+
+## Introduction
+
+The SceneKit namespace iOS is programmed via a “scene graph” a branching structure that defines geometries, lights, textures, etc. relative to their parent nodes.
+
+To start, define the path to the workbook:
+
+```csharp
+var workbookDir = "{full_path_to_directory}/xamarin/workbooks/ios/SceneKit/";
+```
+
+We’ll be exploring the `SceneKit`and `CoreAnimation`namespaces, so reference them. Bring in the `Foundation`namespace as well, for convenience.
+
+```csharp
+using SceneKit;
+using CoreAnimation;
+using Foundation;
+```
+
+As always with iOS, control of the user experience begins with the root `UIViewController`:
+
+```csharp
+var vc = KeyWindow.RootViewController;
+```
+
+The scene graph exists within an `SCNScene:`
+
+```csharp
+var scene = new SCNScene();
+```
+
+An `SCNView`is a subclass of `UIView`that displays a portion of an `SCNScene`. Let’s create an `SCNView`that takes up the whole screen:
+
+```csharp
+UIScreen.MainScreen.Bounds
+```
+
+```csharp
+var scnView = new SCNView(UIScreen.MainScreen.Bounds);
+true
+```
+
+Set the `SCNView.Scene` property to our previously created scene and show some debugging statistics:
+
+```csharp
+scnView.Scene = scene;
+scnView.AllowsCameraControl = true;
+scnView.ShowsStatistics = true;
+scnView.BackgroundColor = UIColor.Black;
+```
+
+Now, by setting the `View`property of the root `UIViewController`to the `SCNView`we just created, we will have a full-screen (in the Simulator) view of our `SCNScene`:
+
+```csharp
+vc.View = scnView;
+true
+```
+
+Our scene graph is empty, so let’s set the stage:
+
+### Lights!
+
+There are a variety of [SCNLightType values](https://developer.xamarin.com/api/type/SceneKit.SCNLightType/). We need at least one to see anything! In this case, we’ll create an“omni” light that emits light in all directions (like a naked light bulb) and an “ambient” light that illuminates all objects in the scene from all directions with the same intensity:
+
+```csharp
+var lightNode = new SCNNode();
+lightNode.Light = new SCNLight ();
+lightNode.Light.LightType = SCNLightType.Omni;
+lightNode.Position = new SCNVector3 (0.0F, 10.0F, 10.0F);
+scene.RootNode.AddChildNode (lightNode);
+
+var ambientLightNode = new SCNNode ();
+ambientLightNode.Light = new SCNLight ();
+ambientLightNode.Light.LightType = SCNLightType.Ambient;
+ambientLightNode.Light.Color = UIColor.DarkGray;
+scene.RootNode.AddChildNode (ambientLightNode);
+```
+
+### Camera!
+
+Now let’s place a camera within the scene:
+
+```csharp
+var cameraNode = new SCNNode ();
+cameraNode.Camera = new SCNCamera ();
+scene.RootNode.AddChildNode (cameraNode);
+cameraNode.Position = new SCNVector3 (0.0F, 0.0F, 3.0F);
+```
+
+### Actors on the set!
+
+At this point, we \*still \*don’t see anything, because we’ve not added any geometry to the scene graph.
+
+The [SCNGeometry ](https://developer.xamarin.com/api/type/SceneKit.SCNGeometry/)class has a number of sub-classes representing primitive shapes (box, capsule, pyramid, etc.). Or you can programmatically create custom geometry or load it from a DAE file.
+
+In this case, create a SCNBox and add it to the scene:
+
+```csharp
+var boxNode = new SCNNode ();
+var box = new SCNBox();
+box.ChamferRadius = 0.02f;
+boxNode.Geometry = box;
+scene.RootNode.AddChildNode (boxNode);
+```
+
+Finally! Something visible in the Simulator! In the Simulator, you can click and drag to rotate the viewpoint.
+
+Now, let’s texture the box. First, load a simple texture from the file system (this will require you to have properly set `workbookDir` at the beginning of this workbook):
+
+```csharp
+var img = UIImage.FromFile(System.IO.Path.Combine(workbookDir, "textureX.png"));
+```
+
+SceneKit’s built-in primitive types have reasonable default values for UV (texture) coordinates, so no more work is needed to apply the texture to the box faces:
+
+```csharp
+var material = new SCNMaterial ();
+material.Diffuse.Contents = img;
+material.Specular.Contents = UIColor.Gray;
+material.LocksAmbientWithDiffuse = true;
+boxNode.Geometry.FirstMaterial = material;
+```
+
+### Action!
+
+The `SCNNode.AddAnimation(CAAnimation)` method allows you to add an animation to a node:
+
+```csharp
+var animation = new CABasicAnimation();
+animation.KeyPath = "rotation";
+var t = new SCNVector4 (1.0F, 1.0F, 0.0F, (float) (Math.PI * 2.0));
+animation.To = NSValue.FromVector (t);
+animation.Duration = 5.0f; //seconds
+animation.RepeatCount = float.MaxValue; //repeat forever
+boxNode.AddAnimation(animation,new NSString("rotation"));
+```
+
+And that’s all there is to creating an animated SceneKit scene!
+
+To finish up, let’s remove what we’ve done:
+
+```csharp
+boxNode.RemoveFromParentNode();
+```
+
+And add a whole bunch of nodes to the scene:
+
+```csharp
+void TimesRepeat(int repeatCount, Action action)
+{
+    for (int i = 0; i < repeatCount; i++)
+        action();
+}
+
+var rand = new Random();
+
+Func<float> NextFractional = () => 1.5f - 3.5f * (float) rand.NextDouble();
+
+TimesRepeat(15, () => {
+    var boxNode = new SCNNode ();
+	boxNode.Position = new SCNVector3(NextFractional(), NextFractional(), NextFractional());
+	
+    var box = new SCNBox();
+	box.Length = 0.2f;
+	box.Width = 0.2f;
+	box.Height = 0.2f;
+    box.ChamferRadius = 0.02f;
+	box.FirstMaterial = material;
+    boxNode.Geometry = box;
+	
+	var animation = new CABasicAnimation();
+	animation.KeyPath = "rotation";
+	var t = new SCNVector4 (NextFractional(), NextFractional(), NextFractional(), (float) (Math.PI * 2.0));
+	animation.To = NSValue.FromVector (t);
+	animation.Duration = 5.0f;
+	animation.RepeatCount = float.MaxValue; //repeat forever
+	boxNode.AddAnimation(animation,new NSString("rotation"));
+
+    scene.RootNode.AddChildNode (boxNode);
+});
+```
+
