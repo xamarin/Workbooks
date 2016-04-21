@@ -13,7 +13,7 @@ var window = new UIWindow(UIScreen.MainScreen.Bounds);
 window.MakeKeyAndVisible();
 var vc = new UIViewController();
 window.RootViewController = vc;
-vc.View.BackgroundColor = UIColor.Brown
+vc.View.BackgroundColor = UIColor.Yellow
 ```
 
 ```csharp
@@ -33,7 +33,8 @@ vc.View.AddSubview(button)
 var vcAuthenticated = new UIViewController();
 var label = new UILabel(new CGRect(20, 200, 280, 40));
 label.Text = "You are now Authenticated";
-vcAuthenticated.View = label
+vcAuthenticated.View.AddSubview(label);
+vcAuthenticated.View.BackgroundColor = UIColor.Magenta
 ```
 
 ```csharp
@@ -46,19 +47,18 @@ var myReason = new NSString("To gain secret access");
 button.TouchUpInside += (sender, e) => {
                 if (context.CanEvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, out AuthError)){
 					var replyHandler = new LAContextReplyHandler((success, error) => {
-
 						vc.InvokeOnMainThread(()=>{
 							if(success){
-								
+								vc.PresentViewController(vcAuthenticated, true, null);
 							}
 							else{
 								//Show fallback mechanism here
 								button.SetTitle("You shall not pass", UIControlState.Disabled);
 							}
 						});
-
-					}); 
+					 });
 					context.EvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, myReason, replyHandler);
 				}
             };
 ```
+
