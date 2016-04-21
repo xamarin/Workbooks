@@ -48,7 +48,7 @@ So, we are starting to see how the View Heirarchy of iOS apps work. Having somet
 Let’s add one to our app:
 
 ```csharp
-var navigationController = new UINavigationController(controller);
+var navigationController = new UINavigationController();
 ```
 
 You should notice that nothing happens! This is because our RootViewController still things that controller is the first thing it should be showing us. Let’s ammend this to set the RootViewController as our NavigationController.
@@ -59,7 +59,7 @@ window.RootViewController = navigationController
 
 ###### Try it now
 
-* Pass the View Controller (controller) into the new instance of our navigation controller. You can pass this as an argument in the code above.
+* Pass the View Controller (controller) into the newly created instance of our navigation controller. You can pass this as an argument in the code above.
 
 Next, let’s ammend some of the View Controller’s properties to allow the app to be more user friendly. We can set the Navigation Item’s title to be anything we want. You can ammend the string below to give the title a name that you think is suitable:
 
