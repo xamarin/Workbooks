@@ -1,0 +1,69 @@
+```json
+{"exec-mode":"default","platform":"iOS","uti":"com.xamarin.workbook","packages":[]}
+```
+
+# Understanding your iOS Application
+
+When you open an iOS application on your device, what you are seeing is a number of components all working together to give you a slick experience and the perception of one single View. In this guide we will interactively explore the make up of an iOS application, allowing you to get a deeper understanding of its functionality.
+
+The most fundamental object of an iOS app and first thing your user will see is a window. You can think of this window as a shop front. We have one Window, or screen, that allows your user to view the app. We can add whatever we want to the window, but we almost always only use one Main window.
+
+To create a new Window we first need to declare a new instance of `UIWindow`,and then we need to make that window visible:
+
+```csharp
+var window = new UIWindow(UIScreen.MainScreen.Bounds);
+window.MakeKeyAndVisible()
+```
+
+If inspect the simulator now, you’ll notice a blank white screen. We don’t actually have anything visible on the screen, so let’s start creating something.
+
+An iOS application uses View Controller to manage all the views within it – it loads and disposes the views, it handles user interactions with the views, and it co-ordinates with other objects. There can be many Views Controller, of many types (eg. TableViewController), within one applications, all of which work together. Let’s start by creating a single UIViewController:
+
+```csharp
+var controller = new UIViewController()
+```
+
+We mentioned earlier that most applications have a single Window. Every single Window has a single **Root View Controller** and this is the first View Controller that your user will see and interact with\*\*.\*\*
+
+Let’s set our recently created View Controller, to be window’s RootViewController:
+
+```csharp
+window.RootViewController = controller
+```
+
+```csharp
+controller.View.BackgroundColor = UIColor.Magenta
+```
+
+Remember, we can’t set the color of the actual View Controller itself, it’s just an object that manages, and we can’t actually see it.
+
+###### Try it yourself!
+
+* See if you can change the color of the background to something different
+
+* Can you change it to an RBG value? *(Hint: Create a new instance of UIColor, assign Red, Blue, Green, and alpha nfloat values, and set the background to the new instance)*
+
+So, we are starting to see how the View Heirarchy of iOS apps work. Having something to look at on the screen is nice, but usually users want to interact with their apps by navigating through them. To do this we can use a Navigation Controller. As suggested by the name, it manages the navigation of your application. A navigation controller is a UI-less controller that will manage a stack of however many View Controller that you add to it.
+
+Let’s add one to our app:
+
+```csharp
+var navigationController = new UINavigationController(controller);
+```
+
+You should notice that nothing happens! This is because our RootViewController still things that controller is the first thing it should be showing us. Let’s ammend this to set the RootViewController as our NavigationController.
+
+```csharp
+window.RootViewController = navigationController
+```
+
+###### Try it now
+
+* Pass the View Controller (controller) into the new instance of our navigation controller. You can pass this as an argument in the code above.
+
+Next, let’s ammend some of the View Controller’s properties to allow the app to be more user friendly. We can set the Navigation Item’s title to be anything we want. You can ammend the string below to give the title a name that you think is suitable:
+
+```csharp
+controller.NavigationItem.Title = "iOS is Cool"
+```
+
