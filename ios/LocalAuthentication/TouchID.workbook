@@ -32,7 +32,8 @@ vc.View.AddSubview(button)
 ```csharp
 var vcAuthenticated = new UIViewController();
 var label = new UILabel(new CGRect(20, 200, 280, 40));
-label.Text = "You are now Authenticated"
+label.Text = "You are now Authenticated";
+vcAuthenticated.View = label
 ```
 
 ```csharp
@@ -44,21 +45,20 @@ var myReason = new NSString("To gain secret access");
 ```csharp
 button.TouchUpInside += (sender, e) => {
                 if (context.CanEvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, out AuthError)){
-                var replyHandler = new LAContextReplyHandler((success, error) => {
+					var replyHandler = new LAContextReplyHandler((success, error) => {
 
-                    vc.InvokeOnMainThread(()=>{
-                        if(success){
-							vc.PresentViewController(vcAuthenticated, true, null);
-                        }
-                        else{
-                            //Show fallback mechanism here
-							button.SetTitle("You shall not pass", UIControlState.Disabled);
-                        }
-                    });
+						vc.InvokeOnMainThread(()=>{
+							if(success){
+								
+							}
+							else{
+								//Show fallback mechanism here
+								button.SetTitle("You shall not pass", UIControlState.Disabled);
+							}
+						});
 
-                }); 
-                context.EvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, myReason, replyHandler);
-            };
+					}); 
+					context.EvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, myReason, replyHandler);
+				}
             };
 ```
-
