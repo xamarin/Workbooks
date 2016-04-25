@@ -8,22 +8,22 @@ When you open an iOS application on your device, what you are seeing is a number
 
 The most fundamental object of an iOS app and first thing your user will see is a window. You can think of this window as a shop front. We have one Window, or screen, that allows your user to view the app. We can add whatever we want to the window, but we almost always only use one Main window.
 
-To create a new Window we first need to declare a new instance of `UIWindow`,and then we need to make that window visible:
+To create a new Window we first need to declare a new instance of `UIWindow`, and then we need to make that window visible:
 
 ```csharp
 var window = new UIWindow(UIScreen.MainScreen.Bounds);
 window.MakeKeyAndVisible()
 ```
 
-If inspect the simulator now, you’ll notice a blank white screen. We don’t actually have anything visible on the screen, so let’s start creating something.
+If you inspect the simulator now, you’ll notice a blank white screen. We don’t actually have anything visible on the screen, so let’s start creating something.
 
-An iOS application uses View Controller to manage all the views within it – it loads and disposes the views, it handles user interactions with the views, and it co-ordinates with other objects. There can be many Views Controller, of many types (eg. TableViewController), within one applications, all of which work together. Let’s start by creating a single UIViewController:
+An iOS application uses a View Controller to manage all the views within it – it loads and disposes the views, it handles user interactions with the views, and it co-ordinates with other objects. There can be many View Controllers, of many types (eg. `TableViewController`), within one application, all of which work together. Let’s start by creating a single UIViewController:
 
 ```csharp
 var controller = new UIViewController()
 ```
 
-We mentioned earlier that most applications have a single Window. Every single Window has a single **Root View Controller** and this is the first View Controller that your user will see and interact with\*\*.\*\*
+We mentioned earlier that most applications have a single Window. Every Window has a single **Root View Controller**, and this is the first View Controller that your user will see and interact with.
 
 Let’s set our recently created View Controller, to be window’s RootViewController:
 
@@ -51,7 +51,7 @@ Let’s add one to our app:
 var navigationController = new UINavigationController();
 ```
 
-You should notice that nothing happens! This is because our RootViewController still things that controller is the first thing it should be showing us. Let’s ammend this to set the RootViewController as our NavigationController.
+You should notice that nothing happens! This is because our RootViewController still thinks that controller is the first thing it should be showing us. Let’s amend this to set the RootViewController as our NavigationController.
 
 ```csharp
 window.RootViewController = navigationController
@@ -61,7 +61,7 @@ window.RootViewController = navigationController
 
 * Pass the View Controller (controller) into the newly created instance of our navigation controller. You can pass this as an argument in the code above.
 
-Next, let’s ammend some of the View Controller’s properties to allow the app to be more user friendly. We can set the Navigation Item’s title to be anything we want. You can ammend the string below to give the title a name that you think is suitable:
+Next, let’s change some of the View Controller’s properties to allow the app to be more user friendly. We can set the Navigation Item’s title to be anything we want. You can update the string below to give the title a name that you think is suitable:
 
 ```csharp
 controller.NavigationItem.Title = "iOS is Cool"
