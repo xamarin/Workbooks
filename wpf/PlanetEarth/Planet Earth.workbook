@@ -1,0 +1,196 @@
+```json
+{"exec-mode":"default","platform":"WPF","uti":"com.xamarin.workbook","packages":[]}
+```
+
+## Planet Earth in C#
+
+UrhoSharp is a powerful 3D game engine for Xamarin and .NET developers. It is similar in spirit to Apple’s SceneKit and SpriteKit and includes physics, navigation, networking, and much more...while still being cross-platform.
+
+```csharp
+#r "Urho.dll"
+```
+
+```csharp
+using Urho; using Urho.Repl; using Urho.Actions; using Urho.Shapes;
+```
+
+```csharp
+var app = await Simple3DScene.RunAsync (
+	new ApplicationOptions ("Data") {
+		Width = 1100, 
+		Height = 1100, 
+		TouchEmulation = true });
+```
+
+We have created a WPF window containing a `Simple3DScene`. Let’s add a new `Node` to the scene, representing the Earth.
+
+`Node`s contain `Component`s that dictate what is rendered. We’ll cheat a bit
+and use a `Sphere` for the Earth.
+
+```csharp
+var earthNode = app.RootNode.CreateChild (name: "Earth");
+var earth = earthNode.CreateComponent<Sphere> ();
+```
+
+```csharp
+earth.Color = Color.Blue;
+```
+
+```csharp
+earthNode.SetScale (4f);
+```
+
+```csharp
+earth.SetMaterial (Material.FromImage ("Textures/earth.jpg"));
+```
+
+A scene can have multiple nodes. Let’s add some satellites, starting with the Moon.
+
+```csharp
+Node moonNode = app.RootNode.CreateChild (name: "Moon");
+moonNode.Position = new Vector3 (x: -3.0f, y: 0, z: 0);
+moonNode.SetScale (1f);
+var moon = moonNode.CreateComponent<Sphere> ();
+moon.CastShadows = false;
+moon.SetMaterial (Material.FromImage ("Textures/moon.jpg"));
+```
+
+```csharp
+app.RootNode.RunActions (new RepeatForever (
+	new RotateBy (
+		duration: 1f,
+		deltaAngleX: 0,
+		deltaAngleY: -15,
+		deltaAngleZ: 0)));
+app.MoveCamera = true;
+```
+
+Override the render path to show custom Outline shader
+
+```csharp
+static var random = new Random ();
+var effectRenderPath = app.Viewport.RenderPath.Clone ();
+effectRenderPath.Append (app.ResourceCache.GetXmlFile ("RenderPaths/Outline.xml"));
+app.Viewport.RenderPath = effectRenderPath;
+earthNode.Rotate (new Quaternion (x: 0, y: -73, z: 0), TransformSpace.Local);
+var satellitesNode = app.RootNode.CreateChild ();
+```
+
+We want to spawn thousands of satellites in Low Earth Orbit. Here’s a method to randomly distribute satellites as they are added.
+
+```csharp
+Node AddSatellite (Node parent, float lat, float lon,
+	Model model, float scale, bool outline = true)
+{
+	//let's do some math:
+	//convert lat and lon to XYZ:
+	var height = 2.2 + random.NextDouble () / 3;
+	var latrad = lat * Math.PI / 180;
+	var lonrad = lon * Math.PI / 180;
+	var x = -height * Math.Cos (latrad) * Math.Cos (lonrad);
+	var y = height * Math.Sin (latrad);
+	var z = height * Math.Cos (latrad) * Math.Sin (lonrad);
+
+	var satNode = parent.CreateChild ("SatRoot");
+	var satModelNode = satNode.CreateChild ("SatModel");
+	var sat = satModelNode.CreateComponent<StaticModel> ();
+	sat.Model = model;
+	
+	if (outline) {
+		//apply a custom outline shader
+		var material = CoreAssets.Cache.GetMaterial (
+			"Materials/SatNoTexture.xml").Clone ("");
+		material.SetShaderParameter ("OutlineColor", 
+			new Color ((float)random.NextDouble (), 
+					  (float)random.NextDouble (), 
+					  (float)random.NextDouble (), 0));
+		sat.SetMaterial (material);
+	}
+	
+	satModelNode.SetScale (scale);
+	satNode.Position = new Vector3 ((float)x, (float)y, (float)z);
+	satNode.LookAt (new Vector3 (0, 0, 0), new Vector3 (0, 1, 0), 
+				   TransformSpace.Parent);
+	satNode.Rotate (new Quaternion (90, 0, 0), TransformSpace.Local);
+	satNode.RunActions (new RepeatForever (new RotateBy (1f, 0f, 10f, 0f)));
+
+	return satNode;
+}
+```
+
+According to NASA, there are \~3600 satellites in Low Earth Orbit.
+
+```csharp
+satellitesNode.RemoveAllChildren();
+
+for (int i = 0; i < 3600; i++) {
+	AddSatellite(satellitesNode,
+		lat: Randoms.NextNormal (-90, 90, 0), 
+		lon: Randoms.Next (0, 360), 
+		model: CoreAssets.Models.Box, 
+		scale: 0.02f, 
+		outline: false);
+}
+```
+
+Spawn a big satellite over Orlando.
+
+```csharp
+var orlandoLat = 28.538336f;
+var orlandoLon = -81.379234f;
+
+AddSatellite (satellitesNode, 
+	lat: orlandoLat, 
+	lon: orlandoLon, 
+	model: app.ResourceCache.GetModel ("Models/BigSatellite.mdl"), 
+	scale: 0.0005f);
+```
+
+Ta da!
+
+### Event Handlers
+
+Spawn a few more big satellites.
+
+```csharp
+for (int i = 0; i < 20; i++) {
+	AddSatellite (satellitesNode,
+		lat: Randoms.NextNormal (-90, 90, 0), 
+		lon: Randoms.Next (0, 360), 
+		model: app.ResourceCache.GetModel ("Models/BigSatellite.mdl"), 
+		scale: 0.0005f);
+}
+```
+
+User interaction: click to increase satellite node size.
+
+```csharp
+Node currentNode;
+app.Input.SetMouseVisible (true, false);
+app.Input.TouchEnd += e => {
+	if (currentNode != null) {
+		currentNode.RemoveAllActions ();
+		currentNode.RunActions (new ScaleTo (0.7f, 0.0005f));
+		currentNode = null;
+	}
+
+	var cameraRay = app.Camera.GetScreenRay (
+		(float)e.X / app.Graphics.Width, 
+		(float)e.Y / app.Graphics.Height);
+
+	var results = app.Octree.RaycastSingle (cameraRay, 
+		RayQueryLevel.Triangle, 100, DrawableFlags.Geometry);
+
+	if (results.Count > 0) {
+		var node = results [0].Node;
+		if (node.Name.StartsWith("Sat")) {
+			currentNode = node;
+			currentNode.RunActions (new EaseElasticOut (
+				new ScaleTo (0.7f, 0.0015f)));
+			currentNode.RunActions (new RepeatForever (
+				new RotateBy (1f, 90f, 0f, 0f)));
+		}
+	}
+};
+```
+
