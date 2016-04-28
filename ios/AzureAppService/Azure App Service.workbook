@@ -46,6 +46,7 @@ public class Employee
 With Azure Easy Tables, reading data is a snap:
 
 ```csharp
+#r "System.Collections"
 using Microsoft.WindowsAzure.MobileServices;
 
 var mobileService = new MobileServiceClient ("http://evolvedemo.azurewebsites.net");
@@ -53,7 +54,7 @@ var table = mobileService.GetTable<Employee> ();
 
 static List<Employee> employees;
 
-employees = (await table.ReadAsync ()).Take (20).ToList ();
+employees = await table.Take (20).ToListAsync ();
 ```
 
 Here we fetch the avatar images for each employee and cache them back on the model object. Inspecting the `employees` list now shows happy faces!
