@@ -67,3 +67,43 @@ Next, let’s change some of the View Controller’s properties to allow the app
 controller.NavigationItem.Title = "iOS is Cool"
 ```
 
+### Building the View Heirarchy
+
+Now, we have a ViewContoller which is the first ViewController in our Navigation Stack and we’ve set this as our RootViewController (this first thing that the user will see). Now, let’s allow our user to interact with our application by adding UI *controls* to our View.
+
+We’ll start by creating a text box:
+
+```csharp
+var name =  new UITextField{ Placeholder = "Enter Name", BorderStyle = UITextBorderStyle.RoundedRect, Frame = new CGRect(10, 80, controller.View.Bounds.Width -20, 31.0f)}
+```
+
+Notice that when we create a control, such as a UITextField, we declare a `Frame`property.  This property defines the the location and size of the control. In iOS the 0,0 coordinate is in the upper left with \+ x to the right and \+y down.
+
+Next, let’s add this control to the ViewController’s view as a **subview**, so that it will display in our app
+
+```csharp
+controller.View.AddSubview(name)
+```
+
+Let’s add another few Text Fields and a button:
+
+```csharp
+var email =  new UITextField{ Placeholder = "Enter Email", BorderStyle = UITextBorderStyle.RoundedRect, KeyboardType = UIKeyboardType.EmailAddress, Frame = new CGRect(10, 120, controller.View.Bounds.Width -20, 31.0f)};
+var password = new UITextField{ Placeholder = "Enter Password", BorderStyle = UITextBorderStyle.RoundedRect, SecureTextEntry = true, Frame = new CGRect(10, 160, controller.View.Bounds.Width - 20, 31.0f)};
+var enterButton = UIButton.FromType(UIButtonType.System);
+enterButton.Frame = new CGRect(10, 200, controller.View.Bounds.Width - 20, 31.0f);
+enterButton.SetTitle ("Submit", UIControlState.Normal);
+```
+
+Once they have been created, we have to add these controls to the view. We can add multiple subviews to the view hierarchy by using `AddSubviews` and passing in an array of UIViews that includes all our views:
+
+```csharp
+controller.View.AddSubviews(new UIView[]{email, password, enterButton})
+```
+
+### Try it now:
+
+* Set the **KeyboardType **property of the email TextField to** **`EmailAddress`
+
+* Adjust the appearance of the Button. For example, you could try to change the background color of the button, or you could adjust the corner radius of its layer to make the corners rounded.
+
