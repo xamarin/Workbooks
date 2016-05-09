@@ -11,6 +11,7 @@
 We’ve started by adding the `Microsoft.Azure.Mobile.Client` and `Microsoft.ProjectOxford.Emotion` NuGets to the iOS Workbook. The references are loaded into the workbook.
 
 ```csharp
+#r "System.Collections"
 #r "System.IO"
 #r "System.Runtime"
 #r "System.Threading.Tasks"
@@ -46,7 +47,6 @@ public class Employee
 With Azure Easy Tables, reading data is a snap:
 
 ```csharp
-#r "System.Collections"
 using Microsoft.WindowsAzure.MobileServices;
 
 var mobileService = new MobileServiceClient ("http://evolvedemo.azurewebsites.net");
