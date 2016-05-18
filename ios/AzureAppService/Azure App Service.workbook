@@ -11,6 +11,7 @@
 We’ve started by adding the `Microsoft.Azure.Mobile.Client` and `Microsoft.ProjectOxford.Emotion` NuGets to the iOS Workbook. The references are loaded into the workbook.
 
 ```csharp
+#r "System.Collections"
 #r "System.IO"
 #r "System.Runtime"
 #r "System.Threading.Tasks"
@@ -53,7 +54,7 @@ var table = mobileService.GetTable<Employee> ();
 
 static List<Employee> employees;
 
-employees = (await table.ReadAsync ()).Take (20).ToList ();
+employees = await table.Take (20).ToListAsync ();
 ```
 
 Here we fetch the avatar images for each employee and cache them back on the model object. Inspecting the `employees` list now shows happy faces!
