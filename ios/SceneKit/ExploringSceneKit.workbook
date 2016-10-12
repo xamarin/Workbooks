@@ -1,20 +1,16 @@
-```json
-{"exec-mode":"default","platform":"iOS","uti":"com.xamarin.workbook","packages":[]}
-```
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
 
 # Exploring SceneKit
 
 ## Introduction
 
-The SceneKit namespace iOS is programmed via a “scene graph” a branching structure that defines geometries, lights, textures, etc. relative to their parent nodes.
+The SceneKit namespace is the native iOS framework for providing 3D graphics for applications. Developers interested in cross-platform 3D graphics for games might want to investigate [UrhoSharp](https://developer.xamarin.com/guides/cross-platform/urho/introduction/). SceneKit uses an easy-to-program “scene graph” model. A scene graph is a branching structure that defines geometries, lights, textures, etc. relative to their parent nodes.
 
-To start, define the path to the workbook:
-
-```csharp
-var workbookDir = "{full_path_to_directory}/xamarin/workbooks/ios/SceneKit/";
-```
-
-We’ll be exploring the `SceneKit`and `CoreAnimation`namespaces, so reference them. Bring in the `Foundation`namespace as well, for convenience.
+This workbook explores the `SceneKit` and `CoreAnimation` namespaces, so reference them. Bring in the `Foundation` namespace as well, for convenience:
 
 ```csharp
 using SceneKit;
@@ -22,19 +18,13 @@ using CoreAnimation;
 using Foundation;
 ```
 
-As always with iOS, control of the user experience begins with the root `UIViewController`:
-
-```csharp
-var vc = KeyWindow.RootViewController;
-```
-
-The scene graph exists within an `SCNScene:`
+The scene graph exists within an `SCNScene`:
 
 ```csharp
 var scene = new SCNScene();
 ```
 
-An `SCNView`is a subclass of `UIView`that displays a portion of an `SCNScene`. Let’s create an `SCNView`that takes up the whole screen:
+An `SCNView` is a subclass of `UIView` that displays a portion of an `SCNScene`. Create an `SCNView` that takes up the whole screen:
 
 ```csharp
 UIScreen.MainScreen.Bounds
@@ -42,30 +32,42 @@ UIScreen.MainScreen.Bounds
 
 ```csharp
 var scnView = new SCNView(UIScreen.MainScreen.Bounds);
-true
+true;
 ```
 
-Set the `SCNView.Scene` property to our previously created scene and show some debugging statistics:
+Set the `SCNView.Scene` property to the previously created scene and show some debugging statistics:
 
 ```csharp
 scnView.Scene = scene;
 scnView.AllowsCameraControl = true;
 scnView.ShowsStatistics = true;
-scnView.BackgroundColor = UIColor.Black;
+
 ```
 
-Now, by setting the `View`property of the root `UIViewController`to the `SCNView`we just created, we will have a full-screen (in the Simulator) view of our `SCNScene`:
+As always with iOS, control of the user experience begins with the root `UIViewController`. Xamarin notebooks provides the `RootViewController` global variable (execute `help` in a code block to see the complete list of variables provided by Workbooks).
 
 ```csharp
-vc.View = scnView;
+RootViewController;
+```
+
+By setting the `View` property of the root `UIViewController` to the `SCNView` that you just created, you will have a full-screen (in the Simulator) view of the `SCNScene`:
+
+```csharp
+RootViewController.View = scnView;
 true
 ```
+
+It may not be apparent that anything has changed, although you should notice the status bar at the bottom of the simulator showing FPS. But you can see that we are, indeed, displaying `scnView` by changing its background color:
+
+ ```csharp
+scnView.BackgroundColor = UIColor.Black;
+ ```
 
 Our scene graph is empty, so let’s set the stage:
 
 ### Lights!
 
-There are a variety of [SCNLightType values](https://developer.xamarin.com/api/type/SceneKit.SCNLightType/). We need at least one to see anything! In this case, we’ll create an“omni” light that emits light in all directions (like a naked light bulb) and an “ambient” light that illuminates all objects in the scene from all directions with the same intensity:
+There are a variety of [SCNLightType values](https://developer.xamarin.com/api/type/SceneKit.SCNLightType/). We need at least one to see anything! In this case, we’ll create an “omni” light that emits light in all directions (like a naked light bulb) and an “ambient” light that illuminates all objects in the scene from all directions with the same intensity:
 
 ```csharp
 var lightNode = new SCNNode();
@@ -81,24 +83,26 @@ ambientLightNode.Light.Color = UIColor.DarkGray;
 scene.RootNode.AddChildNode (ambientLightNode);
 ```
 
+The above code shows a typical pattern for working with SceneKit. First, you create an `SCNNode`. Second, you set properties of that node such as it's `Light` and `LightType` properties. The `Position` property locates the `SCNNode` in 3D space _relative to its parent node's_ `Position`, `Rotation`, and `Scale` properties. Finally, you add the newly-created `SCNNode` as a child of an existing `SCNNode`. 
+
 ### Camera!
 
-Now let’s place a camera within the scene:
+Now place a camera within the scene, using a similar pattern of creating an `SCNNode`, settings relevant properties, and locating it relative to its parent node:
 
 ```csharp
 var cameraNode = new SCNNode ();
 cameraNode.Camera = new SCNCamera ();
-scene.RootNode.AddChildNode (cameraNode);
 cameraNode.Position = new SCNVector3 (0.0F, 0.0F, 3.0F);
+scene.RootNode.AddChildNode (cameraNode);
 ```
 
 ### Actors on the set!
 
-At this point, we \*still \*don’t see anything, because we’ve not added any geometry to the scene graph.
+At this point, you \*still \* don’t see anything, because you've not added any geometry to the scene graph.
 
-The [SCNGeometry ](https://developer.xamarin.com/api/type/SceneKit.SCNGeometry/)class has a number of sub-classes representing primitive shapes (box, capsule, pyramid, etc.). Or you can programmatically create custom geometry or load it from a DAE file.
+The [SCNGeometry ](https://developer.xamarin.com/api/type/SceneKit.SCNGeometry/) class has a number of sub-classes representing primitive shapes (box, capsule, pyramid, etc.). Or you can programmatically create custom geometry or load it from a DAE file. (See the [Exploring SCNGeometrySource](tk) workbook.)
 
-In this case, create a SCNBox and add it to the scene:
+In this case, create an `SCNBox` and add it to the scene:
 
 ```csharp
 var boxNode = new SCNNode ();
@@ -110,10 +114,12 @@ scene.RootNode.AddChildNode (boxNode);
 
 Finally! Something visible in the Simulator! In the Simulator, you can click and drag to rotate the viewpoint.
 
-Now, let’s texture the box. First, load a simple texture from the file system (this will require you to have properly set `workbookDir` at the beginning of this workbook):
+(Note that the `Position` property of the `boxNode` was not set, but `SCNVector3` is a value type and defaults to `[0, 0, 0]`, which happens to be what we desire for this step.)
+
+Now, texture the box. First, load a simple texture from the file system:
 
 ```csharp
-var img = UIImage.FromFile(System.IO.Path.Combine(workbookDir, "textureX.png"));
+var img = UIImage.FromFile("textureX.png");
 ```
 
 SceneKit’s built-in primitive types have reasonable default values for UV (texture) coordinates, so no more work is needed to apply the texture to the box faces:
@@ -184,4 +190,3 @@ TimesRepeat(15, () => {
     scene.RootNode.AddChildNode (boxNode);
 });
 ```
-
