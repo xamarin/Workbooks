@@ -8,7 +8,7 @@ packages: []
 
 In this workbook, you will learn the basics of creating a custom View and 2D drawing using Xamarin.Android.
 
-One technique for drawing 2D graphics in Android is to use the Canvas APIs. This is a powerful API that allows for very fine grained control for how 2D graphics are created. The Canvas API uses a* painter’s model* for 2D drawing. Settings such as colour, stroke type, are programatically applied. Methods on the Canvas object are called to perform drawing actions, which are applied in successive order on the underlying bitmap. There are two ways to obtain and draw on a `Canvas` object.
+One technique for drawing 2D graphics in Android is to use the Canvas APIs. This is a powerful API that allows for very fine grained control for how 2D graphics are created. The Canvas API uses a\* painter’s model\* for 2D drawing. Settings such as colour, stroke type, are programatically applied. Methods on the Canvas object are called to perform drawing actions, which are applied in successive order on the underlying bitmap. There are two ways to obtain and draw on a `Canvas` object.
 
 One is to create a bitmap and provide as a parameter to the `Canvas` constructor. The other way is to subclass `Android.Views.View`, and override the `OnDraw` method. Android will invoke this method each time the View needs to be draw, and will pass in a `Canvas` object to be draw on.
 
@@ -63,7 +63,7 @@ public class MyRedGreenBar : Android.Views.View
 
         // Next, draw a green rectangle that covers the left 25% of the canvaa.
         float middle = canvas.Width * 0.25f;
-        canvas.DrawRect(0,0)
+        canvas.DrawRect(0,0, middle, Height, greenPaint);
     }
 }
 ```
