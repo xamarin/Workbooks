@@ -1,0 +1,46 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+```csharp
+using System;
+using Android.App;
+using Android.Content;
+using Android.Graphics;
+using Android.Graphics.Drawables;
+using Android.Graphics.Drawables.Shapes;
+using Android.OS;
+using Android.Views;
+
+Activity activity=StartedActivities.First();
+```
+
+```csharp
+public class MyOvalShape : View
+{
+    readonly ShapeDrawable theShape;
+
+    public MyOvalShape(Context context) : base(context)
+    {
+        Paint paint = new Paint();
+        paint.SetARGB(255,200,255,0);
+        paint.SetStyle(Paint.Style.Stroke);
+        paint.StrokeWidth=4;
+
+        theShape = new ShapeDrawable(new OvalShape());
+        theShape.Paint.Set(paint);
+        theShape.SetBounds(20,20,300,300);
+    }
+
+    protected override void OnDraw(Canvas canvas)
+    {
+        theShape.Draw(canvas);
+    }
+}
+```
+
+```csharp
+activity.SetContentView(new MyOvalShape(activity));
+```
