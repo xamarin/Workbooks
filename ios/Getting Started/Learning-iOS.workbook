@@ -6,6 +6,8 @@ packages: []
 
 # Understanding your iOS Application
 
+❗️To use this workbook follow through each section in sequence to learn how to build up a view heirarchy. Make sure to do the *Try it now* sections to reinforce your learning! ❗️
+
 When you open an iOS application on your device, what you see is a number of components working together to give you the perception of one single View. In this guide we will interactively explore the make up of an iOS application, allowing you to get a deeper understanding of its functionality.
 
 ### The Window
@@ -130,12 +132,4 @@ Once they have been created, we have to add these controls to the view. We can a
 controller.View.AddSubviews(new UIView[]{email, password, enterButton})
 ```
 
-At this point, the app has a simple (though passive) user interface that is displayed in a single ViewController. The next step is to add code to handle user input.
-
-### Creating an Event Handler
-
-```csharp
-enterButton.TouchUpInside += delegate {
-    enterButton.SetTitle ("Information Entered", UIControlState.Disabled);
-}
-```
+At this point, the app has a simple (though passive) user interface that is displayed in a single ViewController. The next step is to add code to handle user input. This is covered in the UIButton workbook.
