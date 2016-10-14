@@ -1,0 +1,121 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Android Switches
+
+In this interactive tutorial, you will learn the basics of
+working with the Android `Switch` widget in Xamarin.Android.
+The `Switch` widget allows a user to toggle between two states
+such as **ON** and **OFF**.
+
+## Getting Started
+
+Start by importing several namespaces that will be required for the code
+in the rest of this tutorial:
+
+```csharp
+using Android.App;
+using Android.Widget;
+using Android.OS;
+```
+
+Next, create an Android `Activity` and instantiate a screen layout to host 
+the `Switch`: 
+
+```csharp
+var rootActivity = StartedActivities.First ();
+var layout = new LinearLayout (rootActivity);
+layout.Orientation = Orientation.Vertical;
+rootActivity.SetContentView(layout);
+```
+
+This `LinearLayout` is the `ViewGroup` that manages views on the 
+screen. The only view that will be added to this layout is a `Switch`, 
+but you may add more views in the exercises at the end of this 
+tutorial. 
+
+## Creating a Switch
+
+Run the following code to create a `Switch` object and display it on 
+the screen:
+
+```csharp
+Switch mySwitch = new Switch (rootActivity);
+layout.AddView (mySwitch);
+```
+
+The `Switch` defaults to the **OFF** state. Repeatedly click the 
+`Switch` to toggle it **ON** and **OFF**. You should see the `Switch` 
+slide to the right and become highlighted when it is turned **ON**. 
+Also, each click causes a sound to be produced. 
+
+## Toggling the Switch
+
+You can programmatically turn the switch **ON** and **OFF** by changing 
+its `Checked` property. Make sure the switch is **OFF**, and then run 
+the following line of code to switch it back to **ON**: 
+
+```csharp
+mySwitch.Checked = true;
+```
+
+Setting the `Checked` property to `false` turns the switch back **OFF**: 
+
+```csharp
+mySwitch.Checked = false;
+```
+
+You can use the `Checked` property to programatically change the value 
+of the `Switch` to your chosen default state when the app starts up. 
+
+## Labeling the Switch
+
+Often is is useful to a attach a label to a `Switch` to indicate what it
+does. When you set the `Switch`'s `Text` property to a string, that string is
+displayed next to the `Switch`:
+
+```csharp
+mySwitch.Text = "Label for switch"
+```
+
+## Handling Switch Events
+
+When the `Switch`'s value changes, it raises a `CheckedChange` event. The 
+following code captures this event and displays a `Toast` message. Run 
+this code and repeatedly click the `Switch` to see what happens: 
+
+```csharp
+mySwitch.CheckedChange += delegate(object sender, CompoundButton.CheckedChangeEventArgs e) {
+    if (e.IsChecked) 
+        Toast.MakeText(rootActivity, "Switch was turned ON!", ToastLength.Long).Show();
+    else
+        Toast.MakeText(rootActivity, "Switch was turned OFF", ToastLength.Long).Show();
+}
+```
+
+When the Switch button is clicked, the `IsChecked` property of the event 
+is set to indicate the state of the Switch after it was clicked. If 
+`IsChecked` is `true`, the `Switch` is **ON** and a `Toast` message displays 
+the new state of the `Switch`. If `IsChecked` is `false`, the `Toast` displays 
+that the `Switch` has been turned **OFF**. 
+
+## Exercises
+
+You have now seen how to create a `Switch`, label it, modify its 
+state, and handle `Switch` events. Here are some things you can try to 
+test your understanding: 
+
+-   Change the `Switch` event handler to update the `Switch` label (`Text` 
+    property) rather than display a `Toast` each time the `Switch` is 
+    clicked. 
+
+-   Add a `Button` that toggles the state of the `Switch` on and off each
+    time the `Button` is clicked.
+
+-   Add a second `Switch` and implement a logical exclusive-OR operation: 
+    set the `Button` text to **ON** when one and only one `Switch` is 
+    turned on. Set the text to **OFF** when both `Switch`es are turned 
+    off or both are turned on. 
