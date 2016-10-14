@@ -6,9 +6,9 @@ packages: []
 
 # AutoCompleteTextView
 
-This guide will demonstrate how to use an AutoCompleteTextView in an Android application. An AutoCompleteTextView will display a list of suggestions that match the text a user has entered into a TextView.
+This guide will demonstrate how to use an AutoCompleteTextView in an Android application. An AutoCompleteTextView will display a list of suggestions that match the text a user has entered into a TextView. An AutoCompleteTextView doesn’t work alone - it requires the assistance of a another widget which must extend `Android.Widget.BaseAdapter`. The adapter is a special class that will display a individual item from a list in the drop down list UI that is presented by the AutoCompleteTextView.
 
-First, let’s import the necessary namespaces that we need, and declare a String array that holds the names of some monkeys.
+First, let’s import the necessary namespaces that we need, and declare a list hat holds the names of some monkeys.
 
 ```csharp
 using System;
@@ -21,7 +21,7 @@ using Android.Widget;
 Activity activity = StartedActivities.First();
 
 // A small list of some different types of monkeys
-static string[] MONKEYS = new string[] { "Allen's swamp monkey",
+List<String> MONKEYS = new List<String> { "Allen's swamp monkey",
   "Black capuchin", "Black-headed marmoset", "Black-headed night monkey", "Black-shanked douc", 
   "Cotton top tamarin",
   "Drill",
@@ -52,7 +52,6 @@ int paddingBottom = 0;
 Finally, create the layout programatically. We’ll have a LinearLayout that holds a TextView and the AutoCompleteTextView, and add that ViewGroup to the Activity:
 
 ```csharp
-
 // Add a linear layout for the Activity
 LinearLayout rootLayout = new LinearLayout(activity);
 rootLayout.Orientation = Orientation.Horizontal;
@@ -72,7 +71,6 @@ rootLayout.AddView(actv);
 
 // Finally, add evertyhing to the Activity.
 activity.SetContentView(rootLayout);
-
 ```
 
 The drop down list that an AutoCompleteTextView displays it’s choices requires an Adapter. The final step in this Workbook is to provide an Adapter instance to the view:
@@ -81,3 +79,6 @@ The drop down list that an AutoCompleteTextView displays it’s choices requires
 actv.Adapter = new ArrayAdapter<string>(activity, Android.Resource.Layout.SimpleListItem1, MONKEYS);
 ```
 
+## Further Reading
+
+You may want to check out the ListView and the Spinner workbooks as they are very similar to the AutoCompleteTextView control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the Xamarin ListView & Adapters guide.
