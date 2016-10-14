@@ -1,0 +1,84 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Using a Spinner in Xamarin.Android
+
+Start by importing the namespaces that will be required for the rest of this workbook and get a reference to the Activity:
+
+```csharp
+using System;
+using Android.App;
+using Android.Views;
+using Android.Widget;
+
+Activity activity = StartedActivities.First();
+List<String> MONKEYS =  new List<String> { "Allen's swamp monkey",
+  "Black capuchin", "Black-headed marmoset", "Black-headed night monkey", "Black-shanked douc", 
+  "Cotton top tamarin",
+  "Drill",
+  "Gee's golden lemur", "Geoffrey's tamarin", "Gelada", "Golden lion Tamarin", "Grivet", 
+  "Japanese macaque", 
+  "Lesula", 
+  "Mandril", 
+  "Yellow baboon"
+};
+```
+
+In Android, a spinner 
+
+We will need to create an ArrayAdapter and assign it to the Spinner widget:
+
+```csharp
+ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, Android.Resource.Layout.SimpleSpinnerItem, MONKEYS);
+adapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+
+Spinner spinner = new Spinner(activity);
+spinner.Adapter = adapter;
+
+// Set an event handler for when the user makes a selection from the spinner.
+spinner.ItemSelected += (sender, args) => {
+    Spinner s = (Spinner) sender;
+    AdapterView.ItemSelectedEventArgs e = (AdapterView.ItemSelectedEventArgs) args;
+    string message = String.Format("Your favourite monkey is {0}.", s.GetItemAtPosition(e.Position));
+    Toast.MakeText(activity, message, ToastLength.Short).Show();
+};
+
+
+```
+
+After creating the spinner, let’s add it to the Activity:
+
+```csharp
+int DP2Pixel(int dpValue)
+{
+    float density = activity.Resources.DisplayMetrics.Density;
+    int paddingDP = (int) (dpValue * density);
+    return paddingDP; 
+}
+
+int paddingLeft = DP2Pixel(10);
+int paddingRight = paddingLeft;
+int paddingTop = DP2Pixel(20);
+int paddingBottom = 0;
+
+TextView label = new TextView(activity);
+label.Text = "Monkey:";
+
+LinearLayout rootLayout = new LinearLayout(activity);
+label.SetPadding(paddingLeft, paddingTop, 0, 0);
+rootLayout.Orientation = Orientation.Horizontal;
+rootLayout.AddView(label);
+rootLayout.AddView(spinner);
+
+activity.SetContentView(rootLayout);
+```
+
+This shows how to add a simple spinner to an Activity and respond to a user selection from the Spinner. 
+
+## Further Reading
+
+You may want to check out the ListView and the AutoCompleteTextView workbooks as they are very similar to the Spinner control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the Xamarin ListView & Adapters guide.
+
