@@ -6,7 +6,7 @@ packages: []
 
 # AutoCompleteTextView
 
-This guide will demonstrate how to use an AutoCompleteTextView in an Android application. An AutoCompleteTextView will display a list of suggestions that match the text a user has entered into a TextView. An AutoCompleteTextView doesn’t work alone - it requires the assistance of a another widget which must extend `Android.Widget.BaseAdapter`. The adapter is a special class that will display a individual item from a list in the drop down list UI that is presented by the AutoCompleteTextView.
+This guide will demonstrate how to use an AutoCompleteTextView in an Android application. An AutoCompleteTextView will display a list of suggestions that match the text a user has entered into a TextView. An AutoCompleteTextView doesn’t work alone - it requires the assistance of another widget which must extend `Android.Widget.BaseAdapter`. The adapter is a special class that will display a individual item from a list in the drop down list UI that is presented by the AutoCompleteTextView.
 
 First, let’s import the necessary namespaces that we need, and declare a list hat holds the names of some monkeys.
 
@@ -21,7 +21,7 @@ using Android.Widget;
 Activity activity = StartedActivities.First();
 
 // A small list of some different types of monkeys
-List<String> MONKEYS = new List<String> { "Allen's swamp monkey",
+List<String> allTheMonkeys = new List<String> { "Allen's swamp monkey",
   "Black capuchin", "Black-headed marmoset", "Black-headed night monkey", "Black-shanked douc", 
   "Cotton top tamarin",
   "Drill",
@@ -33,7 +33,17 @@ List<String> MONKEYS = new List<String> { "Allen's swamp monkey",
 };
 ```
 
-Next, let’s calculate the padding values for out views. The `SetPadding` method takes values that are in pixels (PX), but it’s better to express padding in *density-independent pixels* (DP). So, let’s  write a method that will convert a DP value to  pixels:
+We will need to create an `ArrayAdapter<String>` and assign it to the AutoTextCompleteTextView widget. In this example, each row in the AutoCompleteTextView will use a built-in Android layout, the `Android.Resource.Layout.SimpleListItem1`:
+
+```csharp
+ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, Android.Resource.Layout.SimpleListItem1, allTheMonkeys);
+adapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+
+AutoCompleteTextView actv = new AutoCompleteTextView(activity);
+actv.Adapter = adapter;
+```
+
+In the next snippet, we add the `actv` to the Activity, want to add some padding to the views. Typically, one uses *device-independent pixels (DPs)* for positioning views on an Android layout. However, the `SetPadding` method takes pixels. The `DP2Pixel` method will take a DP value and convert that to pixels appropriate to the device.
 
 ```csharp
 int DP2Pixel(int dpValue)
@@ -45,40 +55,23 @@ int DP2Pixel(int dpValue)
 
 int paddingLeft = DP2Pixel(10);
 int paddingRight = paddingLeft;
-int paddingTop = DP2Pixel(40);
-int paddingBottom = 0;
-```
+int paddingTop = DP2Pixel(20);
+int paddingBottom = DP2Pixel(9);
 
-Finally, create the layout programatically. We’ll have a LinearLayout that holds a TextView and the AutoCompleteTextView, and add that ViewGroup to the Activity:
+actv.SetPadding(paddingLeft, 0, paddingRight, 0);
 
-```csharp
-// Add a linear layout for the Activity
 LinearLayout rootLayout = new LinearLayout(activity);
-rootLayout.Orientation = Orientation.Horizontal;
-rootLayout.LayoutParameters = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.MatchParent);
-
-// Add a label
 TextView label = new TextView(activity);
-label.SetPadding(paddingLeft, paddingTop, 0, 0);
-label.Text = "Monkey:";
-rootLayout.AddView(label);
+label.Text = "Pick a Monkey:";
+label.SetPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
 
-// Add the AutoCompleteTextView
-AutoCompleteTextView actv = new AutoCompleteTextView(activity);
-actv.LayoutParameters = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-actv.SetPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+rootLayout.Orientation = Orientation.Vertical;
+rootLayout.AddView(label);
 rootLayout.AddView(actv);
 
-// Finally, add evertyhing to the Activity.
 activity.SetContentView(rootLayout);
-```
-
-The drop down list that an AutoCompleteTextView displays it’s choices requires an Adapter. The final step in this Workbook is to provide an Adapter instance to the view:
-
-```csharp
-actv.Adapter = new ArrayAdapter<string>(activity, Android.Resource.Layout.SimpleListItem1, MONKEYS);
 ```
 
 ## Further Reading
 
-You may want to check out the ListView and the Spinner workbooks as they are very similar to the AutoCompleteTextView control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the Xamarin ListView & Adapters guide.
+You may want to check out the ListView and the Spinner workbooks as they are very similar to the AutoCompleteTextView control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the [Xamarin ListView & Adapters guide](https://developer.xamarin.com/guides/android/user_interface/working_with_listviews_and_adapters/).

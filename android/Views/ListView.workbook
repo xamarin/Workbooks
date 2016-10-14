@@ -39,12 +39,11 @@ ListView listview = new ListView(activity);
 listview.Adapter = adapter;
 
 // Set an event handler for when the user makes a selection from the spinner.
-listview.ItemSelected += (sender, args) => {
+listview.ItemClick += (object sender, AdapterView.ItemClickEventArgs e) => {
     ListView l = (ListView) sender;
-    AdapterView.ItemSelectedEventArgs e = (AdapterView.ItemSelectedEventArgs) args;
     string message = String.Format("Your favourite monkey is {0}.", allTheMonkeys[e.Position]);
     Toast.MakeText(activity, message, ToastLength.Short).Show();
-};
+} ;
 ```
 
 In the next snippet, we add the `listview` to the Activity, want to add some padding to the views. Typically, one uses *device-independent pixels (DPs)* for positioning views on an Android layout. However, the `SetPadding` method takes pixels. The `DP2Pixel` method will take a DP value and convert that to pixels appropriate to the device.
@@ -78,4 +77,4 @@ activity.SetContentView(rootLayout);
 
 ## Further Reading
 
-You may want to check out the Spinner and the AutoCompleteTextView workbooks as they are very similar to the Spinner control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the [Xamarin ListView & Adapters guide](https://developer.xamarin.com/guides/android/user_interface/working_with_listviews_and_adapters/).
+You may want to check out the Spinner and the AutoCompleteTextView workbooks as they are very similar to the ListView control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the [Xamarin ListView & Adapters guide](https://developer.xamarin.com/guides/android/user_interface/working_with_listviews_and_adapters/).
