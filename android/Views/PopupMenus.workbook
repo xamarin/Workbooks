@@ -1,0 +1,117 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Android Popup Menus
+
+A *Popup menu* is a menu that is displayed in a window that is anchored 
+to a `View`. In this interactive tutorial, you will learn how to create 
+a single popup menu item and attach it to a `TextView`. 
+
+## Getting Started
+
+Start by importing several namespaces that will be required for the code
+in the rest of this tutorial:
+
+```csharp
+using Android.App;
+using Android.Widget;
+using Android.OS;
+```
+
+Next, create an Android `Activity` and instantiate a screen layout:
+
+```csharp
+var rootActivity = StartedActivities.First ();
+var layout = new LinearLayout (rootActivity);
+layout.Orientation = Orientation.Vertical;
+rootActivity.SetContentView(layout);
+```
+
+Because `PopupMenu` must be anchored to a `View`, the next step is add 
+a `TextView` to the layout. This `TextView` will anchor the popup menu: 
+
+```csharp
+TextView textView = new TextView(rootActivity);
+textView.Text = "Click to Launch Popup Menu";
+layout.AddView (textView);
+```
+
+When you run this code, a `TextView` should be displayed near
+the top of the screen.
+
+## Adding a Popup Menu
+
+`PopupMenu` is a `View` that displays a single menu item. Run the 
+following code to create a new `PopupMenu` and set its title:
+
+```csharp
+PopupMenu popup = new PopupMenu(rootActivity, textView);
+popup.Menu.Add(new Java.Lang.String("This is a Popup Menu"));
+```
+
+To display a `PopupMenu`, call its `Show` method. The following code
+causes the popup menu instantiated above to be displayed when the
+`TextView` is clicked. Run this code and click the `TextView` to see
+what happens:
+
+```csharp
+textView.Click += (s, arg) => {
+    popup.Show();
+};
+```
+
+Clicking the `TextView` causes the **This is a Popup Menu** menu item 
+to be displayed. 
+
+In the above code, a *lambda exression* is used to implement the event
+handler for the `TextView` click event. The lambda expression code (the
+code within the curly braces) calls the popup menu's `Show` method when
+the `TextView` is clicked.
+
+## Handling Menu Events
+
+When the user selects a menu item, the `MenuItemClick` event is raised. 
+The following code displays a `Toast` when the menu item is clicked. 
+Run the following code, click the `TextView`, and then click the menu 
+to see what happens: 
+
+```csharp
+popup.MenuItemClick += (s, arg) => {
+    Toast.MakeText(rootActivity, arg.Item.TitleFormatted + " selected", ToastLength.Long).Show();
+};
+```
+
+The argument passed in the event contains a reference to the popup menu
+item. In the above code, the title of the selected menu item is extracted
+(via the passed `Item` reference) and displayed in the toast message.
+
+When the menu item is dismissed, its `DismissEvent` is raised. Run the 
+following code, click the `TextView`, and then click the screen to 
+dismiss the menu item: 
+
+```csharp
+popup.DismissEvent += (s, arg) => {
+    Toast.MakeText(rootActivity, "Dismissed", ToastLength.Long).Show();
+};
+```
+
+When you dismiss the menu item, the `DismissEvent` handler above 
+displays a toast to indicate that the `DismissEvent` handler was called.
+
+## Exercises
+
+You have now seen the basics of how to use `PopupMenu` in a
+Xamarin.Android application. Here are some things you can try to test
+your understanding:
+
+1. Modify the `MenuItemClick` event handler to display the
+   menu item's `ItemId` in the toast. (Hint: use Workbook code
+   completion to see which properties and methods are available from
+   the `Item` reference.)
+
+2. Is it possible to modify the `DismissEvent` to retrieve and
+   display the menu item's title from the argument passed to 
+   `DismissEvent`?
