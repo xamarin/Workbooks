@@ -1,0 +1,82 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# Settings & Configurations
+
+Xamarin.iOS does not provide `System.Configuration.ConfigurationManager`. On iOS & MacOS, the native facility for providing user defaults and settings is the `NSUserDefaults`class:
+
+```csharp
+var settings = NSUserDefaults.StandardUserDefaults
+```
+
+The `NSUserDefault.StandardUserDefaults` is backed by a .plist file managed by the system and associated with your app. This file is read and written in a thread-safe fashion, but the reading is done synchronously, so can be noticeable if the amount of data is stored is large.
+
+Values can be written and read with code:
+
+```csharp
+readonly var key = "MyKey";
+settings.SetDouble(1.0, key); //After running once, you can comment this line out
+var mySetting = settings.DoubleForKey(key); //As long as the above line has run at least once, this will return the value
+```
+
+You cannot directly write to the settings .plist file, but you can effectively do so by registering default values from a .plist file:
+
+```csharp
+var defaultPreferences = NSDictionary.FromFile("./defaultpreferences.plist");
+```
+
+```csharp
+settings.RegisterDefaults(defaultPreferences);
+```
+
+After you have registered your defaults, those keys are available via `{type}ForKey`methods:
+
+```csharp
+var vals = new Object[] { settings.StringForKey("String0"), settings.DoubleForKey("Number0"), settings.BoolForKey("Bool0")};
+```
+
+Notice that although our .plist contained the value 56.78 for the key “MyKey”, that’s just the default value and because we had explicitly set it, `RegisterDefaults` does not override the  “MyKey” value:
+
+```csharp
+var notDefault = settings.DoubleForKey(key);
+```
+
+Explicitly setting values is the only way to store them permanently. The values set in `RegisterDefaults` are *not *written to disk. You *must *call `RegisterDefaults` every time your app runs in order to ensure that you have values for every key.
+
+## Try to avoid calling the Synchronize() method
+
+After a value is explicitly set, the system will *eventually* write the settings .plist to permanent storage. Therefore, a crash shortly after setting a default may result in losing that saved value. For particularly important settings, you *may *explicitly call the `Synchronize()` method:
+
+```csharp
+settings.Synchronize();
+```
+
+Apple discourages calling this method as it can have a noticeable impact on application responsiveness.
+
+## Strongly-Typed Functions for Accessing Settings:
+
+* `ArrayForKey` - Returns an array of `NSObjects` for the given key value.
+
+* `BoolForKey` - Returns a boolean value for the given key.
+
+* `DataForKey` - Returns an `NSData` object for the given key.
+
+* `DictionaryForKey` - Returns an `NSDictionary` for the given key.
+
+* `DoubleForKey` - Returns a double value for the given key.
+
+* `FloatForKey` - Returns a float value for the given key.
+
+* `IntForKey` - Returns an integer value for the given key.
+
+* `StringArrayForKey` - Returns an array of `String` objects from the given key value.
+
+* `StringForKey` - Returns a string value for the given key.
+
+* `URLForKey` - Returns an `NSUrl` value for the given key.
+
+It is up to you to write serialization code (to either `string` or `NSData` ) for types other than these.
+
