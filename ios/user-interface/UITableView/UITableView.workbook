@@ -1,0 +1,240 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# Introduction to iOS Tables
+
+## Displaying data using UITableView with Xamarin.iOS
+
+This workbook introduces the classes used to create and display tables in Xamarin.iOS. 
+
+For those working on cross-platform applications with Xamarin.Android, the `UITableView` control is similar to the `ListView` class in Android and the `UITableViewSource` class is similar to Android’s `Adapter` classes.
+
+## Table Parts
+
+A UITableView can have a ‘grouped’ or ‘plain’ style, and consists of the following parts:
+
+* Section Header
+
+* Cells (or rows, if you prefer)
+
+* Section Footer
+
+* Index
+
+* Editing mode (includes ‘swipe to delete’ and drag handles to change row order)
+
+These screenshots show how section rows, headers, footers, edit controls and the index are displayed.
+
+![](image1a.png)
+
+To understand iOS tables, it’s easiest to work upwards from the domain data:
+
+```csharp
+//Domain data
+public class SimpleDomainClass {
+    public nint Section { get; }
+    public nint Row { get; }
+
+    public SimpleDomainClass(nint section, nint row)
+    {
+        Section = section;
+        Row = row;
+    }
+
+    override public string ToString() => $"Section {Section}, Row {Row}";
+}
+
+var simpleDomainCollection = new [] {
+    new SimpleDomainClass(0, 0),
+    new SimpleDomainClass(0, 1),
+    new SimpleDomainClass(0, 2),
+    new SimpleDomainClass(1, 0),
+    new SimpleDomainClass(1, 1),
+    new SimpleDomainClass(1, 2)
+};
+```
+
+Generally, you do not need to subclass `UITableView` itself:
+
+```csharp
+var tableView = new UITableView();
+```
+
+A table view displays its data in `UITableViewCell` instances.  Because tables may be very large, iOS caches the UITableViewCell instances of a table. The key to that cache is a `string` called the “reuse identifier.” The method `RegisterClassForReuse` associates the reuse identifier with the type of `UITableViewCell` you wish to use. To avoid typos, a good practice is to use `nameof(YourCellType)`:
+
+```csharp
+readonly string CELL_ID = nameof(UITableViewCell);
+tableView.RegisterClassForCellReuse(typeof(UITableViewCell), CELL_ID);
+```
+
+In this case, we want to display a generic `UITableViewCell` but often you will pass in a subclass you define.
+
+Domain data is linked to the table view via a subclass of UITableViewSource:
+
+```csharp
+public class DomainSource : UITableViewSource
+{
+      SimpleDomainClass[] Model { get; }
+
+        public DomainSource (SimpleDomainClass[] model)
+        {
+            this.Model = model;
+        }
+
+        //The first section is section == 0 
+        public override nint RowsInSection (UITableView tableView, nint section)
+        {
+            // Matches the "Section" property with the passed-in section
+            return Model.Count((datum => datum.Section == section));
+        }
+
+        public override nint NumberOfSections(UITableView tableView)
+        {
+            return Model.GroupBy((datum) => datum.Section).Count();
+        }
+
+        //Note: For production, strive to make this method performant
+        public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+        {
+            //Retrieve a cell from the system-maintained cache for the table. 
+            var cell = tableView.DequeueReusableCell (nameof(UITableViewCell), indexPath); //as MyTableViewCellType <-- Downcast as necessary
+            //RegisterForReuse guarantees cell is not null 
+
+            //Retrieve data
+            var sectionData = Model.Where(datum => datum.Section == indexPath.Section); 
+            
+            //Set the appearance of the cell based on the data and indexPath
+            cell.TextLabel.Text = sectionData.ElementAt(indexPath.Row).ToString();
+
+            return cell;
+        }
+    }
+    
+var simpleSource = new DomainSource(simpleDomainCollection);
+```
+
+Your UITableViewSource may override more functions, but it must override `RowsInSection` and `GetCell`. RowsInSection should be fairly clear: `section` is a 0-based index into your domain data; if your table has only a single section, just return the total number of rows in your data. Because our sample data has multiple sections, the above also overrides `NumberOfSections`.
+
+`GetCell` is a little more complex. `GetCell`is responsible for setting the properties of a specific row. The `indexPath` contains both a `Section` and a `Row` `nint` that indicates what data the `tableView` is displaying. `DequeueReusableCell` takes a string (a reuse identifier) and the passed-in `indexPath` and returns a `UITableViewCell`. If you have called `RegisterClassForCellReuse`, `DequeueReusableCell` will, as necessary, instantiate a new instance of the type associated with the reuse identifier. If you have *not* registered a class, you must perform a null check and instantiate the cell yourself.
+
+Because we are using the base class `UITableViewCell` for display we do not need to downcast to get the appropriate type for  `cell`, but if you had registered a custom class, you would need to downcast it. The bulk  of `GetCell` is setting the display properties of the `cell` to the values of the domain data associated with the `indexPath`.
+
+*Note:* `GetCell` must be a performant method. This example uses LINQ for clarity, but you should profile and be prepared to optimize this method.
+
+Now that you have a `UITableView` for which you’ve registered a `UITableViewCell` to display cells, and you have a `UITableViewSource` associated with your data, the next thing to do is tie them together:
+
+```csharp
+tableView.Source = simpleSource;
+```
+
+Finally, you need a `UITableViewController` to handle the user experience:
+
+```csharp
+var tvc = new UITableViewController(UITableViewStyle.Plain);
+tvc.TableView = tableView;
+RootViewController.PresentViewController(tvc, true, () => {});
+```
+
+You'll notice that although your data has two sections, the displayed table does not show any breaks. To create section headers and footers, you need to override additional functions in your `UITableViewSource`:
+
+```csharp
+//Notice that this is a subclass of DomainSource (which defines GetCell, RowsInSection, and NumberOfSections) 
+public class DomainSourceWithGroups : DomainSource
+{
+    public DomainSourceWithGroups(SimpleDomainClass[] data) : base(data) {}
+
+    //Both "GetViewFor{Header|Footer|" and "GetHeightFor{Header|Footer"}" must be overridden
+    public override UIView GetViewForHeader(UITableView tableView, nint section)
+    {
+        var l = new UILabel();
+        l.Text = $"Section {section}";
+        l.BackgroundColor = UIColor.White;
+        return l;
+    }
+
+    public override nfloat GetHeightForHeader(UITableView tableView, nint section)
+    {
+        return 20;
+    }
+
+    public override UIView GetViewForFooter(UITableView tableView, nint section)
+    {
+        var vw = new UIView();
+        vw.BackgroundColor = UIColor.Yellow;
+        return vw;
+    }
+
+    public override nfloat GetHeightForFooter(UITableView tableView, nint section)
+    {
+        return 5;
+    }
+}
+    
+var sourceWithSectionViews = new DomainSourceWithGroups(simpleDomainCollection);
+tableView.Source = sourceWithSectionViews;
+
+//Re-display
+tvc.DismissViewController(true, () => { RootViewController.PresentViewController(tvc, true, null);});
+```
+
+`DomainSourceWithGroups`adds support for section headers and footers. The `GetHeightForHeader`and `GetHeightForFooter` must be implemented for the relevant view to appear.
+
+## Reacting to touches
+
+Most tables allow the user to touch a row to select it and perform some other action (such as playing a song, or calling a contact, or showing another screen). 
+
+iOS does not have .NET-like events. It sometimes uses the almost-but-not-quite-an-event “target-action” pattern but more commonly it uses the the “delegate object” model for event-handling. In this model, components are associated with two different classes. One class holds those properties and behaviors that are not necessarily customized every time the class is used (a `UILabel`, for instance, displays some Text whose *value*  will certainly need to be set to something other than “Label”, but the idea that it displays a string is unlikely to be changed). The other class, called the “delegate class,” contains the methods that in the .NET-world would correspond to events. Since events typically *do* need to be handled in a custom manner, you typically write lots of subclasses of the “delegate class.”
+
+It’s important not to be confused between C# `delegate` methods and the “delegate object” model, especially as Apple typically refers to the delegate object simply as “the delegate.”   
+
+ The `UITableViewSource` class is a delegate class for the `UITableView` and you override the `RowSelected` method in order to handle a selection touch. You could either write the custom event-handling code directly in the `RowSelected` method or you could expose the call as a .NET event:
+
+```csharp
+//Generic EventArgs subclass
+public class EventArgsT<T> : EventArgs
+{
+    public T Value { get; }
+    
+    public EventArgsT(T value) { this.Value = value; }
+}
+
+//Again, note that this inherits from UITableViewSource 
+class TouchDelegateToEvent : DomainSourceWithGroups {
+    public TouchDelegateToEvent(SimpleDomainClass [] data) : base(data) {}
+
+    public event EventHandler<EventArgsT<NSIndexPath>> OnRowSelected = delegate {};
+
+    public override void RowSelected(UITableView tableView, NSIndexPath path)
+    {
+        OnRowSelected(this, new EventArgsT<NSIndexPath>(path));
+    }
+}
+
+//Instantiate our new UITableViewSource and assign it
+var sourceWithTouch = new TouchDelegateToEvent(simpleDomainCollection);
+tableView.Source = sourceWithTouch;
+
+//Handle the touch event by showing a simple dialog
+sourceWithTouch.OnRowSelected += (sender, evt) => 
+{
+    NSIndexPath path = evt.Value;
+    var popup = UIAlertController.Create("Row touched", $"Section {path.Section} Row {path.Row}", UIAlertControllerStyle.Alert);
+    popup.AddAction(UIAlertAction.Create("Click", UIAlertActionStyle.Default, null));
+
+    tvc.PresentModalViewController(popup, true);
+
+};
+
+//Re-display
+tvc.DismissViewController(true, () => { RootViewController.PresentViewController(tvc, true, null);});
+```
+
+The previous code defines an `EventArgsT<T>` class and an `OnRowSelected` event. It overrides the "delegate class" method `RowSelected` to fire the `OnRowSelected` event. Then, it creates an instance of this new `UITableViewSource` class and assigns a handler (a .NET `delegate`, which is hopefully not too confusing!) to the `OnRowSelected` event. (Normally you should avoid using "On" for titling your events, but in this case the "delegate class" already took the name `RowSelected`.) The handler pops up a dialog with information about the touched row. Finally, it re-displays the `UITableViewController`.
+
+## Further Reading
+
+Tables (and the closely-related UICollectionView and associated classes) have a large amount of behavior and customizability. The [Working with Tables and Cells](https://developer.xamarin.com/guides/ios/user_interface/tables/) series on the Xamarin developer portal goes into these capabilities in great depth.
+
