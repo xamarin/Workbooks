@@ -1,0 +1,583 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# .storyboard/.xib Less User Interface Design
+
+## How to create a Xamarin.Mac app's UI from C# code
+
+This workbook will cover the steps required to build a Xamarin.Mac app's User Interface directly from C# code without using a Xcode's Interface Builder `.storyboard` or `.xib` file. For more information, please see our [.storyboard/.xib Less User Interface Design](https://developer.xamarin.com/guides/mac/application_fundamentals/xibless-ui/) documentation.
+
+Creating a Modern macOS App User Interface in code, such as the ones used in Apple's Safari web browser, Pages word processor and Numbers spread sheet app is also covered at the end of this workbook. For more information, please see our [Building Modern macOS Apps](https://developer.xamarin.com/guides/mac/platform-features/introduction-to-macos-sierra/modern-cocoa-apps/) documentation
+
+## Defining the UI in Interface Builder
+
+Before diving into the process of building a Xamarin.Mac app’s User Interface in code, let’s quickly review how a macOS app’s UI is normally created. Typically, a Xamarin.Mac app’s User Interface is defined in one or more `.storyboard` or `.xib` files added to the project’s hierarchy. For example:
+
+![](Images/Xcode01.png)
+
+Double-clicking this file will open it in Xcode’s Interface Builder where the Menus, Windows, Controls and Segues that make up the app’s UI can be defined visually. For example:
+
+![](Images/Xcode02.png)
+
+When the UI layout is completed, the graphical elements that make up the UI are then exposed via **Actions** and **Outlets,** making them accessible to code. When the developer saves their changes to the `Main.storyboard` file and returns to Xamarin Studio, these changes are synced with the Xamarin.Mac app’s Project File and the UI elements are then accessible in C#.
+
+## Defining the UI in Code
+
+All macOS app’s User Interfaces are based off of a MVC (Model View Controller) methodology. As shown above, this is typically defined in a `.storyboard` or `.xib` file. When creating the User Interface directly in code, the developer will be responsible for building and properly initializing both the Window (`NSWindow`) and its Window Controller (`NSWindowController`).
+
+### Defining the Window
+
+The first thing that will need to be done, is to create a Window (`NSWindow`) to hold all of the elements that will go into building the Xamarin.Mac app’s UI. Start by creating a custom class to layout and initialize this window:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public class CodeBasedWindow : NSWindow {
+
+    #region Private Variables
+    private int NumberOfTimesClicked = 0;
+    #endregion
+
+    #region Computed Properties
+    public NSButton ClickMeButton { get; set;}
+    public NSTextField ClickMeLabel { get ; set;}
+    #endregion
+
+    #region Constructors
+    public CodeBasedWindow (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public CodeBasedWindow (NSCoder coder) : base (coder)
+    {
+    }
+
+    public CodeBasedWindow (CGRect contentRect, NSWindowStyle aStyle, NSBackingStore bufferingType, bool deferCreation): base (contentRect, aStyle,bufferingType,deferCreation) 
+    {
+        // Create a title for the window
+		Title = "Window From Code";
+
+		// Create the content view for the window and make it fill the window
+		ContentView = new NSView (Frame);
+
+        // Layout the Window's UI
+        ClickMeButton = new NSButton (new CGRect (10, Frame.Height-70, 100, 30)){
+            AutoresizingMask = NSViewResizingMask.MinYMargin
+        };
+        ContentView.AddSubview (ClickMeButton);
+
+        ClickMeLabel = new NSTextField (new CGRect (120, Frame.Height - 65, Frame.Width - 130, 20)) {
+            BackgroundColor = NSColor.Clear,
+            TextColor = NSColor.Black,
+            Editable = false,
+            Bezeled = false,
+            AutoresizingMask = NSViewResizingMask.WidthSizable | NSViewResizingMask.MinYMargin,
+            StringValue = "Button has not been clicked yet."
+        };
+        ContentView.AddSubview (ClickMeLabel);
+    }
+    #endregion
+
+    #region Override Methods
+    public override void AwakeFromNib ()
+    {
+        base.AwakeFromNib ();
+
+        // Wireup events
+        ClickMeButton.Activated += (sender, e) => {
+            // Update count
+            ClickMeLabel.StringValue = (++NumberOfTimesClicked == 1) ? "Button clicked one time." : string.Format("Button clicked {0} times.",NumberOfTimesClicked);
+        };
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, it creates a private variable to track how many times a Button that will be added to the Window has been clicked:
+
+`private int NumberOfTimesClicked = 0;`
+
+Two public computed properties are also created to hold the `NSButton` and `NSTextField` that will comprise the Window’s User Interface:
+
+`public NSButton ClickMeButton { get; set;}`\
+`public NSTextField ClickMeLabel { get ; set;}`
+
+In the Window’s constructor, the new Window will be configured with a default `Title` and `ContentView`. Setting the `ContentView` is a very important step, as it is initially `null` and attempting to add any UI to the Window will result in an error. A new `NSView` is created and it is set to fill the Window’s content area:
+
+`ContentView = new NSView (Frame);`
+
+Next, other `NSView` based elements are configured and added to the `ContentView` using the `AddSubview` method (such as the `NSButton` and `NSTextField` above). The first thing to note here is that, unlike iOS, macOS uses mathematical notation to define it's Window coordinate system. So the origin point (0,0) is in the lower left hand corner of the Window, with values increasing right and towards the upper right hand corner of the window. When creating the new `NSButton` and `NSTextField`, this is taken into account as the position and size is defined.
+
+The `AwakeFromNib` method is overridden and any configuration is done that requires the Window to have already been constructed and in memory, such as attaching to the `Activated` event to the `ClickMeButton`.
+
+Why was the `Activated` event set in the `AwakeFromNib` method and not when the `NSButton` was created in the Window’s constructor? Because the Window hasn’t been fully inflated at this point and `Activated` property is `null`, so attempting to set it would result in an error.
+
+---
+
+###### 👍 Try it now!
+
+* Change the default `Title` for the new Window.
+
+* Set a new `BackgroundColor` and `TextColor` for the `ClickMeButton` when it is created.
+
+* Adjust the appearance of the `ClickMeLabel` when it is created and set a new default value.
+
+* Add another `NSButton` and `NSTextField` to the Window.
+
+***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.*
+
+---
+
+### Defining the Window Controller
+
+Next, a Window Controller (`NSWindowController`) is required to initialize and maintain the code based Window (`CodeBasedWindow`) created above. Again, a custom class is defined to handle this task:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public  class CodeBasedWindowController : NSWindowController
+{
+    #region Computed Properties
+    public new CodeBasedWindow Window {
+        get { return base.Window as CodeBasedWindow; }
+    }
+    #endregion
+
+    #region Constructors
+    public CodeBasedWindowController (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public CodeBasedWindowController (NSCoder coder) : base (coder)
+    {
+    }
+
+    public CodeBasedWindowController () : base ("CodeBasedWindow")
+    {
+        // Define the Window's default location and size
+        CGRect contentRect = new CGRect (0, 0, 1000, 500);
+
+        // Create a new instance of the CodeBasedWindow
+        base.Window = new CodeBasedWindow(contentRect, (NSWindowStyle.Titled | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable | NSWindowStyle.Resizable), NSBackingStore.Buffered, false);
+
+        // Simulate Awaking from Nib
+        Window.AwakeFromNib ();
+    }
+    #endregion
+
+    #region Override Methods
+    public override void AwakeFromNib ()
+    {
+        base.AwakeFromNib ();
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, when a new instance of the `CodeBasedWindowController()` is created, it will build and configure a new instance of the `CodeBasedWindow` to control.
+
+The default location and size of the Window is define using a `CGRect`. In the case of this example, the window will appear in the lower left hand corner of the screen (0,0) and be 1000 pixels wide and 500 pixels high.
+
+Why will the Window appear in the lower corner of the screen and not the upper corner? Because macOS is based on a mathematical grid system where (0,0) is in the lower left hand corner with the Y values increasing upwards towards the top. This is opposed to iOS where (0,0) is in the upper left hand corner with Y values increasing downwards towards the bottom of the screen.
+
+When the new instance of the CodeBasedWindow is created, several Window Style (`NSWindowStyle`) flags are or’ed (`|`) together to define the look and functionality of the Window. The available styles are:
+
+* `Borderless` - The Window will not have a border.
+
+* `Titled` - The Window will include a Title Bar.
+
+* `Closable` - The Window will include a red close widget.
+
+* `Miniaturizable` - The Window has a yellow Miniaturize Button and can be minimized.
+
+* `Resizable` - The Window will have a green Resize Button and be resizable.
+
+* `Utility` - The Window will be presented as a Utility Panel styled Window.
+
+* `DocModal` - Creates a modal Window.
+
+* `NonactivatingPanel` - Creates a non-activating floating Panel style Window.
+
+* `TexturedBackground`  - Applies a textured background to the Window.
+
+* `Unscaled` - Creates an unscaled Window.
+
+* `UnifiedTitleAndToolbar` - Modern Shoebox (single Window) macOS apps (such as Mail, Calendar and Notes) use a unified Title and Tool Bar area. Use this style to achieve the effect.
+
+* `Hud` - Creates a translucent floating Heads-Up type Window.
+
+* `FullScreenWindow` - Fills the Mac’s screen with the content area of the Window and hides the Menu and Title bar areas.
+
+* `FullSizeContentView` - Complements the `UnifiedTitleAndToolbar` style for modern macOS apps where the Content Area of the Window will extend under the Title and Tool Bar areas.
+
+The `NSBackingStore` specifies how the drawing is buffered in a Window as one of the following:
+
+* `Retained` - The Window uses a buffer, but draws directly to the screen where possible and to the buffer for parts that are obscured.
+
+* `Nonretained` - The Window draws directly to the screen without using any buffer.
+
+* `Buffered` - The Window renders all drawing into a display buffer and then flushes it to the screen.
+
+The last property specified when creating the new `CodeBasedWindow` is `deferCreation`. If `true`, the Window Server defers creating the Window until it is moved onscreen. If `false`, the Window Server creates the Window immediately. All display messages sent to a Window or its Views are postponed until the Window is created, just before it’s moved onscreen.
+
+Finally, the `AwakeFromNib` method is called on the Window. Typically, this method is invoked when the Window is inflated from a `.storyboard` or `.xib` file, because the Window is being created manually, the developer must explicitly call this method to inform the Window it has been created.
+
+---
+
+###### 👍 Try it now!
+
+* Change the values for the `contentRect` to open the Window in a new default location or make it a different default size.
+
+* Adjust the `NSWindowStyle` flags to change the look and functionality of the Window that will be created.
+
+* Play with the `NSBackingStore` value to see how it affects the way the Window is drawn.
+
+* Set `deferCreation` to `true` and see how it affects the Window creation.
+
+***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.*
+
+---
+
+### Displaying the Window
+
+With the custom classes for the Window and Window Controller created, the code based window can be displayed to the user. Typically, this is done inside of the  `DidFinishLaunching` method of the Xamarin.Mac app’s `AppDelegate` using the following lines of code:
+
+```csharp
+var mainWindowController = new CodeBasedWindowController ();
+mainWindowController.Window.MakeKeyAndOrderFront ((NSObject)NSApplication.SharedApplication.Delegate);
+```
+
+Let’s take a closer look at what this code is doing. First, a new instance of the `CodeBasedWindowController` is created. Next, the `Window` managed by this Controller (which is an instance of the `CodeBasedWindow` in this case) is displayed by calling the `MakeKeyAndOrderFront` method.
+
+In macOS, the **Key Window** is the currently active Window that has focus and access to user input. **Order Front** brings the window forward in front of all other Windows currently being displayed.
+
+When `MakeKeyAndOrderFront` is called, an instace of the object that created it is passed in. Typically, this will be the `AppDelegate` for the macOS app. Since this code is usually called from inside `DidFinishLaunching` method, normally the `this` keyword is used. Because this code is being executed inside of a workbook, the `AppDelegate` is being accessed via the Shared Application using `(NSObject)NSApplication.SharedApplication.Delegate`.
+
+---
+
+###### 👍 Try it now!
+
+* Run the two lines of code above again to create another new Window. Every time this code is run, a new Window will be added to the app. Typically, this is done from the **File** > **New** menu item.
+
+---
+
+## Defining the Menu Bar in Code
+
+Because of current limitations in Xamarin.Mac, it is not suggested that you create your Xamarin.Mac application's Menu Bar (`NSMenuBar`) in code but continue to use a `Main.storyboard` or `MainMenu.xib` file to define it. That said, the developer can add and remove Menus and Menu Items in C# code.
+
+Take the example of creating a System Status Bar menu for a Xamarin.Mac app below:
+
+```csharp
+// Create a Status Bar Menu
+NSStatusBar statusBar = NSStatusBar.SystemStatusBar;
+NSStatusItem item;
+
+// Has the Action menu already been created?
+if (item == null) {
+    // No, create menu and populate it
+    item = statusBar.CreateStatusItem (NSStatusItemLength.Variable);
+    item.Title = "Actions";
+    item.HighlightMode = true;
+    item.Menu = new NSMenu ("Actions");
+
+    var address = new NSMenuItem ("Address");
+    address.Activated += (sender, e) => {
+        Console.WriteLine("Address Selected");
+    };
+    item.Menu.AddItem (address);
+
+    var date = new NSMenuItem ("Date");
+    date.Activated += (sender, e) => {
+        Console.WriteLine("Date Selected");
+    };
+    item.Menu.AddItem (date);
+
+    var greeting = new NSMenuItem ("Greeting");
+    greeting.Activated += (sender, e) => {
+        Console.WriteLine("Greetings Selected");
+    };
+    item.Menu.AddItem (greeting);
+
+    var signature = new NSMenuItem ("Signature");
+    signature.Activated += (sender, e) => {
+        Console.WriteLine("Signature Selected");
+    };
+    item.Menu.AddItem (signature);
+}
+```
+
+Let’s take a closer look at what this code is doing. First, it creates a gains access to the System Status Bar (`NSStatusBar.SystemStatusBar`) that exists on the right hand side of the Menu Bar. If the **Actions** Menu Item hasn’t already been created, a new `NSStatusItem` is created, configured to be the **Actions** Menu and attached to the System Status Bar.
+
+Next, a series of `NSMenuItem` instances are created, configured and attached to the **Actions** Menu. The Activated event for each new Item is set and this code will be executed when the user selects the specific Menu Item.
+
+---
+
+###### 👍 Try it now!
+
+* Add a **New** Menu Item to the **Actions** Menu that opens a new `CodeBasedWindow` when selected.
+
+---
+
+## Building Modern macOS App UI
+
+Modern macOS apps such as Apple's Safari web browser, Pages word processor and Numbers spread sheet use many new technologies to present a unified, context sensitive User Interface that does away with traditional UI elements such as floating panels and multiple open windows.
+
+Next let’s look at several advanced technologies a developer can use to build a modern macOS app in Xamarin.Mac
+
+### Define a Modern View
+
+Before defining the custom class that will be the basis for the Modern View, let’s take a quick look at the technologies it will be using.
+
+Core Animation is a high powered graphics rendering engine that is built into macOS. Core Animation has been optimized to take advantage of the GPU (Graphics Processing Unit) available in modern macOS hardware as opposed to running the graphics operations on the CPU, which can slow down the machine.
+
+The `CALayer`, provided by Core Animation, can be used for tasks such as fast and fluid scrolling and animations. An app's User Interface should be composed of multiple subviews and layers to fully take advantage of Core Animation.
+
+A `CALayer` object provides several properties that allow the developer to control what is presented onscreen to the user such as:
+
+* `Content` - Can be a `NSImage` or `CGImage` that provides the contents of the layer.
+
+* `BackgroundColor` - Sets the background color of the layer as a `CGColor`.
+
+* `BorderWidth` - Sets the border width.
+
+* `BorderColor` - Sets the border color.
+
+To utilize Core Graphics in the app's UI, it must be using Layer Backed Views, which Apple suggests that the developer should always enable in the Window's Content View. This way, all child views will automatically inherit Layer Backing as well.
+
+Additionally, Apple suggests using Layer Backed Views as opposed to adding a new `CALayer` as a sublayer because the system will automatically handle several of the required settings (such as those required by a Retina Display).
+
+With that in mind, define a new `NSView` that will provide the Content Area for the Modern Window:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public class MainView : NSView
+{
+    #region Computed Properties
+    public override bool WantsLayer {
+        get { return true; }
+    }
+
+    public override bool WantsUpdateLayer {
+        get { return true; }
+    }
+    #endregion
+
+    #region Constructor
+    public MainView (IntPtr handle) : base (handle)
+    {
+    }
+
+    public MainView (CGRect bounds) : base (bounds)
+    {
+    }
+    #endregion
+
+    #region Override Methods
+    public override void UpdateLayer ()
+    {
+        base.UpdateLayer ();
+
+        // Add the Core Graphics routines to draw the View's UI
+        Layer.BackgroundColor = NSColor.Red.CGColor;
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, the `WantsLayer` and `WantsUpdateLayer` properties are overridden and set to `true` to make this a Layer Backed View.
+
+Then the UpdateLayer method is overriden and the Core Graphic routines are added to draw out the View’s UI. In this example, the View’s background color is being set to red:
+
+`Layer.BackgroundColor = NSColor.Red.CGColor;`
+
+---
+
+###### 👍 Try it now!
+
+* Change the background color of the View.
+
+* Add more Core Graphic routines to change the View’s UI.
+
+***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Modern Window** section below.*
+
+---
+
+### Defining a Modern Window
+
+In macOS Sierra an app’s Windows can be configured to create Tabbed Windows, where several Windows of the same type are merged into one virtual Window instead of being separate instances (like tabs in the Safari app).
+
+Typically, the developer will need to take limited action use Tabbed Windows in their Xamarin.Mac apps, the system will handle them automatically as follows:
+
+* Windows will automatically be Tabbed when the `OrderFront` method is invoked.
+
+* Windows will automatically be Untabbed when the `OrderOut` method is invoked.
+
+* In code all Tabbed windows are still considered "visible", however any non-frontmost Tabs are hidden by the system using CoreGraphics.
+
+* Use the `TabbingIdentifier` property of `NSWindow` to group Windows together into Tabs.
+
+* If it is an `NSDocument` based app, several of these features will be enabled automatically (such as the plus button being added to the Tab Bar) without any developer action.
+
+* Non-NSDocument based apps can enable the "plus" button in the Tab Group to add a new document by overriding the `GetNewWindowForTab` method of the `NSWindowsController`.
+
+Now create a new in-code NSWindow class that invokes a supports Tabs and uses the Modern Views created above:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public class ModernCodeBasedWindow : NSWindow {
+
+    #region Constructors
+    public ModernCodeBasedWindow (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public ModernCodeBasedWindow (NSCoder coder) : base (coder)
+    {
+    }
+
+    public ModernCodeBasedWindow (CGRect contentRect, NSWindowStyle aStyle, NSBackingStore bufferingType, bool deferCreation): base (contentRect, aStyle,bufferingType,deferCreation) 
+    {
+        // Create a title for the window
+		Title = "Untitled";
+
+		// Create the content view for the window and make it fill the window
+		ContentView = new MainView (Frame);
+
+        // Hide the Title bar for a streamlined UI
+        TitleVisibility = NSWindowTitleVisibility.Hidden;
+
+        // Configure the Window to use Tabs
+        TabbingMode = NSWindowTabbingMode.Preferred;
+        TabbingIdentifier = "Modern";
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, it hides the Title Bar area so that the Tool Bar area will be merged into in:
+
+`TitleVisibility = NSWindowTitleVisibility.Hidden;`
+
+The next two lines enable the Tabbed Window feature:
+
+`TabbingMode = NSWindowTabbingMode.Preferred;`\
+`TabbingIdentifier = "Modern";`
+
+### Defining a Modern Window Controller
+
+Now create a new custom `NSWindowController` initialize and maintain the modern code based Window (`ModernCodeBasedWindow`) created above:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public  class ModernCodeBasedWindowController : NSWindowController
+{
+    #region Computed Properties
+    public new ModernCodeBasedWindow Window {
+        get { return base.Window as ModernCodeBasedWindow; }
+    }
+    #endregion
+
+    #region Constructors
+    public ModernCodeBasedWindowController (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public ModernCodeBasedWindowController (NSCoder coder) : base (coder)
+    {
+    }
+
+    public ModernCodeBasedWindowController () : base ("CodeBasedWindow")
+    {
+        // Define the Window's default location and size
+        CGRect contentRect = new CGRect (0, 100, 600, 500);
+
+        // Create a new instance of the CodeBasedWindow
+        base.Window = new ModernCodeBasedWindow(contentRect, (NSWindowStyle.Titled | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable | NSWindowStyle.Resizable | NSWindowStyle.FullSizeContentView | NSWindowStyle.UnifiedTitleAndToolbar), NSBackingStore.Buffered, false);
+
+        // Simulate Awaking from Nib
+        Window.AwakeFromNib ();
+    }
+    #endregion
+
+    #region Override Methods
+    public override void AwakeFromNib ()
+    {
+        base.AwakeFromNib ();
+    }
+
+    public override void GetNewWindowForTab (NSObject sender)
+    {
+        // Create a new window when the Plus button is clicked
+        var newWindowController = new ModernCodeBasedWindowController ();
+        newWindowController.Window.MakeKeyAndOrderFront ((NSObject)NSApplication.SharedApplication.Delegate);
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, when a new instance of the `ModernCodeBasedWindow` is created, the `FullSizeContentView` and `UnifiedTitleAndToolbar` `NSWindowStyle` flags are being applied for a modern look.
+
+To display the **Plus** button in the Tab Bar, the `GetNewWindowForTab` method is overridden and code is added to create a new `ModernCodeBasedWindow` when it is clicked.
+
+### Displaying the Modern Window
+
+The following two lines of code will create a new instance of the `ModernCodeBasedWindow` and display it:
+
+```csharp
+var newWindowController = new ModernCodeBasedWindowController ();
+newWindowController.Window.MakeKeyAndOrderFront ((NSObject)NSApplication.SharedApplication.Delegate);
+```
+
+However, unlike the CodeBasedWindow created above, each time this code is run and a new `ModernCodeBasedWindow` is created, it will be added as a Tab to the existing Window instead of being a separate Window.
+
+### Using System Appearances
+
+Modern macOS apps can adopt a new Dark Interface Appearance that works well for image creation, editing or presentation apps. This can be done by adding one line of code before the Window is presented. For example:
+
+```csharp
+// Apply the Dark Interface Appearance
+newWindowController.Window.Appearance = NSAppearance.GetAppearance (NSAppearance.NameVibrantDark);
+```
+
+The following NSAppearance types are defined:
+
+* `NameAqua` \[*Deprecated*\] - Use the OS X Aqua appearance.
+
+* `NameLightContent` \[*Deprecated*\] - Use the light content appearance.
+
+* `NameVibrantDark` - Use the dark vibrant appearance.
+
+* `NameVibrantLight` - Use the light vibrant appearance.
+
+---
+
+###### 👍 Try it now!
+
+* Set the Window to another type of `NSAppearance`.
+
+---
