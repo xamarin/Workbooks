@@ -1,0 +1,184 @@
+---
+uti: com.xamarin.workbook
+platform: WPF
+packages: []
+---
+
+# Drawing a Penrose Triangle
+
+## An Introduction to WPF Shapes
+
+The Shapes library is the primary means of rendering 2D vector graphics in WPF. Shapes is a retained-mode graphics system. A WPF program doesn’t issue drawing commands — as might be the case in a conventional graphics drawing system — but instead creates objects of various graphical types, such as lines and polygons. The objects take responsibility for drawing themselves. The program can then alter or animate these objects by changing their properties.
+
+The Shapes library consists of one base class named `Shape` and six derived classes named `Line`, `Polyline`, `Polygon`, `Path`, `Rectangle`, and `Ellipse`, all in the `System.Windows.Shapes` namespace. The `Shape` class derives from `FrameworkElement`, so WPF treats the classes that derive from `Shape` much like `TextBlock`, `Button`, and `Slider`. Each of the instances of these classes has a size in layout that is based on the coordinates used to describe the figure.
+
+This workbook focuses on `Polygon`, which you can use for drawing figures consisting of connected straight lines. You define these lines with a series of `Point` values in a collection property named `Points`. You can stroke these lines with a particular brush, and you can fill enclosed areas with another brush. This workbook shows how you can assemble three `Polygon` objects for drawing an impossible figure known as a Penrose Triangle, which looks like this:
+
+![](PenroseTriangle.png "Penrose Triangle")
+
+The two classes `Polygon` and `Polyline` are very similar. The only difference is that `Polygon` automatically adds a final line to the figure that connects the last point in the `Points` collection to the first point; `Polyline` does not.
+
+Generally you’ll need several `using` directives to begin working with the Shapes library:
+
+```csharp
+using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
+```
+
+As usual, you can begin by creating a `Window` with a title in its titlebar:
+
+```csharp
+Window win = new Window();
+win.Title = "Penrose Triangle";
+win.Show();
+```
+
+You can put instances of the Shapes classes in any type of WPF layout object, but generally you’ll use `Canvas` or a single-cell `Grid`. The `Grid` has the advantage of being able to size itself based on the composite size of the various `Shape` objects that it contains. The following code creates a `Grid` and sets it as the content of the `Window`:
+
+```csharp
+Grid grid = new Grid();
+win.Content = grid;
+```
+
+Now you can create a `Polygon` object and add it to the `Children` collection of the `Grid`:
+
+```csharp
+Polygon polygon1 = new Polygon();
+grid.Children.Add(polygon1);
+```
+
+You won’t see anything yet because there are no points in the `Point` collection. You need two points to draw a single line:
+
+```csharp
+polygon1.Points.Add(new Point(40, 168));
+polygon1.Points.Add(new Point(192, 168));
+```
+
+These two `Point` values define a line from the point (40, 168) to the point (192, 168). All points are in the form (*x*, *y*) and are relative to the upper-left corner of the `Polygon` parent, which is the `Grid` that fills the whole window. Increasing values of *x* go to the right, and increasing values of *y* go down.
+
+But you *still* won’t see anything! The line exists but the default brush used to stroke the line is `null`. You need to set the `Stroke` property of `Polygon` to a `Brush` object. The easiest approach is to use one of the static read-only properties of the `Brushes` class. These properties return `SolidColorBrush` objects:
+
+```csharp
+polygon1.Stroke = Brushes.Black;
+```
+
+Now you’ll see the line. WPF doesn’t draw in units of pixels. Instead, coordinates and sizes are based on 96 units to the inch, which means that a value of 192 is equivalent to two inches.
+
+You can increase the thickness of the line by setting the `StrokeThickness` property:
+
+```csharp
+polygon1.StrokeThickness = 3;
+```
+
+Although the figure might appear to be a single line, it’s really not. As mentioned earlier, `Polygon` automatically connects the last point in the `Points` collection to the first point, so the figure consists of one line from (40, 168) to (192, 168) and a second line from (192, 168) back to (40, 168). This has some implications: At the two points where the two lines meet, a “line join” is drawn. By default this is a pointy miter join, and it extends beyond the geometric end of the line. In general you’ll want a more attractive and less troublesome rounded join:
+
+```csharp
+polygon1.StrokeLineJoin = PenLineJoin.Round;
+```
+
+Did you see the line get a little shorter when you executed that statement?
+
+The fact that `Polygon` is automatically drawing a line to connect the last point with the first point becomes much more obvious when you add a third point to the `Points` collection. This point continues the polygon to the point (192, 168) for a three-sided figure.
+
+```csharp
+polygon1.Points.Add(new Point(192, 192));
+```
+
+`Polygon` always draws a closed figure. The tilted line on the bottom connects the third point (192, 192) with the first point (40, 168).
+
+With three points, you can also specify a brush to fill the interior of the figure:
+
+```csharp
+polygon1.Fill = Brushes.DarkGray;
+```
+
+You can add a fourth point:
+
+```csharp
+polygon1.Points.Add(new Point(0, 192));
+```
+
+And a fifth:
+
+```csharp
+polygon1.Points.Add(new Point(108, 2));
+```
+
+And a final sixth point to complete this first figure:
+
+```csharp
+polygon1.Points.Add(new Point(132, 2));
+```
+
+The following code creates the second `Polygon` in its entirety. It slightly overlaps the first at the bottom right, so look at that area when you execute this code:
+
+```csharp
+Polygon polygon2 = new Polygon();
+polygon2.Points.Add(new Point(0, 192));
+polygon2.Points.Add(new Point(192, 192));
+polygon2.Points.Add(new Point(120, 60));
+polygon2.Points.Add(new Point(134, 48));
+polygon2.Points.Add(new Point(234, 216));
+polygon2.Points.Add(new Point(12, 216));
+polygon2.Stroke = Brushes.Black;
+polygon2.StrokeThickness = 3;
+polygon2.StrokeLineJoin = PenLineJoin.Round;
+polygon2.Fill = Brushes.LightGray;
+
+grid.Children.Add(polygon2);
+```
+
+The slight overlapping made the calculation of points for the first `Polygon` a little easier.
+
+When multiple `Shape` object overlap, the objects later in the `Children` collection might hide or obscure the objects earlier in the `Children` collection. This is known as Z-ordering, in reference to the Z axis that is conceptually perpendicular to the surface of the screen.
+
+Here’s the  third `Polygon`:
+
+```csharp
+Polygon polygon3 = new Polygon();
+polygon3.Points.Add(new Point(40, 168));
+polygon3.Points.Add(new Point(66, 168));
+polygon3.Points.Add(new Point(134, 48));
+polygon3.Points.Add(new Point(234, 216));
+polygon3.Points.Add(new Point(246, 192));
+polygon3.Points.Add(new Point(132, 2));
+polygon3.Stroke = Brushes.Black;
+polygon3.StrokeThickness = 3;
+polygon3.StrokeLineJoin = PenLineJoin.Round;
+polygon3.Fill = Brushes.DimGray;
+grid.Children.Add(polygon3);
+```
+
+The Penrose Triangle is now complete.
+
+Every `Shape` object has a single stroke brush and a single fill brush. Whenever a composite graphics object requires multiple colors, each color must be a different `Shape` object.
+
+If you’d like to center the Penrose Triangle on the screen, you can’t set the `HorizontalAlignment` and `VerticalAlignment` properties on each `Polygon` because that would center each `Polygon` separately, and they’d no longer fit together properly. Instead, set the `HorizontalAlignment` and `VerticalAlignment` properties on the `Grid` itself:
+
+```csharp
+grid.HorizontalAlignment = HorizontalAlignment.Center;
+grid.VerticalAlignment = VerticalAlignment.Center;
+```
+
+This causes the `Grid` to shrink down to encompass only the area required by all its children. For purposes of layout, the size of each `Shape` object is based on its maximum positive horizontal and vertical coordinates, as well as stroke thickness and line joins.
+
+Suppose you’d like to make the Penrose Triangle fill the `Window`. There’s an WPF class for that! The `Viewbox` class fills its parent container (in this case, the window), and stretches its child to be the same size. The `if` statement below is for some special code just for Workbooks that avoids problems when the four statements at the bottom of this code cell are re-executed. Those statements insert a `Viewbox` between the `Window` and the `Grid`:
+
+```csharp
+// Special code to allow re-execution without causing an error
+if (grid.Parent is Viewbox)
+{
+    (grid.Parent as Viewbox).Child = null;
+}
+
+// Set the Grid as a child of a Viewbox
+win.Content = null;
+Viewbox viewbox = new Viewbox();
+viewbox.Child = grid;
+win.Content = viewbox;
+```
+
+And now the Penrose Triangle fills the window, and it changes size as you change the window size.

@@ -1,0 +1,569 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# UITableView I
+
+One of the most common controls in iOS is the table view - it renders a fast scrolling list of data and can be heavily customized. This workbook demonstrates how to display data in a table view, and is based on the [Tables and Cells section](https://developer.xamarin.com/guides/ios/user_interface/tables/) on [developer.xamarin.com](https://developer.xamarin.com).
+
+* Setup
+
+* Showing Some Data
+
+* Animated Insertion & Deletion
+
+* Customizing Each Row
+
+* Built-in Layouts
+
+* Custom Cell Layout
+
+* Row Selection
+
+* Row Actions
+
+* Edit Mode
+
+First, some setup. Grab a reference to the iOS root `ViewController` (in your app code, a table view might be added to any view controller):
+
+```csharp
+var vc = KeyWindow.RootViewController;
+```
+
+## Setup
+
+Now instantiate a `UITableView`control. Notice how the offset and size are all zero - by default the table has no size...
+
+```csharp
+var tableView = new UITableView();
+```
+
+Table views frequently occupy the entire screen, so set the `Frame`for the table to match the `Bounds`of the screen. The tableView will now have a `Width`and `Height`:
+
+```csharp
+tableView.Frame = UIScreen.MainScreen.Bounds;
+```
+
+The table is still not visible on the screen - to make that happen we need to add the control to the root view controller’s `View`, with the `AddSubview`method. When this method is called the table will be visible on the screen (despite having no data, an empty table view displays gridlines based on the default row height):
+
+```csharp
+vc.View.AddSubview(tableView);
+```
+
+In your app code, the AddSubview command is usually in the `ViewDidLoad` method. Alternatively, you can drag-and-drop a `UITableView`control onto a storyboard and give it a name, which means you do not have to do the above steps in code.
+
+## Showing Some Data
+
+Real apps frequently populate the UI from a database or a web-service, but for learning about table views a simple string list is a good start:
+
+```csharp
+var data = new List<string> {"eeny", "meany", "miney", "mo"};
+```
+
+iOS table views don’t have the concept of a **BindingContext** like Xamarin.Forms, so there is no direct way to “assign” the list to the table view. Instead a wrapper object subclassed from `UITableViewSource` is used - the table view uses this class to get information about the data it needs to display.
+
+There are many optional methods, but the minimum implementation requires:
+
+* `RowsInSection` – a method that tells the table view how many rows are in the data. Table views support multiple sections, but for this example there is only one section so the concept can be ignored for now.
+
+* `GetCell` – the table view calls this method for each row that it needs to display. There are two parts to this method: first get a recycled cell or create a new cell object, then set the UI of the cell with values from the data for that row.
+
+An example subclass - `MySource` - is shown below.
+
+```csharp
+public class MySource : UITableViewSource 
+{
+	string identifier = "mycell";
+	public List<string> Data {get;set;} = new List<string>(); // C# 6
+	public override nint RowsInSection (UITableView tableview, nint section)
+	{ 
+		return Data.Count; 
+	}
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		// first, get or create a cell
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Default, identifier); }
+		// then, get the data and set the UI 
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		return cell;
+	}
+}
+```
+
+To use the new class, instantiate it and set the `Data` property to the list of strings. Now it’s ready for the table view, so assign it to the table view’s `Source` property. The table is now ready to display the data - call `ReloadData` to see it rendered on the screen:
+
+```csharp
+var source = new MySource(); // create the class
+source.Data = data;          // assign the list of strings
+tableView.Source = source;   // give it to the table view
+tableView.ReloadData();      // and show on the screen
+```
+
+![](mysource.png)
+
+*(ignore the status bar overlapping for now - that is a layout issue for another workbook)*
+
+What happens when a new item is added to the data list?
+
+```csharp
+data.Add("d'oh");
+```
+
+Sadly, it does not automatically appear on the screen. We can force the table view to re-load the entire list by calling `ReloadData`:
+
+```csharp
+tableView.ReloadData();
+```
+
+The new “d’oh” row is now visible - but there may have been a flicker in the UI, since the entire table was cleared and the rows re-created. This is sometimes acceptable for simple apps with small datasets, but there is a nicer way to add (and remove) rows programmatically.... with animation!
+
+### Animated Insertion & Deletion
+
+Rather than reloading the entire table, rows can be progammatically added and removed. To demonstrate, insert two new rows at position 2 and 4 in the list so that they appear with an animation. The first step is to create `NSIndexPath`objects that refer to the new rows we’re inserting:
+
+```csharp
+var ip1 = NSIndexPath.FromRowSection(2, 0); // row 2 section 0
+var ip2 = NSIndexPath.FromRowSection(4, 0); // row 4 section 0
+```
+
+Instead of using `ReloadData`to refresh the entire list, it is possible to get the table to dynamically add the new rows with the code below. Notice how the modifications to both the underlying `data` and the `tableView` are contained inside a `BeginUpdates`/`EndUpdates` block:
+
+```csharp
+tableView.BeginUpdates(); 
+// update the underlying data source
+data.Insert (2, "a deer");
+data.Insert (4, "ray");
+// tell the UITableView about the updates with NSIndexPath objects
+tableView.InsertRows(new [] {ip1, ip2}, UITableViewRowAnimation.Automatic);
+tableView.EndUpdates();
+```
+
+It is only after `EndUpdates` is called that the changes are reflected in the user interface. All the changes made to the `data` and the `tableView` must match (ie. the number of rows in each must be identical before the block and after the block).
+
+Notice how the new rows animate into place. In addition to `Automatic` there are other animation options like `Top`, `Bottom`, `Left`, `Right`, `Middle`, `Fade` that can be chosen to suit the application’s user interface.
+
+The `DeleteRows`method can also be used to remove a row. This is commented out below, since running the workbook over and over will remove all the data! Uncomment and execute this block to see a row removal animation.
+
+```csharp
+/*
+var ip2 = NSIndexPath.FromRowSection(3, 0);
+tableView.BeginUpdates();
+data.RemoveAt (3);
+tableView.DeleteRows(new [] {ip1, ip2}, UITableViewRowAnimation.Automatic);
+tableView.EndUpdates();
+*/
+```
+
+## Customizing Each Row
+
+Each row that is displayed is supplied to the table view from the source’s `GetCell` method. The code above uses the simplest default cell layout in the `GetCell` method. This method can be further customized to use different built-in or custom cells.
+
+### Built-in Layouts
+
+In the updated source class below, the cell is now `UITableViewCellStyle.Subtitle` (instead of `Default`) and the code sets the additional `cell.DetailTextLabel.Text` property.
+
+```csharp
+public class DetailSource : MySource 
+{
+	string identifier = "newcell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Subtitle, identifier); }
+
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		cell.DetailTextLabel.Text = $"{item.Length} characters"; // C# 6
+		return cell;
+	}
+}
+```
+
+To use this new source with our table, create an instance, assign the data list, and tell the `tableView` to use this as its `Source`:
+
+```csharp
+source = new DetailSource();  // create the new class
+source.Data = data;           // assign the list of strings
+tableView.Source = source;    // give it to the table view (replaces the old one)
+tableView.ReloadData();       // reload the data with new cell layout
+```
+
+The table rows now contain two pieces of text!
+
+![](detailsource.png)
+
+`UITableViewCellStyle` can also be set to `Value1` and `Value2` which display the text in different ways.
+
+It is also possible to display an image - the class below sets the `ImageView` property to a local image file (in this case, the same image is used for every row):
+
+```csharp
+public class ImageSource : MySource 
+{
+	string identifier = "imagecell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Subtitle, identifier); }
+		
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		cell.DetailTextLabel.Text = $"{item.Length} characters"; // C# 6
+		cell.ImageView.Image = UIImage.FromFile("workicon.png"); // now sets an image
+		return cell;
+	}
+}
+```
+
+Now just configure this new source and assign to the table view:
+
+```csharp
+source = new ImageSource();   // create the new class
+source.Data = data;           // assign the list of strings
+tableView.Source = source;    // give it to the table view (replaces the old one)
+tableView.ReloadData();       // reload the data, cells now also display an image
+```
+
+The cells now look like this!
+
+![](imagesource.png)
+
+The other aspect of the cell that can be customized is the accessory – special icons that appear on the right side of the cell. Modify the `GetCell` method above with one of these lines of code to add an accessory to each row:
+
+`cell.Accessory = UITableViewCellAccessory.Checkmark; cell.Accessory = UITableViewCellAccessory.DisclosureIndicator; cell.Accessory = UITableViewCellAccessory.DetailDisclosureButton; cell.Accessory = UITableViewCellAccessory.None; // to clear the accessory`
+
+### Custom Cell Layout
+
+It’s also possible to create totally custom cell layouts, and use them in the `GetCell` method instead of the built-in layouts. Cells are created programmatically by subclassing `UITableViewCell` and overriding these methods:
+
+* the constructor – create the UI controls in the cell.
+
+* `LayoutSubviews` – set the location of the UI controls (possibly adjusting them based on the data being displayed).
+
+It’s helpful to add an additional method to update the data in the cell, which is called UpdateCell in the example.
+
+```csharp
+public class MyCell : UITableViewCell
+{
+    UILabel headingLabel, subheadingLabel;
+    UIImageView imageView;
+	// constructor: create the controls to display
+	public MyCell (string cellId) : base (UITableViewCellStyle.Default, cellId)
+    {
+        ContentView.BackgroundColor = UIColor.FromRGB (218, 255, 127);
+        imageView = new UIImageView();
+        headingLabel = new UILabel () {
+            Font = UIFont.FromName("Cochin-BoldItalic", 22f),
+            TextColor = UIColor.FromRGB (127, 51, 0),
+            BackgroundColor = UIColor.Clear
+        };
+        subheadingLabel = new UILabel () {
+            Font = UIFont.FromName("AmericanTypewriter", 12f),
+            TextColor = UIColor.FromRGB (38, 127, 0),
+            TextAlignment = UITextAlignment.Center,
+            BackgroundColor = UIColor.Clear
+        };
+        ContentView.AddSubviews(new UIView[] {headingLabel, subheadingLabel, imageView});
+
+    }
+	// set the location of each control
+    public override void LayoutSubviews ()
+    {
+        base.LayoutSubviews ();
+        imageView.Frame = new CGRect (ContentView.Bounds.Width - 63, 5, 33, 33);
+        headingLabel.Frame = new CGRect (5, 4, ContentView.Bounds.Width - 63, 25);
+        subheadingLabel.Frame = new CGRect (100, 18, 100, 20);
+    }
+	// update the cell's data
+	public void UpdateCell (string caption, string subtitle, UIImage image)
+    {
+        imageView.Image = image;
+        headingLabel.Text = caption;
+        subheadingLabel.Text = subtitle;
+    }
+}
+```
+
+Once again we need to update the source class `GetCell` method to return instances of the custom cell. The `CustomSource` class shown below now creates instances of the custom cell and uses the `UpdateCell` method to pass the data values to display:
+
+```csharp
+public class CustomSource : MySource 
+{
+	string identifier = "imagecell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		MyCell cell = tableView.DequeueReusableCell (identifier) as MyCell;
+		if (cell == null)
+		{ cell = new MyCell (identifier); }
+		
+		string item = Data[indexPath.Row];
+		cell.UpdateCell(item, 
+						$"{item.Length} characters", 
+						UIImage.FromFile("workicon.png"));
+		return cell;
+	}
+}
+```
+
+Wiring up the new source object works uses the same code as before:
+
+```csharp
+source = new CustomSource();  // create the new class
+source.Data = data;           // assign the list of strings
+tableView.Source = source;    // give it to the table view (replaces the old one)
+tableView.ReloadData();       // reload the data, cells now also display an image
+```
+
+The custom cells now look like this:
+
+![](customsource.png)
+
+## Row Selection
+
+To respond to users touching a row override then `RowSelected` in the source class. The example below shows a source class with the `RowSelected` method added (the rest of the class is unchanged):
+
+```csharp
+public class SelectionSource : MySource 
+{
+	string identifier = "selectioncell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Subtitle, identifier); }
+		
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		cell.DetailTextLabel.Text = $"{item.Length} characters"; // C# 6
+		cell.ImageView.Image = UIImage.FromFile("workicon.png"); // now sets an image
+		return cell;
+	}
+	public override void RowSelected (UITableView tableView, NSIndexPath indexPath)
+	{
+		var okAlertController = UIAlertController.Create ("Row Selected", 
+														  Data[indexPath.Row] + " was touched", 
+														  UIAlertControllerStyle.Alert);
+		okAlertController.AddAction (UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
+		// real apps wouldn't use KeyWindow, this is a "workbook" limitation
+		KeyWindow.RootViewController.PresentViewController (okAlertController, true, null);
+		tableView.DeselectRow (indexPath, true); // de-select (otherwise it stays "grey")
+	}
+}
+```
+
+The RowSelected method is implemented to show an alert popup when each row is tapped. Each app will implement this differently – perhaps a new view controller is shown instead. Note the last line of the method where `DeselectRow` is called: this is recommended to return the table view to the initial appearance. If the row isn’t deselected, it remains “grey” (or whatever selection-color is defined).
+
+Wiring it up follows the same pattern as previously. Once this source is used, the rows are “click-able”!
+
+```csharp
+source = new SelectionSource();  // create the new class
+source.Data = data;              // assign the list of strings
+tableView.Source = source;       // give it to the table view (replaces the old one)
+tableView.ReloadData();          // reload the data, cells now also display an image
+```
+
+The alert will show like this (but you can customize the code to change it 😉):
+
+![](selectionsource.png)
+
+## Row Actions
+
+The buttons that are revealed when a row is swiped to the left are called *row actions*. Configuring row actions in a cell (and handling when they are touched) is done by adding another method override to the source class.
+
+The `ActionSource` class below includes the `EditActionsForRow` method which creates a single action (an array can be supplied to show more than one).
+
+```csharp
+public class ActionSource : MySource 
+{
+	string identifier = "actioncell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Subtitle, identifier); }
+		
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		cell.DetailTextLabel.Text = $"{item.Length} characters"; // C# 6
+		cell.ImageView.Image = UIImage.FromFile("workicon.png"); // now sets an image
+		return cell;
+	}
+	public override void RowSelected (UITableView tableView, NSIndexPath indexPath)
+	{
+		ShowAlert("Row Selected", Data[indexPath.Row] + " was touched");
+		tableView.DeselectRow (indexPath, true); // de-select (otherwise it stays "grey")
+	}
+	// refactor out the alert, so it can be used in selection & action
+	void ShowAlert(string title, string text)
+	{
+		var okAlertController = UIAlertController.Create (title, 
+														  text,
+														  UIAlertControllerStyle.Alert);
+		okAlertController.AddAction (UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
+		// real apps wouldn't use KeyWindow, this is a "workbook" limitation
+		KeyWindow.RootViewController.PresentViewController (okAlertController, true, null);
+	}
+	// 
+	public override UITableViewRowAction[] EditActionsForRow (UITableView tableView, NSIndexPath indexPath)
+	{
+		var hiAction = UITableViewRowAction.Create (
+			UITableViewRowActionStyle.Normal,	// try the Destructive style
+			"Hi",
+			delegate {
+				ShowAlert("Action Revealed", Data[indexPath.Row] + " was 'actioned'");
+			});
+		// multiple actions are allowed
+		return new UITableViewRowAction[] { hiAction };
+	}
+}
+```
+
+Apply this new source class to the table:
+
+```csharp
+source = new ActionSource();  // create the new class
+source.Data = data;           // assign the list of strings
+tableView.Source = source;    // give it to the table view (replaces the old one)
+tableView.ReloadData();       // reload the data, cells now also display an image
+```
+
+The action looks like this when revealed by a swipe on the row. This example is grey because `UITableViewRowActionStyle.Normal` was specified in the code.
+
+![](actionsource.png)
+
+`UITableViewRowActionStyle.Destructive` can be specified, which shows the action with a red background. As mentioned earlier, mulitple actions can be shown for a row - but if mulitple actions are shown there should never be more than one *destructive* action.
+
+## Edit Mode
+
+There is another more complex way to interact with tables: edit mode. Edit mode is an optional state for the table which users typically turn on with a button-press.
+
+Implementing edit mode requires overriding a number of methods in the source class:
+
+* \*\*CanEditRow \*\*– whether each row can be edited. Return false to prevent both swipe-to-delete and deletion while in edit mode.
+
+* \*\*CanMoveRow \*\*– return true to enable the move ‘handle’ or false to prevent moving.
+
+* \*\*EditingStyleForRow \*\*– when the table is in edit mode, the return value from this method determines whether the cell displays the red deletion icon or the green add icon. Return UITableViewCellEditingStyle.None if the row should not be editable.
+
+* \*\*MoveRow \*\*– called when a row is moved so that the underlying data structure can be modified to match the data as it is displayed in the table.
+
+* **TitleForDeleteConfirmation** – optional custom text for the delete button.
+
+* **CommitEditingStyle** – code to apply changes to the underlying data when an edit is complete (ie. if a row is deleted).
+
+```csharp
+public partial class EditSource : MySource 
+{
+	string identifier = "editcell";
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		UITableViewCell cell = tableView.DequeueReusableCell (identifier);
+		if (cell == null)
+		{ cell = new UITableViewCell (UITableViewCellStyle.Subtitle, identifier); }
+		
+		string item = Data[indexPath.Row];
+		cell.TextLabel.Text = item;
+		cell.DetailTextLabel.Text = $"{item.Length} characters"; // C# 6
+		cell.ImageView.Image = UIImage.FromFile("workicon.png"); // now sets an image
+		return cell;
+	}
+	public override void RowSelected (UITableView tableView, NSIndexPath indexPath)
+	{
+		ShowAlert("Row Selected", Data[indexPath.Row] + " was touched");
+		tableView.DeselectRow (indexPath, true); // de-select (otherwise it stays "grey")
+	}
+	// refactor out the alert, so it can be used in selection & action
+	void ShowAlert(string title, string text)
+	{
+		var okAlertController = UIAlertController.Create (title, 
+														  text,
+														  UIAlertControllerStyle.Alert);
+		okAlertController.AddAction (UIAlertAction.Create("OK", UIAlertActionStyle.Default, null));
+		// real apps wouldn't use KeyWindow, this is a "workbook" limitation
+		KeyWindow.RootViewController.PresentViewController (okAlertController, true, null);
+	}
+	public override bool CanEditRow (UITableView tableView, NSIndexPath indexPath)
+	{
+		return true; // return false if you wish to disable editing for a specific indexPath or for all rows
+	}
+	public override bool CanMoveRow (UITableView tableView, NSIndexPath indexPath)
+	{
+		return true; // return false if you don't allow re-ordering
+	}
+	public override UITableViewCellEditingStyle EditingStyleForRow (UITableView tableView, NSIndexPath indexPath)
+	{
+		return UITableViewCellEditingStyle.Delete; // this example doesn't suppport Insert
+	}
+	public override string TitleForDeleteConfirmation (UITableView tableView, NSIndexPath indexPath)
+	{   // Optional - default text is 'Delete'
+		return "Trash it!";
+	}
+}
+```
+
+```csharp
+public partial class EditSource : MySource 
+{
+	public override void CommitEditingStyle (UITableView tableView, UITableViewCellEditingStyle editingStyle, Foundation.NSIndexPath indexPath)
+	{
+		switch (editingStyle) // in case others are implemented
+		{
+			case UITableViewCellEditingStyle.Delete:
+				// remove the item from the underlying data source
+				Data.RemoveAt(indexPath.Row);
+				// delete the row from the table
+				tableView.DeleteRows (new NSIndexPath[] { indexPath }, UITableViewRowAnimation.Fade);
+				break;
+		}
+	}
+	public override void MoveRow (UITableView tableView, NSIndexPath sourceIndexPath, NSIndexPath destinationIndexPath)
+	{
+		var item = Data[sourceIndexPath.Row];
+		var deleteAt = sourceIndexPath.Row;
+		var insertAt = destinationIndexPath.Row;
+
+		// are we inserting 
+		if (destinationIndexPath.Row < sourceIndexPath.Row) {
+			// add one to where we delete, because we're increasing the index by inserting
+			deleteAt += 1;
+		} else {
+			// add one to where we insert, because we haven't deleted the original yet
+			insertAt += 1;
+		}
+		Data.Insert (insertAt, item);
+		Data.RemoveAt (deleteAt);
+	}
+}
+```
+
+Once again, apply the new source to the table:
+
+```csharp
+source = new EditSource();  // create the new class
+source.Data = data;         // assign the list of strings
+tableView.Source = source;  // give it to the table view (replaces the old one)
+tableView.ReloadData();     // reload the data, cells now also display an image
+```
+
+The table will remain in “normal” mode until editing is enabled. In a “real life” app a button should be provided (typically in the navigation bar), but for this workbook the edit mode can be set dynamically with the following line of code:
+
+```csharp
+tableView.SetEditing (true, true); // enable edit mode
+```
+
+To restore “normal” mode, uncomment and run the following block:
+
+```csharp
+//tableView.SetEditing (false, true); // disable edit mode (return to normal table behavior)
+```
+
+When edit mode is enabled, rows can no longer be “selected” - instead they can be re-ordered with the drag-handle on the right OR the Delete button can be exposed by touching the red-circle on the left. Note that this button is *different* to any row actions that have been defined.
+
+![](editsource.png)
+

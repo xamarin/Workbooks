@@ -1,0 +1,14 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+---
+
+# iOS
+
+```csharp
+var label = new UIKit.UILabel(new CGRect(10,10,300,50)) {
+  Text = "Hello, Workbooks",
+  Font = UIFont.SystemFontOfSize(36)
+};
+RootViewController.Add(label);
+```

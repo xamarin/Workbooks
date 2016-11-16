@@ -1,0 +1,103 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Translating Text to Speech
+
+Each platform provides a native text to speech API that can be invoked from Xamarin.Forms.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+using AVFoundation;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Adding a Platform-Specific Speech Method
+
+Each platform uses a different speech API. The following code, which uses the `AVFoundation` APIs, can be used to translate text to speech on iOS:
+
+```csharp
+float volume = 0.5f;
+float pitch = 1.0f;
+
+public void Speak(string text)
+{
+  if (!string.IsNullOrWhiteSpace(text))
+  {
+    var speechSynthesizer = new AVSpeechSynthesizer();
+    var speechUtterance = new AVSpeechUtterance(text)
+    {
+      Rate = AVSpeechUtterance.MaximumSpeechRate / 3,
+      Voice = AVSpeechSynthesisVoice.FromLanguage("en-US"),
+      Volume = volume,
+      PitchMultiplier = pitch
+    };
+    speechSynthesizer.SpeakUtterance(speechUtterance);
+  }
+}
+```
+
+The `SpeechSynthesizer` class synthesizes the text to speech, with the `AVSpeechUtterance` class encapsulating how the text will be spoken. The following `AVSpeechUtterance` properties are set to control the spoken text:
+
+* `Rate` – the speed at which text is spoken.
+
+* `Voice` – an `AVSpeechSynthesisVoice` instance used to speak the text.
+
+* `Volume` – the volume level of the voice used to speak the text.
+
+* `PitchMultiplier` – a value between 0.5 and 2.0 to control the speech text.
+
+---
+
+###### Note
+
+In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `Speak` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Implementing Text-to-Speech](https://developer.xamarin.com/guides/xamarin-forms/dependency-service/text-to-speech/).
+
+---
+
+## Invoking the Platform-Specific Speech Method
+
+The `Speak` method can be invoked from Xamarin.Forms to translate text to speech:
+
+```csharp
+var entry = new Entry
+{
+  Placeholder = "Enter text to speak here"
+};
+var button = new Button
+{
+  Text = "Speak"
+};
+button.Clicked += (sender, e) =>
+{
+  Speak(entry.Text);
+};
+stackLayout.Children.Add(entry);
+stackLayout.Children.Add(button);
+```
+
+When the `Button` is clicked, the platform-specific `Speak` method translates the value of the `entry.Text` property to speech.
+
+## 👍 Try it now!
+
+* Increase the speech volume and pitch.
+
+* Increase the speech speed.
+
+* Change the speech voice.
+
+## Further Reading
+
+For more information about text-to-speech, see [Implementing Text-to-Speech](https://developer.xamarin.com/guides/xamarin-forms/dependency-service/text-to-speech/).

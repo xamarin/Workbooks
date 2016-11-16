@@ -1,0 +1,141 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# Working with Table Views
+
+#### Using a Table View in a Xamarin.Mac Application
+
+This workbook will cover the steps required to add a Table View (`NSTableView`) to a Xamarin.Mac app's User Interface directly from C# code without using a Xcode's Interface Builder `.storyboard` or `.xib` file.
+
+## Creating the Table View
+
+`NSTableView` is a native cocoa control for displaying data in a table. Start by creating an instance and set its `Frame` property to a reasonable size. It will be autosized via an owning `NSClipView`:
+
+```csharp
+// Get the parent window's frame
+var frame = MainWindow.ContentView.Frame;
+
+// Make a new table view and have it fill the parent window
+NSTableView tableView = new NSTableView () {
+	Frame = frame
+};
+```
+
+## Adding the Table Columns
+
+Every `NSTableView` expected to have at least one `NSTableColumn`. The following code adds two columns to the Table:
+
+```csharp
+// Add two columns to the table
+tableView.AddColumn (new NSTableColumn ("Values"));
+tableView.AddColumn (new NSTableColumn ("Data"));
+```
+
+## Adding the Clip View
+
+`NSTableView` expects to be hosted inside an `NSClipView`.The following code creates the required Clip View and adds the Table View to it:
+
+```csharp
+// Create the required clipping view and set it to
+// resize both horizontally and vertically as the
+// parent window resizes.
+NSClipView clipView = new NSClipView (frame) {
+		AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable
+};
+
+// Attach the table view to the clip view
+clipView.DocumentView = tableView;
+```
+
+Next, add the Clip View to the Window’s Content View to display the Table:
+
+```csharp
+// Attach the clip view to the main window
+MainWindow.ContentView = clipView;
+```
+
+## Adding Data to the Table
+
+`NSTableView` uses a two classes, a `DataSource` and `Delegate`, to determine what data to display. `NSTableView` can be used in two different “modes”: *Cell Based* or *View Based*.
+
+Different overrides apply to each of these modes, such that overriding some of the Cell Based methods will prevent the View Based methods from being called. According to Apple, Cell Based Tables have been deprecated and View Based Tables should be used for all modern macOS development.
+
+The `Delegate` receives events associated with user action and determine how an item should be visualized.
+
+### Providing Sample Data
+
+This sample will just use the name of the row number:
+
+```csharp
+// Create the sample data for the table to display
+static string [] NumberWords = new[] { "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" };
+```
+
+### Creating the Cells for the Table
+
+For every Row and Column, the Table View calls its `Delegate` to provide the individual Cells. By calling `MakeView` method of the Table View with an identifier, existing views can be recycled, which can improve performance:
+
+```csharp
+class TableDelegate : NSTableViewDelegate 
+{
+    // Provide an ID for each cell so it can be reused
+	const string identifer = "myCellIdentifier";
+
+    // Generate a new view to act as the cell for each table row and column
+	public override NSView GetViewForItem (NSTableView tableView, NSTableColumn tableColumn, nint row)
+	{
+        // Ask the table view to reuse a cell
+		NSTextField view = (NSTextField)tableView.MakeView (identifer, this);
+
+        // Was a reusable cell available?
+		if (view == null) {
+            // No, create a new cell
+			view = new NSTextField ();
+			view.Identifier = identifer;
+			view.Bordered = false;
+			view.Selectable = false;
+			view.Editable = false;
+		}
+
+        // Populate the cell
+		view.StringValue = tableColumn.Identifier == "Values" ? (NSString)row.ToString () : (NSString)NumberWords [row];
+
+        // Return the fully populated cell
+		return view;			
+	}
+}
+```
+
+### Add a Table Data Source
+
+`TableDataSource` defines the structures of the Table. In the case of a macOS Table, it simply provides the number of rows in the Table:
+
+```csharp
+class TableDataSource : NSTableViewDataSource
+{
+    // Return the number of rows in the table
+	public override nint GetRowCount (NSTableView tableView)
+	{
+		return 10;
+	}
+}
+```
+
+---
+
+💡***Note:** Optionally, both the Table Data Source and the Table Delegate could have been implemented as one class that conforms to the `INSTableViewDataSource` and `INSTableViewDelegate` interfaces.*
+
+---
+
+### Displaying the Data
+
+Hooking up the `Delegate` and `DataSource` to the `NSTableView` is the final step. This is populate the table with the sample data:
+
+```csharp
+// Attach the data source and delegate to populate the table
+tableView.DataSource = new TableDataSource ();
+tableView.Delegate = new TableDelegate ();
+```

@@ -1,0 +1,124 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+# Web Views in iOS
+
+Apple has released a number of ways for app developers to incorporate web view functionality in their apps. Most users utilize the built-in Safari web browser on their iOS device and therefore expect that web-view functionality from other apps is consistent with this experience.
+
+This workbook will explore opening Safari from inside an app, as well as the following web views provided by Apple:
+
+* UIWebView
+
+* WKWebView
+
+* SFSafariViewController
+
+### SetUp
+
+The following using directives are necessary when using the above web views:
+
+```csharp
+using System;
+using Foundation;
+using SafariServices;
+using UIKit;
+using WebKit;
+```
+
+```csharp
+#load "tabbar.csx"
+```
+
+```csharp
+NSUrl url = new NSUrl("https://developer.xamarin.com");
+```
+
+## UIWebView
+
+* `UIWebView` is Apple's legacy way of providing web content in your app. It was released in iOS 2.0 and has been deprecated as of 8.0.
+
+* If you plan to support iOS versions earlier than 8.0, you will have to use `UIWebView`.
+
+* It is recommended that you should check the user's iOS version as  `UIWebView` is less optimized for performance than the alternatives. If it 8.0 or above, using either of the options explain below will create a better user experience.
+
+```csharp
+var webView = new UIWebView (tabController.webViewTab.View.Bounds);
+tabController.webViewTab.View.AddSubview(webView);
+webView.LoadRequest(new NSUrlRequest(url));
+```
+
+## WKWebView
+
+* Introduced in iOS 8
+
+* Uses the Nitro Javascript engine, the same engine used by mobile Safari.
+
+* WKWebView should always be used over UIWebView were possible due to the increased performance, built-in user-friendly gestures, and the ease of interaction between the web page and your app.
+
+* `WKWebView` can be added to your app in an almost identical way to UIWebView, however as the developer you have much more control over the UI/UX and functionality.
+
+* Creating and displaying the web view object will display the requested page, however, you can control how to present the view, how the user can navigate, and how the user exits the view.
+
+```csharp
+var webkitWebView = new WKWebView (tabController.WKWebTab.View.Frame, new WKWebViewConfiguration ());
+tabController.WKWebTab.View.AddSubview (webkitWebView);
+
+var request = new NSUrlRequest (url);
+webkitWebView.LoadRequest (request);
+```
+
+## SFSafariViewController
+
+* Available in iOS and later
+
+* Unlike `UIWebView` or `WKWebView`, `SFSafariViewController` is a View Controller and so cannot be used with other views.
+
+* Uses the Nitro Javascript Engine
+
+* Provides a range of additional Safari features such as AutoFill, Reader, and the ability to share cookies and data with mobile Safari
+
+* by default, implements a **Done** button, allowing to user to easily return to the app.
+
+* Provides forward and back navigation buttons, allowing users to navigate through a stack of web pages.
+
+* Provides the user with an address bar giving them the peace of mind that they are on the expected web page. The address bar does not allow the user to change the URL.
+
+* SFSafariViewController cannot be customized.
+
+```csharp
+var safariButton = UIButton.FromType(UIButtonType.System);
+safariButton.Frame = new CGRect(50, 50, 200, 200);
+safariButton.SetTitle("Go to Site", UIControlState.Normal);
+
+tabController.safariVCTab.View.AddSubview(safariButton);
+
+safariButton.TouchUpInside += delegate{
+     var sfViewController = new SFSafariViewController(url);
+     tabController.safariVCTab.PresentViewController(sfViewController, true, null);
+}
+```
+
+## Safari
+
+Navigating users away from an app to Safari should generally be avoided. Most users will not expect navigation outside of the application, so if they navigate away from the app, users may never return it, therefore killing engagement with your app.
+
+iOS 9 improvements allow the user to easily return to the app through a back button that is provided in the top left corner of the Safari page.
+
+```csharp
+var button = UIButton.FromType(UIButtonType.System);
+button.Frame = new CGRect(50, 50, 200, 200);
+button.SetTitle("Go to Site", UIControlState.Normal);
+tabController.safariTab.View.AddSubview(button);
+
+button.TouchUpInside += delegate {
+    UIApplication.SharedApplication.OpenUrl(url);
+};
+```
+
+This produces the following web view:
+
+![](safari.png)
+

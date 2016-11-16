@@ -1,0 +1,15 @@
+---
+uti: com.xamarin.workbook
+platform: WPF
+---
+
+# WPF
+
+
+```csharp
+var label = new System.Windows.Controls.Label {
+  Text = "Hello, Workbooks",
+  FontSize = 36
+};
+System.Windows.Application.Current.MainWindow.Content = label;
+```

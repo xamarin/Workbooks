@@ -1,0 +1,137 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Displaying Images
+
+The Xamarin.Forms `Image` view displays images on a page. The image source can be local or remote.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Displaying a Local Image
+
+To display a local image, create a `Image` instance and set its `Source` property to an image filename:
+
+```csharp
+var image = new Image
+{
+  Source = "waterfront.jpg"
+};
+stackLayout.Children.Add(image);
+```
+
+By default, the displayed image occupies as much space as possible on the page for its resolution, while maintaining its aspect ratio.
+
+The opacity of the image can be changed by setting the `Opacity` property:
+
+```csharp
+image.Opacity = 0.5;
+```
+
+This has the effect of making the image partly translucent.
+
+## Changing the Displayed Aspect Ratio
+
+In order to demonstrate changing the displayed aspect ratio of the image, the height and width of the image must be changed, and the `Opacity` property will be reset:
+
+```charp
+image.HeightRequest = 200;
+image.WidthRequest = 100;
+image.Opacity = 1;
+```
+
+The `Aspect` property determines how the image will be scaled to fit the display area, and is set to a value of the `Aspect` enumeration. `Fill` stretches the image to completely fill the display area. This may result in the image aspect ratio being distorted:
+
+```csharp
+image.Aspect = Aspect.Fill;
+```
+
+`AspectFill` clips the image so that it fills the display area while preserving the aspect ratio:
+
+```csharp
+image.Aspect = Aspect.AspectFill;
+```
+
+`AspectFit` is the default value, which ensures that the entire image fits into the display area:
+
+```csharp
+image.Aspect = Aspect.AspectFit;
+```
+
+## Displaying a Remote Image
+
+Images can be downloaded for display by setting the `Source` property of the `Image` view to a URL:
+
+```csharp
+image.Source = "https://developer.xamarin.com/demo/IMG_1101.JPG";
+```
+
+By default, image caching is enabled for downloaded images, which will be stored locally for 24 hours. However, image caching can be disabled when instantiating the image source:
+
+```csharp
+image.Source = new UriImageSource
+{
+  Uri = new Uri("https://developer.xamarin.com/demo/IMG_0613.JPG"),
+  CachingEnabled = false
+};
+```
+
+To set a specific cache period, set the `CacheValidity` property of the `UriImageSource` to a `TimeSpan`:
+
+```csharp
+image.Source = new UriImageSource
+{
+  Uri = new Uri("https://developer.xamarin.com/demo/IMG_2267.JPG"),
+  CachingEnabled = true,
+  CacheValidity = new TimeSpan(5,0,0,0)
+}
+```
+
+This will cache the downloaded image for 5 days.
+
+## Obtaining the Loading Status of an Image
+
+The loading status of the image can be obtained by examining its `IsLoading` property:
+
+```csharp
+var activityIndicator = new ActivityIndicator();
+activityIndicator.SetBinding(ActivityIndicator.IsRunningProperty, "IsLoading");
+activityIndicator.BindingContext = image;
+
+stackLayout.Children.Add(activityIndicator);
+
+image.Source = new UriImageSource
+{
+  Uri = new Uri("https://developer.xamarin.com/demo/IMG_4023.JPG"),
+  CachingEnabled = false
+};
+```
+
+This code creates an `ActivityIndicator` instance, and binds its `IsRunning` property to the value of the `IsLoading` property on the `Image` instance. Therefore, when the image is loading, the `ActivityIndicator` indicates this.
+
+## 👍 Try it now!
+
+* Set a remote image to be partly transparent.
+
+* Set a remote image to completely fill the display area.
+
+* Set a remote image to be cached for 12 hours when it's first downloaded.
+
+## Further Reading
+
+For more information about the `Image` view, see [Working with Images](https://developer.xamarin.com/guides/xamarin-forms/working-with/images/).

@@ -1,0 +1,380 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+# Exploring SCNGeometrySource
+
+## Creating custom geometry
+
+SceneKit’s [SCNGeometry ](https://developer.xamarin.com/api/type/SceneKit.SCNGeometry/)class has several subclasses that represent various primitive shapes (boxes, pyramids, capsules, etc.). Additionally, you can load custom geometry from .DAE files.
+
+Or you can create the geometry programmatically. This is the most complex way to create geometry, but ultimately is the most flexible. This workbook will go through the process of creating and animating a textured right-pyramid (a four-sided pyramid).
+
+## SceneKit basics...
+
+First, create a basic SceneKit scene with a camera:
+
+```csharp
+using SceneKit;
+
+var vc = KeyWindow.RootViewController;
+
+var scene = new SCNScene();
+
+var scnView = new SCNView(UIScreen.MainScreen.Bounds);
+scnView.Scene = scene;
+scnView.AllowsCameraControl = true;
+scnView.ShowsStatistics = true;
+scnView.BackgroundColor = UIColor.Black;
+
+vc.View = scnView;
+
+var lightNode = new SCNNode();
+lightNode.Light = new SCNLight ();
+lightNode.Light.LightType = SCNLightType.Omni;
+lightNode.Position = new SCNVector3 (0.0F, 10.0F, 10.0F);
+scene.RootNode.AddChildNode (lightNode);
+
+var ambientLightNode = new SCNNode ();
+ambientLightNode.Light = new SCNLight ();
+ambientLightNode.Light.LightType = SCNLightType.Ambient;
+ambientLightNode.Light.Color = UIColor.DarkGray;
+scene.RootNode.AddChildNode (ambientLightNode);
+
+var cameraNode = new SCNNode ();
+cameraNode.Camera = new SCNCamera ();
+scene.RootNode.AddChildNode (cameraNode);
+cameraNode.Position = new SCNVector3 (0.0F, 0.0F, 3.0F);
+```
+
+### Important classes
+
+There are two critical classes for creating custom geometry: the `SCNGeometrySource` class and the `SCNGeometryElement` class. `SCNGeometrySource` objects are responsible for specifying vertex data. `SCNGeometryElement` objects specify *how* the vertices in the `SCNGeometrySource` object(s) are connected and rendered. In this case, for instance, we'll specify the vertices as separate triangles, but other valid `SCNGeometryPrimitiveType` values are lines, points, and trianglestrips.
+
+In addition to basic structure, vertex normals are needed for proper lighting calculations and UV (texture) coordinates are needed to specify how the texture is applied to the geometry. Factory methods turn arrays of this per-vertex data into `SCNGeometrySource` objects.
+
+### Basic geometry
+
+Our goal is to create a "tent" (or right-pyramid) that stretches from \[-1, -1, 0\] to \[1, 1, 0\]. The "peak" of the "tent" will be in its center:
+
+```csharp
+var a = new SCNVector3(-1, -1, 0);
+var c = new SCNVector3(1, 1, 0);
+
+var halfX = (c.X + a.X) / 2;
+var halfY = (c.Y + a.Y) / 2;
+var halfZ = (c.Z + a.Z) / 2;
+
+var b = new SCNVector3(a.X, c.Y, halfZ);
+var d = new SCNVector3(c.X, a.Y, halfZ);
+//Modify third argument to visualize tent peak immediately
+var midPoint = new SCNVector3(halfX, halfY, halfZ);
+```
+
+Now, we can convert these 3D points into vertex geometry data -- our first `SCNGeometrySource`:
+
+```csharp
+var locs = new [] {
+	a, b, c, d, midPoint
+};
+var locSource = SCNGeometrySource.FromVertices(locs);
+```
+
+To properly calculate light reflections, we have to specify the surface normals. Since the rectangle defined by `a` and `c` above is lying flat on the ground, that's easy enough:
+
+```csharp
+//Normals are relative to geometry (i.e., not to global scene-graph coords)
+var normals = new [] {
+	new SCNVector3(0, 0, 1),
+	new SCNVector3(0, 0, 1),
+	new SCNVector3(0, 0, 1),
+	new SCNVector3(0, 0, 1),
+	new SCNVector3(0, 0, 1),
+};;
+var normSource = SCNGeometrySource.FromNormals(normals);
+```
+
+Since we want a textured object, we also have to create an `SCNGeometrySource` for UV coordinates. Texture coordinates with values outside the range \[0,1\] trigger texture wrapping. In this case, we just want to pin the corners of the texture to the corners of the tent and to pin the "peak" of the tent to the center vertex:
+
+```csharp
+var txCoords = new [] {
+	new CGPoint(0, 0),
+	new CGPoint(0, 1),
+	new CGPoint(1, 1),
+	new CGPoint(1, 0),
+	new CGPoint(0.5, 0.5)
+};
+
+var txCoordsSource = SCNGeometrySource.FromTextureCoordinates(txCoords);
+```
+
+So now we have the necessary `SCNGeometrySource` objects for our per-vertex data:
+
+```csharp
+var sources = new [] { locSource, normSource, txCoordsSource };
+```
+
+Now it's time to create our `SCNGeometryElement` object to specify how the vertices are connected. This is tightly coupled to the shape and ordering of the vertex data we specified in `locs` above! In the case of `SCNGeometryPrimitiveType.Triangles`, we need to index into the vertex data and define the faces of our geometry by winding in a counter-clockwise direction:
+
+```csharp
+//Note that this relies on the shape and ordering of locs above!
+var indices = new [] {
+	//Counter-clockwise!
+	4, 1, 0,
+	1, 4, 2,
+	2, 4, 3,
+	3, 4, 0
+};
+```
+
+You should be able to follow how the triangles defined in `indices` above map into the location of the various index values within `locs`. The first three values in `indices`, for instance, `4, 1, 0`, define the left side of the geometry. The next values,`1, 4, 2,` define the top, and so on.
+
+\[TODO: If you cannot see the below image, it is the file `indices.jpg` in the workbook directory\]
+![](indices.jpg)
+
+Now, to create the `SCNGeometryElement`, we transform the above into `NSData` and call the `SCNGeometryElement.FromData` method with the appropriate arguments:
+
+* The `idxData` holding the bytes of our `indices` array;
+
+* Our data specifies complete triangles;
+
+* The number of triangles we've specified is 4 (`indices.Length / 3`); and
+
+* The `NSData` should be read in as a series of `int`s.
+
+```csharp
+var idxArray = new byte[indices.Length][];
+for(int i = 0; i < idxArray.Length; i++)
+{
+	idxArray[i] = BitConverter.GetBytes(indices[i]);
+}
+var idxData = NSData.FromArray(idxArray.SelectMany(id => id).ToArray());
+//Note that this relies on indices defining triangles
+var element = SCNGeometryElement.FromData(idxData, SCNGeometryPrimitiveType.Triangles, indices.Length / 3, sizeof(int));
+var elements = new [] { element };
+```
+
+Now that we have both our `SCNGeometrySource` objects and our `SCNGeometryElement` object, we can create the custom geometry:
+
+```csharp
+var geometry = SCNGeometry.Create(sources, elements);
+```
+
+As always, we add the geometry to the `SCNScene` by creating a new `SCNNode` and adding it to the `SCNScene`:
+
+```csharp
+var tentNode = SCNNode.FromGeometry(geometry);
+scene.RootNode.AddChildNode(tentNode);
+```
+
+Now to texture the geometry. First, create an `SCNMaterial`:
+
+```csharp
+var material = new SCNMaterial ();
+material.Diffuse.Contents = UIImage.FromFile ("textureX.png");
+material.Specular.Contents = UIColor.Gray;
+material.LocksAmbientWithDiffuse = true;
+material.Diffuse.WrapS = SCNWrapMode.Repeat;
+material.Diffuse.WrapT = SCNWrapMode.Repeat;
+```
+
+`SCNGeometry` objects can have multiple materials, but in this case, we only need the one:
+
+```csharp
+geometry.FirstMaterial = material;
+```
+
+And there's our textured custom geometry!
+
+Before moving on, let's clear the scene:
+
+```csharp
+tentNode.RemoveFromParentNode();
+```
+
+## Modifying geometry
+
+`SCNMorpher` objects are used to smoothly animate between geometries in SceneKit. In this case, we want to animate the location of the "peak" of the tent. Before we get to the animation, let’s write some convenience code that allows us to rapidly create new geometry without redoing all our work.
+
+First, define a `struct` that holds both the custom geometry and a reference to its vertex locations:
+
+```csharp
+public struct Tent {
+	public SCNNode Node { get; }
+	public SCNVector3[] Locations { get; }
+
+	public Tent(SCNNode node, SCNVector3[] locations)
+	{
+		Node = node;
+		Locations = locations;
+	}
+}
+```
+
+We'll create a `Tent` object in a function. Notice that the `CreateTent` function is virtually identical to the code you've already executed in this notebook!
+
+```csharp
+Tent CreateTent(SCNVector3 a, SCNVector3 c)
+{
+	var halfX = (c.X + a.X) / 2;
+	var halfY = (c.Y + a.Y) / 2;
+	var halfZ = (c.Z + a.Z) / 2;
+
+	var b = new SCNVector3(a.X, c.Y, halfZ);
+	var d = new SCNVector3(c.X, a.Y, halfZ);
+	var midPoint = new SCNVector3(halfX, halfY, halfZ);
+
+	var locs = new [] {
+		a, b, c, d, midPoint
+	};
+	var locSource = SCNGeometrySource.FromVertices(locs);
+
+	//Normals are relative to geometry
+	var normals = new [] {
+		new SCNVector3(0, 0, 1),
+		new SCNVector3(0, 0, 1),
+		new SCNVector3(0, 0, 1),
+		new SCNVector3(0, 0, 1),
+		new SCNVector3(0, 0, 1),
+	};;
+	var normSource = SCNGeometrySource.FromNormals(normals);
+
+	var txCoords = new [] {
+		new CGPoint(0, 0),
+		new CGPoint(0, 1),
+		new CGPoint(1, 1),
+		new CGPoint(1, 0),
+		new CGPoint(0.5, 0.5)
+	};
+
+	var txCoordsSource = SCNGeometrySource.FromTextureCoordinates(txCoords);
+
+	//Note that this relies on the ordering of locs above
+	var indices = new [] {
+		//Counter-clockwise!
+		4, 1, 0,
+		1, 4, 2,
+		2, 4, 3,
+		3, 4, 0
+	};
+
+	var idxArray = new byte[indices.Length][];
+	for(int i = 0; i < idxArray.Length; i++)
+	{
+		idxArray[i] = BitConverter.GetBytes(indices[i]);
+	}
+	var idxData = NSData.FromArray(idxArray.SelectMany(id => id).ToArray());
+	//Note that this relies on indices defining triangles
+	var element = SCNGeometryElement.FromData(idxData, SCNGeometryPrimitiveType.Triangles, indices.Length / 3, sizeof(int));
+
+	var geometry = SCNGeometry.Create(new [] { locSource, normSource, txCoordsSource }, new [] { element });
+	var newNode = SCNNode.FromGeometry(geometry);
+
+	var tent = new Tent(newNode, locs);
+	return tent;
+}
+```
+
+```csharp
+var a = new SCNVector3(-1, -1, 0);
+var c = new SCNVector3(1, 1, 0);
+var tent = CreateTent(a, c);
+var newNode = tent.Node;
+newNode.Geometry.FirstMaterial = material;
+scene.RootNode.AddChildNode(newNode)
+```
+
+Now that we're back to square one, we want to create a function that allows us to create a new `Tent`, based on the locations of another `Tent` plus a `List` of delta positions:
+
+```csharp
+Tent Add(Tent original, List<KeyValuePair<int, SCNVector3>> deltas) {
+	//Copy the source vertex locations
+	var locs = original.Locations.Clone() as SCNVector3[];
+
+	//Modify the vertices in the cloned location list
+	foreach(var delta in deltas) {
+		var index = delta.Key;
+		locs[index] += delta.Value;
+	}
+
+	//Replace the original vertex source with the changed source
+	var srcs = original.Node.Geometry.GeometrySources.Clone() as SCNGeometrySource[];
+
+	//Find the SCNGeometrySource that supplies vertex data
+	var vertexSourceIndex = -1;
+	for (int i = 0; i < srcs.Length; i++) {
+		var s = srcs[i];
+		if(s.Semantic == SCNGeometrySourceSemantic.Vertex.ToString()) 	{
+			vertexSourceIndex = i;
+			break;
+		}
+	}
+	//ASSERT vertexSourceIndex > -1
+
+	//Create a new geometry source, whose SCNGeometrySource for vertices is for the modified locations
+	var src = SCNGeometrySource.FromVertices(locs);
+	srcs[vertexSourceIndex] = src;
+
+	//Create new geometry
+	var newGeo = SCNGeometry.Create(srcs, original.Node.Geometry.GeometryElements);
+	newGeo.Materials = original.Node.Geometry.Materials;
+
+	//Create new node
+	var node = SCNNode.FromGeometry(newGeo);
+
+	//Return new node and new locations
+	return new Tent(node, locs);
+}
+```
+
+Now, let's define the geometry which we want to be our end state. In this case, we simply want to modify in Z the position of the "peak," which is at index 4:
+
+```csharp
+var deltas = new List<KeyValuePair<int, SCNVector3>>();
+deltas.Add(new KeyValuePair<int, SCNVector3>(4, new SCNVector3(0, 0, 0.5f)));
+
+var t2 = Add(tent, deltas);
+
+t2.Node.Position += new SCNVector3(2, 0, 0);
+scene.RootNode.AddChildNode(t2.Node);
+```
+
+If you look at the Simulator, you can now see the two geometries side-by-side.
+
+After you’re done, remove the new node from the scene:
+
+```csharp
+t2.Node.RemoveFromParentNode();
+```
+
+## Creating the animation
+
+Now it’s time to create the animation, using the `SCNMorpher`class. The SCNMorpher has 1 or more “target” geometries. In this case, we only have the one target geometry, that of  our modified “tent”:
+
+```csharp
+using CoreAnimation;
+
+var oldNode = tent.Node;
+var newTent = t2.Node.Geometry;
+
+var morpher = new SCNMorpher();
+morpher.Targets = new [] { newTent };
+```
+
+The `SCNMorpher` sets the (compatible) geometry of the current node into the geometry of its `Targets` based on the percentage value of  `morpher.weights` at the index of the target. In other words, if there’s only one `SCNGeometry`in `Targets`, a `morpher.weights\[0\]` of `0` is a geometry whose values are taken entirely from the initial node geometry, while a `morpher.weights\[0\]` of `1.0` takes its values entirely from the geometry at `Targets\[0\]`.
+
+A keypath animation of the morpher.weights values cycles smoothly between geometries:
+
+```csharp
+var animation = CABasicAnimation.FromKeyPath("morpher.weights[0]");
+animation.From = new NSNumber(0.0);
+animation.To = new NSNumber(1.0);
+animation.AutoReverses = true;
+animation.RepeatCount = float.PositiveInfinity;
+animation.Duration = 3;
+
+oldNode.Morpher = morpher;
+oldNode.AddAnimation(animation, "morpher.weights");
+```

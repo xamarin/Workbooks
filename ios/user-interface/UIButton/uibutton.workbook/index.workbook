@@ -1,0 +1,220 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# UIButton
+
+## Example 1 : Adding a button and handling a touch event
+
+The `UIButton` is among the most commonly-used components in iOS. It's basic use is straightforward:
+
+```csharp
+// Number of times the button has been pressed
+var count = 0;
+
+var simple = new UIButton(new CGRect(10, 10, 140, 50));
+simple.SetTitle("Press me!", UIControlState.Normal);
+simple.SetTitleColor(UIColor.Black, UIControlState.Normal);
+simple.TouchUpInside += (sender, eventArgs) => simple.SetTitle($"Pressed {++count} times.", UIControlState.Normal);
+```
+
+The `simple` button is instantiated with a hard-coded `Frame` rectangle (more complex sizing and layouts will be discussed later). The next line set's the `Title` property for the normal `UIControlState`. Since the `Title` may vary depending on the `State` propery of the button, this cannot be a simple setter, but instead requires a call to `SetTitle(string, UIControlState)`.
+
+The default color for the title text is white, which happens to be the same as the initial `BackgroundColor` for the workbook, so to make the text visible, the next line changes the color to black. Again you have to pass the `UIControlState` for which you're setting the font color.
+
+The `UIButton` class does not have a "Pressed" event. Commonly, `TouchUpInside` is the appropriate equivalent. All of the events available to `UIButton` are actually defined in the parent class `UIControl` and include `TouchDownInside`, `TouchDragEnter`/`TouchDrawExit`, `TouchDragInside`/`TouchDragOutside`, and `TouchCancel`. 
+
+The event-handler again calls the `UIButton` object's `SetTitle(string, UIControlState)` method, incrementing `count` as it goes.
+
+The next step is to add the `simple` button to the user interface:
+
+```csharp
+RootViewController.View.AddSubview(simple);
+```
+
+In iOS, the User Experience is controlled by instances of `UIViewController` and the User Interface by instances of `UIView`. Every `UIWindow` has a `RootViewController` instance of some `UIViewController` subclass. Xamarin Workbooks exposes a global variable `RootViewController` variable for the application running in the simulator.
+
+The `UIButton` is a subclass of `UIControl`, which in turn is a subclass of `UIView`, so the `simple` `UIButton` can be added with the `AddSubview(UIView)` method as in the example above.
+
+You should run the above sections and click the button at least 10 times before continuing.
+
+## Example 2 : Laying out a button
+
+After 10 clicks using the above code, the `Frame` of the `simple` button should have become too small to display the complete text and placed an ellipse in the middle of the title.
+
+![The UIButton will show a truncated version of the Title if necessary](truncated_title.png)
+
+The size required to display the entire `Title` is held in the `IntrinsicContentSize` property:
+
+```csharp
+simple.IntrinsicContentSize
+```
+
+This `CGSize` should have a `Width` greater than that of the `Frame` of the `simple` button. (If not, adjust the `Frame` of `simple` and rerun the workbook until you see the truncation behavior.)
+
+To get a good sense of how the `Frame` and `IntrinsicContentSize` interact, you can set the `BackgroundColor` of `simple` to something other than white:
+
+```csharp
+simple.BackgroundColor = UIColor.Yellow;
+```
+
+You could do that on each new button individually, but if you want to affect the default appearance of *all new* `UIButton` objects, you can use the "Appearance Proxy" for the class:
+
+```csharp
+UIButton.Appearance.SetTitleColor(UIColor.Black, UIControlState.Normal);
+UIButton.Appearance.BackgroundColor = UIColor.Yellow;
+```
+
+Hard-coding `Frame` rectangles is not a maintainable strategy. The preferred method for laying out components in iOS is to use the system's "Auto Layout" facility, which describes the layout of a component in terms of `NSLayoutConstraint` objects. Create a new `UIButton` and add it to the `View`:
+
+```csharp
+var button2 = new UIButton();
+RootViewController.View.AddSubview(button2);
+```
+
+Note that `button2` uses a no-arg constructor, while your `simple` button passed in the desired `Frame` rectangle. As you can see, `button2` has a `Frame` of zero size:
+
+```csharp
+button2.Frame
+```
+
+There are several ways to specify constraints in code, but the easiest is to use "anchor guides":
+
+```csharp
+button2.TranslatesAutoresizingMaskIntoConstraints = false;
+button2.LeadingAnchor.ConstraintEqualTo(RootViewController.View.LayoutMarginsGuide.LeadingAnchor).Active = true;
+button2.TopAnchor.ConstraintEqualTo(simple.BottomAnchor, 10).Active = true;
+```
+
+The first line turns off the legacy “Autoresizing mask” behavior (unfortunately, you cannot use the `UIButton.Appearance` proxy to default `TranslatesAutoresizingMaskIntoConstraints` to `false`!).
+
+The second line says that the leading anchor (the anchor for the left edge, in left-to-right cultures) should be constrained to be equal to the left margin of the containing `UIView`. Then, it sets this new constraint to be active.
+
+The third line says that the top anchor should be equal to the *bottom* anchor of the `simple` button, plus 10 logical pixels.
+
+Constraints can be based on any variable. Run the following to set the height and width of `button2` to be sufficient to hold the `IntrinsicContentSize`:
+
+```csharp
+button2.HeightAnchor.ConstraintGreaterThanOrEqualTo(button2.IntrinsicContentSize.Height).Active = true;
+button2.WidthAnchor.ConstraintGreaterThanOrEqualTo(button2.IntrinsicContentSize.Width).Active = true;
+
+button2.SetTitle("Explore constraints", UIControlState.Normal);
+```
+
+Now, add the following code so that every time `button2` is pressed, it's `Title` and therefore it's `IntrinsicContentSize` changes:
+
+```csharp
+var rnd = new Random();
+
+// Returns a string of the specified length of random capital letters 
+string RandomString(int length) 
+{
+    var s = "";
+    for(var i = 0; i < length; i++)
+    {
+    	// 0x41 = UTF-16 'A'
+        s += (char) (0x41 + rnd.Next(26));
+    }
+    return s;
+}
+
+button2.TouchUpInside += (s,e) => 
+{
+	var charCount = 5 + rnd.Next(11);
+	button2.SetTitle(RandomString(charCount), UIControlState.Normal);		
+};
+```
+
+The above code defines a function that creates a random string of capital letters and sets the `TouchUpInside` event handler for `button2` to change the title to a random string of 5 to 15 letters.
+
+When you run the above and click `button2` several times, you'll see the `Frame` of `button2` changing to tightly encapsulate the `IntrinsicContentSize`. While this might be a desired behavior in certain circumstances, more generally you probably want to create a layout that, while capable of resizing for different displays and rotations, doesn't resize components in the normal course of interaction.
+
+You can add a new constraint that anchors `button2`'s right edge to the margins of the containing `UIView`:
+
+```csharp
+button2.TrailingAnchor.ConstraintEqualTo(RootViewController.View.LayoutMarginsGuide.TrailingAnchor).Active = true;
+```
+
+## Example 3: Using Images
+
+`UIButton` instances may show an image in combination with, or in lieu of, their `Title`.
+
+```csharp
+var btn3 = new UIButton();
+btn3.SetImage(UIImage.FromFile("textureX_sm.png"), UIControlState.Normal);
+btn3.SetTitle("Image Button", UIControlState.Normal);
+```
+
+For convenience, define an extension method for `UIButton` that adds it to the `RootViewController.View` underneath another button and uses the previously-discussed auto layout constraint techniques to size it:
+
+```csharp
+static void AddToViewBelow(this UIButton newBtn, UIButton above){
+    RootViewController.View.Add(newBtn);
+    newBtn.TranslatesAutoresizingMaskIntoConstraints = false;
+    newBtn.LeadingAnchor.ConstraintEqualTo(RootViewController.View.LayoutMarginsGuide.LeadingAnchor).Active = true;
+newBtn.TopAnchor.ConstraintEqualTo(above.BottomAnchor, 10).Active = true;
+    newBtn.HeightAnchor.ConstraintEqualTo(newBtn.IntrinsicContentSize.Height).Active = true;
+newBtn.TrailingAnchor.ConstraintEqualTo(RootViewController.View.LayoutMarginsGuide.TrailingAnchor).Active = true;
+}
+
+btn3.AddToViewBelow(button2);
+```
+
+Buttons additionally may set their `BackgroundImage` property:
+
+```csharp
+var wood = UIImage.FromFile("wood-texture-pattern.jpg");
+btn3.SetBackgroundImage(wood, UIControlState.Normal);
+```
+
+\(Wood texture image donated to the [public domain by Yinan Chen](http://www.publicdomainpictures.net/view-image.php?image=26664&))
+
+As you can see, the `BackgroundImage` does _not_ affect the `IntrinsicContentSize` , while the `ImageView` _does_. 
+
+To add some spacing between the `ImageView` and the `Title`, set the `TitleEdgeInsets` to add 5 logical pixels on its left side:
+
+```csharp
+btn3.TitleEdgeInsets = new UIEdgeInsets(0, 5, 0, 0);
+```
+
+Perhaps the layout would look better if the `Title` and `ImageView` were left-aligned and some padding added around the `ImageView`:
+
+```csharp
+btn3.HorizontalAlignment = UIControlContentHorizontalAlignment.Left;
+btn3.ContentEdgeInsets = new UIEdgeInsets(5, 5, 5, 0);
+```
+
+## Example 4: Button states
+
+The `UIControlState` enumeration is a little misleading, because it's actually a flagging enumeration. While `UIControlState.Normal`, `UIControlState.Disabled`, and `UIControlState.Highlighted` are mutually exclusive, the `UIControlState.Selected` and `UIControlState.Focused' states can be applied to any `UIControl` that is not in the `UIControl.Disabled` state.
+
+`UIControlState.Normal` is the most common state; the button is enabled and the user is not interacting with it. `UIControlState.Disabled` is also frequently used:
+
+```csharp
+var button4 = new UIButton();
+button4.AddToViewBelow(btn3);
+
+button4.SetTitle("Normal", UIControlState.Normal);
+button4.Enabled = true;
+```
+
+And conversely:
+
+```csharp
+button4.SetTitle("Disabled", UIControlState.Disabled);
+button4.Enabled = false;
+```
+
+The `UIControlState.Highlighted` state is activated when the user is interacting with the button (that is, _during_ the touch):
+
+```csharp
+button4.Enabled = true;
+button4.SetTitle("Highlighted", UIControlState.Highlighted);
+```
+
+Press and hold the `button4` button to see the Highlighted state.
+
+Additional API documentation on `UIButton` can be found at [UIButton](https://developer.xamarin.com/api/type/UIKit.UIButton/).
+

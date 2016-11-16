@@ -1,0 +1,126 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages:
+- id: Newtonsoft.Json
+  version: 8.0.3
+- id: Xamarin.Forms
+  version: 2.2.0.31
+---
+
+# Xamarin.Forms REST —> ListView
+
+## A little hack to demo Xamarin.Forms on iOS with Workbooks...
+
+...borrowing some ideas from James Montemagno’s [sample](https://github.com/jamesmontemagno/MonkeysApp-AppIndexing "Monkey Sample App")
+
+### Wire up a Xamarin.Forms app
+
+1. Start by importing the Nugets for Xamarin.Forms and the iOS Platform Renderers (and Json.Net for some parsing later on):
+
+```csharp
+#r "Xamarin.Forms.Platform.iOS"
+#r "Xamarin.Forms.Core"
+#r "Xamarin.Forms.Xaml"
+#r "Xamarin.Forms.Platform"
+#r "Newtonsoft.Json"
+```
+
+1. We need `using` statements too:
+
+```csharp
+using Xamarin.Forms;
+using Xamarin.Forms.Platform.iOS;
+```
+
+1. Set up a simple page with an exposed property to edit (in this case, a `ListView` which will be populated later):
+
+```csharp
+public class MyPage : ContentPage
+{
+	public ListView MyList {get;set;}
+	public MyPage ()
+	{
+		Title = "A test";
+
+		MyList = new ListView (); // no data yet, though
+
+		Content = MyList;
+	}
+}
+```
+
+1. Ok great - but we can’t see anything! Oh, we need to bootstrap the Xamarin.Forms app object too:
+
+```csharp
+public class App : Application
+{
+	public MyPage Page {get;set;}
+	public App ()
+	{
+		Page = new MyPage();
+		MainPage = new NavigationPage (Page);
+	}
+}
+```
+
+1. Now - here comes the “hack” - sneakily bypass requiring the `FormsApplicationDelegate` subclass (thank goodness it’s [open source](https://github.com/xamarin/Xamarin.Forms/blob/master/Xamarin.Forms.Platform.iOS/FormsApplicationDelegate.cs "open source")) and just set the iOS root view controller directly:
+
+```csharp
+Xamarin.Forms.Forms.Init();
+var a = new App();
+KeyWindow.RootViewController = a.MainPage.CreateViewController();
+```
+
+⚠️ *YMMV with some Xamarin.Forms features when hacking forms to start-up like this*\
+*BE WARNED!*
+
+### Getting the Monkey Data
+
+1. Now we have a Xamarin.Forms app, page, and listview - but no data! Because the monkey data lives in a Json file on the internet, we’re going to need some additional namespaces (and a Monkey model class):
+
+```csharp
+using Newtonsoft.Json;
+using System.Net;
+
+public class Monkey
+{
+	public string Name { get; set; }
+	public string Location { get; set; }
+	public string Details { get; set; }
+	public string Image { get; set; }
+	public int Population { get; set; }
+}
+```
+
+1. Now let’s grab that monkey data from github - the Json file is downloaded and deserialized in just a few lines of code:
+
+```csharp
+WebClient client = new WebClient();
+var response = client.DownloadData ("https://raw.githubusercontent.com/jamesmontemagno/MonkeysApp-AppIndexing/master/MonkeysApp/monkeydata.json"); // GET
+var json = System.Text.Encoding.UTF8.GetString(response);
+var monkeys = JsonConvert.DeserializeObject<List<Monkey>>(json);
+```
+
+1. Now bind that data to the listview - using the built-in `ImageCell` data template - and assigning properties from the monkey model to the Text, Detail, and ImageSource properties of the cell:
+
+```csharp
+a.Page.MyList.ItemTemplate = new DataTemplate(typeof(ImageCell));
+a.Page.MyList.ItemTemplate.SetBinding(TextCell.TextProperty, "Name");
+a.Page.MyList.ItemTemplate.SetBinding(ImageCell.DetailProperty, "Location");
+a.Page.MyList.ItemTemplate.SetBinding(ImageCell.ImageSourceProperty, "Image");
+a.Page.MyList.ItemsSource = monkeys;
+```
+
+1. And now the iOS app is populated with a list of monkeys! One last thing, update the app title
+
+```csharp
+a.Page.Title = "Monkeys!";
+```
+
+### The End Result
+
+\(for static-content view)
+
+![finished app](Screenshots/ListView1.png)
+

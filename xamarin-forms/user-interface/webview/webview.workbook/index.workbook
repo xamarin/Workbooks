@@ -1,0 +1,158 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Displaying Web Content
+
+The Xamarin.Forms `WebView` view displays web and HTML content in an application.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Displaying a Website
+
+To display a website from the internet, create a `WebView` instance and set its `Source` property to a URL:
+
+```csharp
+var webView = new WebView
+{
+  Source = "https://www.xamarin.com"
+};
+page.Content = webView;
+```
+
+---
+
+###### ⚠ Warning
+
+In iOS 9 and greater, App Transport Security (ATS) enforces secure connections between internet resources (such as the app's back-end server) and the app, thereby preventing accidental disclosure of sensitive information. Since ATS is enabled by default in apps built for iOS 9 and greater, all connections will be subject to ATS security requirements. If connections do not meet these requirements, they will fail with an exception.
+
+ATS can be opted out of if it is not possible to use the `HTTPS` protocol and secure communication for internet resources. This can be achieved by updating the app's **Info.plist** file. For more information see [App Transport Security](https://developer.xamarin.com/guides/ios/platform_features/introduction_to_ios9/ats/).
+
+---
+
+## Displaying HTML Strings
+
+A `WebView` can display a HTML string by creating an instance of the `HtmlWebViewSource` type:
+
+```csharp
+var htmlSource = new HtmlWebViewSource
+{
+  Html = @"<html><body>
+           <h1>Xamarin.Forms</h1>
+           <p>Welcome to WebView.</p>
+           </body></html>"
+};
+webView.Source = htmlSource;
+```
+
+## Handling Navigation Programmatically
+
+A `WebView` supports programmatic access to forward and backward navigation:
+
+```csharp
+page.Content = null;
+
+var buttonStackLayout = new StackLayout
+{
+  Orientation = StackOrientation.Horizontal,
+  Margin = new Thickness(10, 10)
+};
+var backButton = new Button
+{
+  Text = "Back",
+  HorizontalOptions = LayoutOptions.StartAndExpand
+};
+backButton.Clicked += (sender, e) =>
+{
+  if (webView.CanGoBack)
+    webView.GoBack();
+};
+var forwardButton = new Button
+{
+  Text = "Forward",
+  HorizontalOptions = LayoutOptions.End
+};
+forwardButton.Clicked += (sender, e) =>
+{
+  if (webView.CanGoForward)
+    webView.GoForward();
+};
+
+buttonStackLayout.Children.Add(backButton);
+buttonStackLayout.Children.Add(forwardButton);
+stackLayout.Children.Add(buttonStackLayout);
+stackLayout.Children.Add(webView);
+page.Content = stackLayout;
+
+webView.WidthRequest = 200;
+webView.HeightRequest = 500;
+webView.Source = "https://www.xamarin.com";
+```
+
+If the `WebView.CanGoBack` property is `true`, the `WebView.GoBack` method will navigate to the last visited page when the `backButton` is clicked. If the `WebView.CanGoForward` property is `true`, the `WebView.GoForward` method will navigate forward to the next visited page when the `forwardButton` is clicked.
+
+---
+
+###### Note
+
+When placing a `WebView` inside a `StackLayout`, the `WebView` requires that `HeightRequest` and `WidthRequest` property values are specified, otherwise the `WebView` will not render.
+
+---
+
+## Responding to Navigation
+
+A `WebView` raises two events to help you respond to navigation:
+
+* `Navigating` – raised when the `WebView` begins loading a new page.
+
+* `Navigated` – raised when the page is loaded and navigation has stopped.
+
+These events can be utilized to provide a status indicator for web page loading:
+
+```csharp
+var label = new Label {
+  Text = "Loading...",
+  HorizontalOptions = LayoutOptions.CenterAndExpand,
+  VerticalOptions = LayoutOptions.Center,
+  IsVisible = false
+};
+buttonStackLayout.Children.Insert(1, label);
+
+webView.Navigating += (sender, e) =>
+{
+  label.IsVisible = true;
+};
+webView.Navigated += (sender, e) =>
+{
+  label.IsVisible = false;
+};
+```
+
+Any page navigation will cause the **Loading...** message to appear, and disappear once navigation has completed.
+
+## 👍 Try it now!
+
+* Make a `WebView` navigate to the Xamarin University website (`https://university.xamarin.com/`).
+
+* Make a `WebView` display a `Hello World` message in HTML.
+
+* Add a `WebView` to a `StackLayout` and ensure it renders correctly.
+
+## Further Reading
+
+For more information about the `WebView` view, see [WebView](https://developer.xamarin.com/guides/xamarin-forms/user-interface/webview/).

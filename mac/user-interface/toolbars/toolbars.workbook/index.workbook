@@ -1,0 +1,756 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# Working with Toolbars
+
+#### Using a Toolbar in a Xamarin.Mac Application
+
+This workbook will cover the steps required to add a Toolbar (`NSToolBar`) to a Xamarin.Mac app's User Interface directly from C# code without using a Xcode's Interface Builder `.storyboard` or `.xib` file.
+
+While Toolbars are typically created in Interface Builder, the steps required to configure, update and respond to Toolbar Item events are the same and the knowledge learned here can be applied to a Toolbar built in a  `.storyboard` or `.xib` file. For more information, please see our [Toolbars](https://developer.xamarin.com/guides/mac/user-interface/working-with-toolbars/) documentation.
+
+## Defining the UI in Interface Builder
+
+Before diving into the process of building a Toolbar in code, let’s quickly review how a macOS app’s UI is normally created. Typically, a Xamarin.Mac app’s User Interface is defined in one or more `.storyboard` or `.xib` files added to the project’s hierarchy. For example:
+
+![](Images/Xcode01.png)
+
+Double-clicking this file will open it in Xcode’s Interface Builder where the Menus, Windows, Controls and Segues that make up the app’s UI can be defined visually. For example:
+
+![](Images/Xcode02.png)
+
+When the UI layout is completed, the graphical elements that make up the UI are then exposed via **Actions** and **Outlets,** making them accessible to code. When the developer saves their changes to the `Main.storyboard` file and returns to Xamarin Studio, these changes are synced with the Xamarin.Mac app’s Project File and the UI elements are then accessible in C#.
+
+## Creating a Toolbar Delegate
+
+As seen above, a `NSToolBar` is typically added to Window (`NSWindow`) in Xcode’s Interface Builder where the developer graphically creates the Toolbar by adding and configuring Toolbar Items, configuring the Default Toolbar and setting the appearance.
+
+Because the Toolbar used in this workbook will be created fully in code, the first thing required is a Toolbar Delegate (`NSToolbarDelegate`) that will handle the definition of the Toolbar Items that are available, that will create the individual Toolbar Items (as needed) and will define the Default Toolbar that is initially displayed to the end user:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class MainToolbarDelegate : NSToolbarDelegate
+{
+    #region Constructors
+    public MainToolbarDelegate ()
+    {
+    }
+    #endregion
+
+    #region Private Methods
+    // Build and return a custom Toolbar Item
+    private NSToolbarItem BuildItem (string identifier)
+    {
+        // Create new toolbar item
+        var item = new NSToolbarItem (identifier);
+
+        // Set properties
+        item.Image = new NSImage($"Images/{identifier}.png");
+        item.Label = identifier;
+        item.PaletteLabel = identifier;
+        item.Enabled = true;
+
+        // Attach an action event
+        item.Activated += (sender, e) => {
+            RaiseToolbarItemClicked(item.Identifier);
+		};
+
+        // Return new item
+        return item;
+    }
+    #endregion
+
+    #region Override Methods
+    public override string [] AllowedItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the list of available item identifiers
+        return new string [] {"One","Two","Three","Four","Five","Six","Seven","Eight","NSToolbarSpaceItem","NSToolbarFlexibleSpaceItem","NSToolbarShowColorsItem","NSToolbarShowFontsItem","NSToolbarPrintItem" };
+    }
+
+    public override string [] DefaultItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the item identifiers that make up the default Toolbar
+        return new string [] { "One","Two" };
+    }
+
+    public override string [] SelectableItemIdentifiers (NSToolbar toolbar)
+	{
+        // Return the item identifiers that can be selected (turned on and off like
+        // a switch)
+		return new string [] { "Six", "Seven", "Eight"  };
+	}
+
+    public override void WillAddItem (NSNotification notification)
+    {
+        
+    }
+
+    public override NSToolbarItem WillInsertItem (NSToolbar toolbar, string itemIdentifier, bool willBeInserted)
+    {
+        NSToolbarItem item = null;
+
+        // Take action based on the Identifier
+        switch(itemIdentifier){
+        case "NSToolbarSpaceItem":
+            item = new NSToolbarItem("NSToolbarSpaceItem");
+            item.Label = "Space";
+            item.PaletteLabel = "Space";
+            break;
+        case "NSToolbarFlexibleSpaceItem":
+            item = new NSToolbarItem("NSToolbarFlexibleSpaceItem");
+            item.Label = "Flexible Space";
+            item.PaletteLabel = "Flexible Space";
+            break;
+        case "NSToolbarShowColorsItem":
+            item = new NSToolbarItem("NSToolbarShowColorsItem");
+            item.Label = "Colors";
+            item.PaletteLabel = "Colors";
+            break;
+        case "NSToolbarShowFontsItem":
+            item = new NSToolbarItem("NSToolbarShowFontsItem");
+            item.Label = "Fonts";
+            item.PaletteLabel = "Fonts";
+            break;
+        case "NSToolbarPrintItem":
+            item = new NSToolbarItem("NSToolbarPrintItem");
+            item.Label = "Print";
+            item.PaletteLabel = "Print";
+            break;
+        default:
+            item = BuildItem (itemIdentifier);
+            break;
+        }
+
+        return item;
+    }
+    #endregion
+
+    #region Events
+    // Create a custom event to inform the caller when a user clicks
+    // on one of the Toolbar Items.
+    public delegate void ToolbarItemClickedDelegate(string identifier);
+    public event ToolbarItemClickedDelegate ToolbarItemClicked;
+
+    // If the caller has subscribed to the custom event, inform them
+    // it is being raised.
+    internal void RaiseToolbarItemClicked(string identifier){
+        if (this.ToolbarItemClicked != null) this.ToolbarItemClicked(identifier);
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, the `AllowedItemIdentifiers` method returns a list of string based identifiers specifying the allowable items that can be placed on the Toolbar.  If the Toolbar is end user customizable, this method will provide the list of items that the user can add to the Toolbar that might not already be on it by default.
+
+In addition to the list of Identifiers that define the custom items for this Toolbar, several built-in Toolbar Items provided by macOS are included as follows:
+
+* `NSToolbarSpaceItem` - Inserts a fixed width space into the Toolbar.
+
+* `NSToolbarFlexibleSpaceItem` - Inserts a flexible width space into the Toolbar. This can be used to send the following items to the right side of the bar, for example.
+
+* `NSToolbarShowColorsItem` - Inserts a standard Color Picker into the Toolbar.
+
+* `NSToolbarShowFontsItem` - Inserts a standard Font Picker into the Toolbar.
+
+* `NSToolbarPrintItem` - Inserts a standard Print Dialog Box into the Toolbar.
+
+The `DefaultItemIdentifiers` method returns a list of Item Identifiers (as defined in the `AllowedItemIdentifiers` method) that will form the Default Toolbar initially displayed to the end user. Again, if the Toolbar is end user customizable, this method will provide the list of default items that the user can use to reset the Toolbar to its default state.
+
+The `SelectableItemIdentifiers` method returns a list of Item Identifiers (as defined in the `AllowedItemIdentifiers` method) that can be selected by the user. Selectable Toolbar Items have an on/off state like a switch. Only one Selectable Toolbar Item can be selected at any giving time in the Toolbar. For example:
+
+![](Images/Selectable01.png)
+
+The `WillInsertItem` method is called when the Toolbar is requesting a new Toolbar Item (`NSToolbarItem`) for a specific Item Identifier. If the passed in `itemIdentifier` is one of the built-in Toolbar Items provided by macOS (such as `NSToolbarShowColorsItem`) it is created and returned, else the `BuildItem` method is called to create a custom item and return it.
+
+The `BuildItem` method creates a new custom `NSToolbarItem` based on the Identifier passed in. For the sake of this example, it will have an icon from a file named the same as the Identifier (included in the Images resources for this workbook) and will use the Identifier for both the `Label` and the `PaletteLabel` title.
+
+The `Label` will be displayed under the icon when the item is placed on a Toolbar. The `PaletteLabel` is displayed under the item when it is on the Customize Dialog:
+
+![](Images/Customize01.png)
+
+Lastly, a custom event, `ToolbarItemClicked`, was defined that the Toolbar’s parent View or View Controller can subscribe to and be informed when the user clicks a Toolbar Item. Every Toolbar Item created by the `BuildItem` method will raise this event when clicked.
+
+Because the Toolbar Delegate is subscribing to the Toolbar Item’s `Activated` event, all the items will be automatically be enabled when the Toolbar is displayed. See the **Enabling and Disabling Toolbar Items** section below for more information.
+
+---
+
+###### 👍 Try it now!
+
+* Change the Default Toolbar that is initially displayed to the user.
+
+* Add a Wallet item to the list of Available Toolbar Items and the Default Toolbar. ***Hint**: a `Wallet.png` file has been included in the Images resources for this workbook.*
+
+***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
+
+---
+
+### Toolbar Item Properties
+
+When the Toolbar Delegate (`NSToolbarDelegate`) creates a new instance of the Toolbar Item (`NSToolbarItem`) in the `WillInsertItem` method, there are several properties that the developer can set:
+
+* `AllowsDuplicateInToolbar` - If `true`, the user can place more than one instance in the Toolbar when they customize it, else they cannot.
+
+* `Enabled` - Gets or sets the enabled state of the Toolbar Item. Because of the way Toolbar Items are automatically validated by macOS, simply setting this value to `false` is typically not enough to keep it disabled. See the **Enabling and Disabling Toolbar Items** section below for more information.
+
+* `Identifier` - Uniquely identifies the Toolbar Item as a custom type defined by the macOS app or one of the built-in types (such as `NSToolbarShowColorsItem` or `NSToolbarFlexibleSpaceItem`).
+
+* `Image` - Defines the icon for the Toolbar Item as a `NSImage`.
+
+* `Label` - This is the text that will be displayed for the item when it is on the Toolbar.
+
+* `PaletteLabel` - This is the text for the item in the **Allowed Toolbar Items** area of the Customize Dialog.
+
+* `Tag` - Is an integer value that can optionally set by the developer to help identify or hold state information for the item in code.
+
+* `ToolTip` - A string value that will be displayed to the user when they hover the mouse over the Toolbar Item to given them an indication of what clicking the item will do.
+
+* `View` - Allow the developer to attach other types of controls to a Toolbar Item such a `NSTextFields` or `NSButtons`. Please see the **Adding Other UI Controls to a Toolbar** section below for more information.
+
+---
+
+###### 👍 Try it now!
+
+* Add a `ToolTip` to each Toolbar Item created in the `MainToolbarDelegate`. ***Hint**: this will need to be done inside of the `BuildItem` method.*
+
+* Add a unique Tag to each Toolbar Item created in the `MainToolbarDelegate`.
+
+***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
+
+---
+
+## Creating a Custom Toolbar
+
+Since this workbook is creating a Toolbar completely from code, a custom class is being used to define and configure the Toolbar:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class MainToolbar : NSToolbar
+{
+	#region Computed Properties
+	public MainToolbarDelegate ToolbarDelegate {
+		get { return Delegate as MainToolbarDelegate; }
+		set { Delegate = value; }
+	}
+	#endregion
+
+	#region Constructors
+	public MainToolbar (string identifier) : base (identifier)
+	{
+		// Initialize
+		this.ToolbarDelegate = new MainToolbarDelegate ();
+		this.AllowsUserCustomization = true;
+        this.AutosavesConfiguration = false;
+        this.DisplayMode = NSToolbarDisplayMode.Default;
+        this.SizeMode = NSToolbarSizeMode.Default;
+	}
+	#endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, it defines a `ToolbarDelegate` computed property to make accessing the custom `MainToolbarDelegate` (created above) easier.
+
+When a new instance of the Toolbar is created, a new `MainToolbarDelegate` is also created and attached to the `ToolbarDelegate` computed property. Additionally, the look and functionality of the Toolbar is being configured as follows:
+
+* `AllowsUserCustomization` - If `true`, the user can right-click and customize the items that are displayed on the Toolbar.
+
+* `AutosavesConfiguration` - If `true`, the system will automatically save any customization that the user does to the Toolbar.
+
+* `DisplayMode` - Controls how the items are displayed on the Toolbar as: `Default`, `Icon`, `IconAndLabel` or `Label`.
+
+* `SizeMode` - Controls the size of the items on the Toolbar as: `Default`, `Regular` or `Small`.
+
+Both the `DisplayMode` and `SizeMode` properties can be affected by the type of Window that the Toolbar is attached to and will render some of the modes unavailable.
+
+---
+
+###### 👍 Try it now!
+
+* Don’t allow the user to customize the Toolbar.
+
+* Pick a different `DisplayMode`.
+
+* Pick a different `SizeMode`.
+
+***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
+
+---
+
+## External Resources
+
+To focus on the `NSToolbar` only, all of the supporting code to build the required Windows, Window Controllers, Views and View Controller has been moved to an external file that is being loaded below:
+
+```csharp
+// The implementation of these supporting controllers is not important to 
+// understanding the `NSToolBar` control so they have been moved
+// to an external file.
+#load "toolbar-resources.csx"
+```
+
+This code implements a static `ToolbarResources` class that will be used throughout the rest of this workbook to open Windows that unitize the `MainToolbar` and `MainToolbarDelegate` classes created above. For example:
+
+```csharp
+// Build new window
+var contentRect = new CGRect (0, 100, 600, 500);
+var aWindow = new NSWindow (contentRect, (NSWindowStyle.Titled | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable | NSWindowStyle.Resizable), NSBackingStore.Buffered, false);
+
+// Build new toolbar
+var toolbar = new MainToolbar ("MainToolbar");
+
+// Wireup toolbar events
+toolbar.ToolbarDelegate.ToolbarItemClicked += (identifier) => {
+    // Do something when the user clicks a toolbar item...
+};
+
+// Attach the toolbar to the window
+aWindow.Toolbar = toolbar;
+```
+
+For more information on working with Windows, Window Controllers, Views and View Controller in code, please see our [.storyboard/.xib Less User Interface Design](https://developer.xamarin.com/guides/mac/application_fundamentals/xibless-ui/)  workbook and documentation.
+
+## Displaying the Toolbar in a Window
+
+How a Toolbar is finally rendered and displayed to the end user and what Display and Size Modes are available depends on the style of Window the Toolbar is attached to. As of macOS Sierra there are two available styles of Windows:
+
+* **Traditional** - These are typical of the Windows displayed by OS X where there is a separate Title and Toolbar area.
+
+* **Modern** - In macOS Sierra, the Title and Toolbar areas can be combined. Additionally, the Content Area can be extended and displayed under the combined Title and Toolbar areas. For “shoebox” types of single Window apps, a new Dark Theme is also available.
+
+To see how the Toolbar created above looks on a Traditional Window, run the code segment below:
+
+```csharp
+// Use the factory to create and display a new traditional style
+// window that uses the custom toolbar
+ToolbarResources.OpenNewTraditionalWindow();
+```
+
+Next, to see how the same Toolbar looks on a Modern Window, run the following code segment:
+
+```csharp
+// Use the factory to create and display a new modern style
+// window that uses the custom toolbar
+ToolbarResources.OpenNewModernWindow();
+```
+
+Every time either one of these code blocks are run, a new Window will be created with the latest version of the `MainToolbar` and it will be displayed in a tab grouped by Traditional or Modern Window types.
+
+⚠️ **WARNING!** *Support for automatically tabbed windows is currently unavaiable in the Version 0.99.0.0 of Xamarin Workbooks. This feature will be restored in a future release.*
+
+---
+
+⚠️ ***Note**: Because of the way that `NSToolBars` are handled by macOS, all of the `NSWindows` within a given app share a single Toolbar instance based on the Identifier assiged the to the Toolbar  when it was created. As a result, changing the Toolbar in one Window will affect the Toolbars on all other open Windows in the app that used the same Identifier to build the Toolbar.*
+
+---
+
+## User Toolbar Customization
+
+If the `AllowsUserCustomization` property of the `NSToolbar` has been set to `true`, the end user will be able to right-click on the Toolbar and adjust several of its display properties:
+
+![](Images/Customize02.png)
+
+The top set of options relate to the `DisplayMode` property and the middle option to the `SizeMode` property of the Toolbar. The final option, **Customize Toolbar…**, allows the user to fully customize the items on the Toolbar. For example:
+
+![](Images/Customize03.png)
+
+The items in the **Drag your favorite items into the toolbar…** section come from the `AllowedItemIdentifiers` method of the custom `MainToolbarDelegate` (created above) and the items in the **…or drag the default set into the toolbar** section come from the `DefaultItemIdentifiers` method.
+
+---
+
+###### 👍 Try it now!
+
+* Switch the the running macOS app, right-click the Toolbar and customize it for the Traditional Style Windows.
+
+* Switch the the running macOS app, right-click the Toolbar and customize it for the Modern Style Windows.
+
+---
+
+## Hiding and Showing the Toolbar
+
+Once the Toolbar is configured, attached to a Window and displayed to the user, a macOS app can programmatically hide and show it using the `Visible` property:
+
+```csharp
+// Hide or show the Toolbar on the last created Traditional Style Window
+ToolbarResources.LastTraditionalWindowController.Window.Toolbar.Visible = true;
+
+// Hide or show the Toolbar on the last created Modern Style Window
+ToolbarResources.LastModernWindowController.Window.Toolbar.Visible = true;
+```
+
+---
+
+###### 👍 Try it now!
+
+* Set `Visible` to `false` to hide the Toolbars.
+
+* Set `Visible` to `true` to show the Toolbars
+
+---
+
+## Working with Toolbar Items
+
+After a Toolbar is created and displayed to the user, the developer can access each Toolbar Item currently visible on the Toolbar using the `Items` property. For example, the following code returns the first item on the current Toolbar:
+
+```csharp
+// Access the first Toolbar item
+var toolbar = ToolbarResources.LastTraditionalWindowController.Window.Toolbar;
+var firstItem = toolbar.Items[0];
+```
+
+Once the item has been accessed, several of its properties can be modified, such as the `Label` or `Tooltip`:
+
+```csharp
+// Change the current label
+firstItem.Label = "Certificate";
+firstItem.ToolTip = "Create a new certificate";
+```
+
+---
+
+###### 👍 Try it now!
+
+* Give the first Toolbar Item a new `Label`.
+
+* Give the first Toolbar Item a new `Tooltip`.
+
+* Access the last item in the Toolbar and change its `Label`. ***Hint**: Use the `Count()` method of the `Items` array.*
+
+---
+
+## Hiding and Showing Toolbar Items
+
+Toolbars in a macOS app have different usability guidelines than Toolbars in an iOS or a Window application. Because Apple wants the user to have total control over the items and their layout within a Toolbar, no method is provided to hide and show individual Toolbar Items. Instead, Apple wants the developer to simply enable or disable items based on the current context of the user’s actions within the app.
+
+## Enabling and Disabling Toolbar Items
+
+Because of the way macOS handles both Toolbars and Toolbar Items, simply setting the `Enabled` property of a `NSToolbarItem` typically isn’t enough to disable an item on a Toolbar. To disable a Toolbar Item, the developer needs to create a custom instance of `NSToobarItem,` override the `Validate` method and use this custom instance when creating items in the Toolbar Delegate or when adding items to the Toolbar inside of Xcode’s Interface Builder:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+[Register("ManuallyEnabledToolbarItem")]
+public class ManuallyEnabledToolbarItem : NSToolbarItem
+{
+    #region Computed Properties
+    public bool Disabled { get; set;} = false;
+    #endregion
+
+    #region Constructors
+    public ManuallyEnabledToolbarItem ()
+    {
+    }
+
+    public ManuallyEnabledToolbarItem (IntPtr handle) : base (handle)
+    {
+    }
+
+    public ManuallyEnabledToolbarItem (NSObjectFlag  t) : base (t)
+    {
+    }
+
+    public ManuallyEnabledToolbarItem (string identifier) : base (identifier)
+    {
+    }
+    #endregion
+
+    #region Override Methods
+    public override void Validate ()
+    {
+        base.Validate ();
+
+        // Set the enabled state of the Toolbar Item
+        Enabled = !Disabled;
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. First, it creates a `Disabled` computed property to hold the enabled/disabled state of the Toolbar Item. Again, the built-in `Enabled` property cannot be used because it will be overriden when the system auto-validated the Toolbar.
+
+The `Validate` method is overridden and the `Enabled` property of the Toolbar Item is set. When the system begins to validate a Toolbar against the current state of a macOS app, it will call the `Validate` method on every item in the Toolbar to set their enabled/disabled state.
+
+To implement this new type of Toolbar Item, create a new Toolbar Delegate Type and use the `ManuallyEnabledToolbarItem` class in the `BuildItem` method:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class ModifableToolbarDelegate : NSToolbarDelegate
+{
+    #region Constructors
+    public ModifableToolbarDelegate ()
+    {
+    }
+    #endregion
+
+    #region Private Methods
+    // Build and return a custom Toolbar Item
+    private NSToolbarItem BuildItem (string identifier)
+    {
+        // Create new manually enabled toolbar item
+        var item = new ManuallyEnabledToolbarItem (identifier);
+
+        // Set properties
+        item.Image = new NSImage($"Images/{identifier}.png");
+        item.Label = identifier;
+        item.PaletteLabel = identifier;
+        item.Disabled = false;
+
+        // Attach an action event
+        item.Activated += (sender, e) => {
+            RaiseToolbarItemClicked(item.Identifier);
+		};
+
+        // Return new item
+        return item;
+    }
+    #endregion
+
+    #region Override Methods
+    public override string [] AllowedItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the list of available item identifiers
+        return new string [] { "One","Two","Three","Four","Five","Six","Seven","Eight" };
+    }
+
+    public override string [] DefaultItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the item identifiers that make up the default Toolbar
+        return new string [] { "One","Two","Three","Four","Five","Six","Seven","Eight" };
+    }
+
+    public override NSToolbarItem WillInsertItem (NSToolbar toolbar, string itemIdentifier, bool willBeInserted)
+    {
+        // Build and return each item
+        return BuildItem (itemIdentifier);
+    }
+    #endregion
+
+    #region Events
+    // Create a custom event to inform the caller when a user clicks
+    // on one of the Toolbar Items.
+    public delegate void ToolbarItemClickedDelegate(string identifier);
+    public event ToolbarItemClickedDelegate ToolbarItemClicked;
+
+    // If the caller has subscribed to the custom event, inform them
+    // it is being raised.
+    internal void RaiseToolbarItemClicked(string identifier){
+        if (this.ToolbarItemClicked != null) this.ToolbarItemClicked(identifier);
+    }
+    #endregion
+}
+```
+
+And create a new custom Toolbar to use this new delegate:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class ModifableToolbar : NSToolbar
+{
+	#region Computed Properties
+	public ModifableToolbarDelegate ToolbarDelegate {
+		get { return Delegate as ModifableToolbarDelegate; }
+		set { Delegate = value; }
+	}
+	#endregion
+
+	#region Constructors
+	public ModifableToolbar (string identifier) : base (identifier)
+	{
+		// Initialize
+		this.ToolbarDelegate = new ModifableToolbarDelegate ();
+		this.AllowsUserCustomization = true;
+        this.AutosavesConfiguration = false;
+        this.DisplayMode = NSToolbarDisplayMode.Default;
+        this.SizeMode = NSToolbarSizeMode.Default;
+	}
+	#endregion
+}
+```
+
+With this in place, create a new instance of the new custom Toolbar and attach it to an open window:
+
+```csharp
+// Create a new toolbar
+var toolbar = new ModifableToolbar("ModifableToolbar");
+
+// Attach it to the last opened window
+ToolbarResources.LastTraditionalWindowController.Window.Toolbar = toolbar;
+```
+
+Finally, a given Toolbar Item instance can be selected and disabled in code:
+
+```csharp
+// Access the 3rd item in the Toolbar
+var item = toolbar.Items[2] as ManuallyEnabledToolbarItem;
+
+// Disable the item
+item.Disabled = true;
+```
+
+## Adding Other UI Controls to a Toolbar
+
+The developer is not limited to the standard types of Toolbar Items when adding elements to a Toolbar. Several of the other Cocoa UI elements (such as Search Fields or Segment Controls) can be added to a Toolbar.
+
+Typically, this is done by editing the `.storyboard` or `.xib` file in Xcode’s Interface Builder, opening the Toolbar in the **Interface Hierarchy**, displaying the **Customize Dialog**  and dragging a UI control (such as  a Search Field) from the **Library Inspector** onto the **Allowed Toolbar Items** area.
+
+In code, this is accomplished by attaching a newly built UI control to the `View` property of a Toolbar Item as it is being created. For example, as is being done in the `WillInsertItem` method of the Toolbar Delegate below for the “*Search*” Identifier:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class OtherToolbarDelegate : NSToolbarDelegate
+{
+    #region Constructors
+    public OtherToolbarDelegate ()
+    {
+    }
+    #endregion
+
+    #region Private Methods
+    // Build and return a custom Toolbar Item
+    private NSToolbarItem BuildItem (string identifier)
+    {
+        // Create new toolbar item
+        var item = new NSToolbarItem (identifier);
+
+        // Set properties
+        item.Image = new NSImage($"Images/{identifier}.png");
+        item.Label = identifier;
+        item.PaletteLabel = identifier;
+        item.Enabled = true;
+
+        // Attach an action event
+        item.Activated += (sender, e) => {
+            RaiseToolbarItemClicked(item.Identifier);
+		};
+
+        // Return new item
+        return item;
+    }
+    #endregion
+
+    #region Override Methods
+    public override string [] AllowedItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the list of available item identifiers
+        return new string [] { "One","Two","NSToolbarFlexibleSpaceItem","Search" };
+    }
+
+    public override string [] DefaultItemIdentifiers (NSToolbar toolbar)
+    {
+        // Return the item identifiers that make up the default Toolbar
+        return new string [] { "One","Two","NSToolbarFlexibleSpaceItem","Search" };
+    }
+
+    public override NSToolbarItem WillInsertItem (NSToolbar toolbar, string itemIdentifier, bool willBeInserted)
+    {
+        NSToolbarItem item = null;
+
+        // Take action based on the Identifier
+        switch(itemIdentifier){
+        case "NSToolbarFlexibleSpaceItem":
+            item = new NSToolbarItem("NSToolbarFlexibleSpaceItem");
+            item.Label = "Flexible Space";
+            item.PaletteLabel = "Flexible Space";
+            break;
+        case "Search":
+            // Create search text field
+            var search = new NSTextField(new CGRect(0,0,150,25)) {
+                Bordered = true,
+                Editable = true,
+                PlaceholderString = "Search"
+            };
+            
+            // Create a new search item with a text field for searching
+            item = new NSToolbarItem("Search");
+            item.Label = "Search";
+            item.PaletteLabel = "Search";
+            item.MinSize = new CGSize(150,25);
+            item.View = search;
+            break;
+        default:
+            item = BuildItem (itemIdentifier);
+            break;
+        }
+
+        return item;
+    }
+    #endregion
+
+    #region Events
+    // Create a custom event to inform the caller when a user clicks
+    // on one of the Toolbar Items.
+    public delegate void ToolbarItemClickedDelegate(string identifier);
+    public event ToolbarItemClickedDelegate ToolbarItemClicked;
+
+    // If the caller has subscribed to the custom event, inform them
+    // it is being raised.
+    internal void RaiseToolbarItemClicked(string identifier){
+        if (this.ToolbarItemClicked != null) this.ToolbarItemClicked(identifier);
+    }
+    #endregion
+}
+```
+
+Let’s take a closer look at what this code is doing. In the `WillInsertItem` method, it’s creating and configuring a new `NSTextField` to act as a Search field. When the control is created, its width (150px) and height (25px) are set using a `CGRect`.
+
+Before the Text Field (`search`) is attached to the `View` property of the new Toolbar Item, the Minimum Size (`MinSize` property) is set to match the size of the `NSTextField` created (`item.MinSize = new CGSize(150,25);`). If this wasn’t done, the default built-in Toolbar Item size would be used and the `NSTextField` would be down-sized to fit into this new, smaller size.
+
+Again, a new custom Toolbar is created to use this new delegate:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+
+public class OtherToolbar : NSToolbar
+{
+	#region Computed Properties
+	public OtherToolbarDelegate ToolbarDelegate {
+		get { return Delegate as OtherToolbarDelegate; }
+		set { Delegate = value; }
+	}
+	#endregion
+
+	#region Constructors
+	public OtherToolbar (string identifier) : base (identifier)
+	{
+		// Initialize
+		this.ToolbarDelegate = new OtherToolbarDelegate ();
+		this.AllowsUserCustomization = true;
+        this.AutosavesConfiguration = false;
+        this.DisplayMode = NSToolbarDisplayMode.Default;
+        this.SizeMode = NSToolbarSizeMode.Default;
+	}
+	#endregion
+}
+```
+
+And an instance of the new custom Toolbar is created and attach it to an open window:
+
+```csharp
+// Create a new toolbar
+var toolbar = new OtherToolbar("OtherToolbar");
+
+// Attach it to the last opened window
+ToolbarResources.LastModernWindowController.Window.Toolbar = toolbar;
+```
+
+When the code block above is run, the last Modern Style Window created will be switched to use the new Toolbar including the Search field.
+

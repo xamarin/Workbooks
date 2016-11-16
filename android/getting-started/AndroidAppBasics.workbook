@@ -1,0 +1,216 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Android App Basics
+
+In this interactive tutorial, you will learn the basics of 
+creating an Android application using Xamarin.Android.
+
+
+## Android User Interface
+
+The graphical user interface for an Android app is constructed from 
+*widgets* such as text fields, buttons, and checkboxes. Widgets can be 
+thought of as the building blocks that you use to create a user 
+interface. `View` widgets are used to show text, display graphics, and 
+interact with the user. `ViewGroup` widgets are invisible containers 
+that arrange other widgets on the screen. This tutorial demonstrates 
+how to build a basic user interface for an Android app by creating 
+these widgets, laying them out on the screen, and wiring them up for 
+user interaction. 
+
+
+## Getting Started
+
+Start by importing several namespaces that will be required for the code
+in the rest of this tutorial:
+
+```csharp
+using Android.App;
+using Android.Widget;
+using Android.OS;
+```
+
+In Android, each screen is controlled by an `Activity`. The `Activity` 
+is responsible for managing user interaction within a screen of information.
+There is only one `Activity` in a Xamarin Workbook. The following code
+creates a reference to this `Activity` object: 
+
+```csharp
+var rootActivity = StartedActivities.First ();
+```
+
+This `rootActivity` reference is used throughout the remainder of 
+this tutorial. 
+
+
+## Defining the User Interface
+
+The first step in creating a UI is to define a `ViewGroup` that will 
+hold the various widgets that comprise the UI of the `Activity`. Next, 
+one or more `View`s are added to this `ViewGroup` and their parameters are 
+configured to set how and where each `View` is displayed within the 
+`ViewGroup`. 
+
+
+### Creating a Layout
+
+`LinearLayout` is a `ViewGroup` that arranges its child `View`s from 
+top to bottom (or from left to right) as they are added. Instantiate a 
+`LinearLayout` object and set its orientation to vertical: 
+
+```csharp
+var layout = new LinearLayout (rootActivity);
+layout.Orientation = Orientation.Vertical;
+
+```
+
+Setting the orientation to vertical causes widgets to be arranged 
+from top to bottom of the screen as they are added to the layout. 
+
+### Adding a Button
+
+The first widget to add to this layout is a `Button`. Instantiate a 
+`Button` object, set its display text to **Click Me!**, and add the
+button to the layout: 
+
+```csharp
+Button button = new Button(rootActivity);
+button.Text = "Click Me!";
+layout.AddView (button);
+```
+
+Run the following code to display the resulting user interface on the 
+screen: 
+
+```csharp
+rootActivity.SetContentView(layout);
+```
+
+When you click the button, the app does not respond. That is because 
+there is no code to handle the button's click event. This code will be 
+added later in this tutorial. 
+
+
+### Adding a TextView
+
+The next widget to add to this layout is a `TextView`. Instantiate a 
+`TextView` object, initialize its text, and add it to the layout: 
+
+```csharp
+TextView textView = new TextView(rootActivity);
+textView.Text = "This Space is for Rent";
+layout.AddView (textView);
+```
+
+When you run this code, a `TextView` is created and its message is 
+displayed below the button. Run the following code, change 
+the text to something different, and then run it again: 
+
+```csharp
+textView.Text = "This Space is Taken";
+```
+
+### Modifying View Layout Parameters
+
+You can call methods on a `View` object to modify how it looks after it 
+is instantiated. Run the following line of code to center the 
+`TextView` within the `LinearLayout`: 
+
+```csharp
+textView.Gravity = Android.Views.GravityFlags.CenterHorizontal;
+```
+
+The `TextView` would look better if it had more space around it. Run the 
+following code to add padding (20 pixels top and bottom, 10 pixels on 
+each side): 
+
+
+```csharp
+textView.SetPadding(10, 20, 10, 20);
+```
+
+To make the text easier to read, run the following line of code to 
+change the color of the text to yellow: 
+
+```csharp
+textView.SetTextColor(Android.Graphics.Color.Yellow);
+```
+
+At this point, the app has a simple (though passive) user interface 
+that is displayed in a single `Activity`. The next step is to add code 
+to handle user input. 
+
+
+## Responding to User Input
+
+After the app's user interface is designed, the next step is to create 
+event handlers to respond to user input. The following examples 
+demonstrate how to create event handlers to respond to user clicks on 
+the button. 
+
+### Creating an Event Handler
+
+There are a number of different ways that you can write code to handle 
+user-triggered events. The following code implements an *anonymous 
+delegate* to handle the button click event. This one-line event 
+handler changes the text on the button face when it is clicked: 
+
+```csharp
+button.Click += delegate { button.Text = "This Button was clicked"; };
+```
+
+Click the button after running this code to see the text on the button 
+change. 
+
+
+### Displaying a Toast
+
+Another way to repond to user input is to display a *Toast* message 
+that indicates that the button was clicked. Run this code and click the 
+button again: 
+
+
+```csharp
+button.Click += delegate { Toast.MakeText(rootActivity, "Clicked!", ToastLength.Long).Show(); };
+```
+
+A toast message is briefly displayed near the bottom of the screen to 
+indicate that the button was clicked. 
+
+Note that the button text is *also* updated with each click. This is 
+because each call to `button.Click +=` adds an additional event handler 
+that responds to button clicks (i.e., it doesn't replace the previously 
+defined event handler). Each event handler that is added to the button 
+`Click` event is called when when the button is clicked. 
+
+
+## Exercises
+
+You have now seen the basics of how to create a Xamarin.Android user 
+interface and handle user input. Here are some things you can try to 
+test your understanding: 
+
+-   Add a `count` variable and increment this count each time the 
+    button is clicked. 
+
+-   Display the new click count on the button face each time the button 
+    is clicked. 
+
+-   Try displaying the click count in the `TextView` as well as on 
+    the face of the button. 
+
+
+## Further Reading
+
+In a typical Android application, you develop a user interface by 
+defining its layout in an XML file. This XML file describes the 
+hierarchical relationships of `View`s and `ViewGroup`s in your UI 
+(rather than programmatically, as was demonstrated in this tutorial), 
+and it defines the configuration parameters for each `View` and 
+`ViewGroup` . For a more detailed explanation about building your first 
+Android app using Xamarin Studio or Visual Studio, see 
+[Hello, Android](https://developer.xamarin.com/guides/android/getting_started/hello,android/). 

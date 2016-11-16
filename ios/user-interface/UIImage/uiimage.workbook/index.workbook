@@ -1,0 +1,167 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# UIImage
+
+UIImage allows for image representation in UIKit, which provides support for loading, saving, and manipulating images. iOS uses images for a variety of different purposes – Icon sets, within a UIKit control, etc. They are also used with various frameworks provided by iOS such as UIKit, Core Graphics, Image IO, Core Animation. Each framework provides ways to manipulate and interact with images.
+
+Working with Images can be an exhaustive topic. TThis guide will, therefore,focus only on using UIImage within UIKit, and in particular using it with a UIImageView – a UIView that can render a single image, or animate a series of images.
+
+For more information on using images in iOS refer to the [Working with Images](https://developer.xamarin.com/guides/ios/application_fundamentals/working_with_images/) guide.
+
+## Creating and displaying a UIImage
+
+Add the following Using Directives
+
+```csharp
+using System;
+using System.Drawing;
+using UIKit;
+```
+
+An image object needs to be created. This is achieved by using the code below:
+
+```csharp
+var image = UIImage.FromFile("Xamarin_logo.png");
+```
+
+#### Guidance on Using FromBundle vs. FromFile
+
+The `UIImage` class includes two static methods for loading images, `FromBundle` and `FromFile.`
+
+The `FromBundle` method call is a synchronous (blocking) call that has some image loading and management features built-in, such as caching support and automatic handling of image files for various resolutions.
+
+`UIImage` also contains the `FromFile` method, which is a lighter-weight alternative to `FromBundle`. It doesn’t use caching and so there is no need to worry about the positive or negative memory implications of caching. Additionally, `FromFile` is asynchronous, so it won’t block the main thread; it lazy-loads images as needed for each to be displayed.
+
+The following list summarizes the differences between `FromBundle` and `FromFile`:
+
+* `FromFile` is asynchronous; whereas `FromBundle` is synchronous.
+
+* `FromFile` lazy-loads images.
+
+* `FromFile` can load images from an external location; whereas `FromBundle` can only load images that you include with your application.
+
+* `FromFile` provides no built-in caching; whereas `FromBundle` automatically caches an image after it is loaded.
+
+To display the image created above in a user interface the image, pass it to a UIImageView:
+
+```csharp
+var imageView = new UIImageView(image);
+```
+
+Then, add the imageView as a subview on your RootViewController to display it.
+
+```csharp
+RootViewController.View.AddSubviews(imageView)
+```
+
+Notice that the size of the imageView’s frame is set to the same size as the image (1452 x 609), and is display in the simulator like so:
+
+![](image1.png)
+
+Some options can be used to allow the user to view the image, including using a scroll view and manually setting the the `Frame` property.
+
+To add a scroll view that contains an image view first instantiate a new `UIScrollView `setting the `Frame `size to the `Width `and `Height`, and the `ContentSize `equal to the `imageViews`’s Image size. The code to do this, is shown below:
+
+```csharp
+var scrollView = new UIScrollView (new CGRect (0, 0, RootViewController.View.Frame.Width, RootViewController.View.Frame.Height)){ContentSize = imageView.Image.Size};
+RootViewController.View.AddSubview(scrollView);
+scrollView.AddSubview(imageView)
+```
+
+Alternatively, the frame can be set, allowing the image to be constrained to a particular size:
+
+```csharp
+imageView.Frame = new CGRect(0,50,UIScreen.MainScreen.Bounds.Width, 122)
+```
+
+## Scaling the Image
+
+Image views use the `ContentMode` property and the image object to best determine how the image should be displayed, allowing the image to be scaled, sized to fit or positioned as necessary. 
+
+First, create the Image and ImageView with which you wish to work:
+
+```csharp
+var image2 = UIImage.FromFile("Xamarin_logo.png");
+var imageView2 = new UIImageView(new CGRect(25, 200, 275, 100)){BackgroundColor = UIColor.Yellow}
+```
+
+The contentMode property takes an enum of UIViewContentMode. The view can be scaled by using any of the following:
+
+* `ScaleAspectFit `– Stretches the image to fit the available space. Maintains the aspect ratio.
+
+* 
+
+* `ScaleAspectFill` – Scales the image to fill the available space, while still maintaining the aspect ratio.
+
+
+* `ScaleToFill `–  Stretches the image to fill the available space. Does not maintain the aspect ratio.
+
+The View can also be positioned or redrawn by using values such as top, bottom, left, right, center
+
+```csharp
+imageView2.ContentMode = UIViewContentMode.ScaleToFill;
+imageView2.Image = image2;
+RootViewController.View.AddSubview(imageView2)
+```
+
+#### 👍Try it now!
+
+* Change the UIViewContentMode property. Notice how the image changes in comparison to the frame.
+
+## Animating an ImageView
+
+An ImageView can be used to provide simple animations in an iOS app via the provided animation methods.
+
+Start by creating an image view as shown earlier in this document
+
+```csharp
+var imageXamView = new UIImageView (new CGRect (120, 330, 75, 75));
+```
+
+Pass in an array of images to the `AnimationImages `property on the Image View. Each image in this array is equivalent to a frame in the animation.
+
+```csharp
+imageXamView.AnimationImages = new UIImage[]{
+                                UIImage.FromFile("Xamagon.png"), 
+                                UIImage.FromFile("Xamagon_dark.png")
+                            };
+```
+
+The `AnimationDuration` property sets the frame rate. This property specifies the amount of time it takes to go through one cycle of the image. In this animation the duration is 1 second, this means that each image will appear for 0.5s each cycle.
+
+```csharp
+imageXamView.AnimationDuration = 1
+```
+
+Set the value of `AnimationRepeatCount `to 0, which will allow the animation to animate indefiniately:
+
+```csharp
+imageXamView.AnimationRepeatCount = 0
+```
+
+Finally, add the Image View to the `RootViewController`, and start the animation by calling the `StartAnimation `property
+
+```csharp
+RootViewController.View.AddSubview(imageXamView);
+imageXamView.StartAnimating()
+```
+
+#### Try it now!
+
+* Try adding a new image into the rotation of images (Note that you’ll have to add the image to the root folder)
+
+To stop the animation, call the `StopAnimating()` method.
+
+## Important Image Considerations
+
+There are a few more points you should be aware of regarding images and iOS:
+
+* By default OS X uses a case-insensitive file system, which means that the iOS Simulator is also case-insensitive. An iOS device, however, uses a **case-sensitive** file system. So code that runs on the simulator may fail to run correctly on the device.
+
+* You cannot name a developer created folder `Resources`, as it is reserved in iOS and the application will crash.
+
+* Set the build action to **BundleResource** if you want an image to be included in the application bundle. Xamarin Studio will set this automatically for you, but if you get a runtime error that says the image cannot be found, double-check this.

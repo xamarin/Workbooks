@@ -1,0 +1,112 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+# Visualizers for iOS
+
+Xamarin Workbooks uses a different visualizers for inline code evaluation results:
+
+* String
+
+* Object
+
+* Color (`UIColor`)
+
+* Enumerable
+
+* Map (`CLLocation`)
+
+* Image (`UIImage`)
+
+* Argument
+
+* Html
+
+* Help
+
+By default, the results of a code-block will shown as a string representation of the *last-referenced object* in the block. The `Monkey` class below demonstrates this: when the `rupert` object is assigned, the **ToString** representation is printed after the code-block.
+
+```csharp
+class Monkey { 
+	public string Name;
+	public string Species; 
+	public string Habitat; 
+	public CoreLocation.CLLocation Location = null;
+	public UIColor Color = null;
+	public DateTime Birthday = DateTime.MinValue;
+	public override string ToString(){
+		return $"{Name} the {Species} ({Habitat})"; //C# 6
+	}
+}
+var rupert = new Monkey {Name="Rupert", Species = "Xamarin", Habitat="San Francisco"};
+```
+
+Use the popup menu to the right of the result to switch to the **Object Members** view. Most code-block results in Workbooks will have both \*\*ToString \*\*and **Object Members** display options.
+
+Color types are rendered with an example of the color:
+
+```csharp
+rupert.Color = UIColor.Brown;
+```
+
+DateTime values have a number of display options, including a calendar view:
+
+```csharp
+rupert.Birthday = new DateTime(2011,05,11);
+```
+
+Enumerable collections will be expanded so that you can explore their contents. You can also change the view of each individual object in the collection:
+
+```csharp
+var enumerable = new List<string> {"alpha", "beta", "gamma", "delta"};
+```
+
+Location objects can be viewed on a map:
+
+```csharp
+rupert.Location = new CoreLocation.CLLocation(37.7749,-122.4194);
+```
+
+Image data can be downloaded or opened from the local filesystem, then previewed inline with the **Image** view:
+
+```csharp
+var localPath = "/Users/craigdunn/ProjectsConceptdev/xamarin-workbook-samples/Visualizers/";
+UIImage.FromFile(localPath+"bridge.jpg");
+```
+
+Exceptions have a custom display:
+
+```csharp
+new ArgumentNullException ("name");
+```
+
+HTML can also be emitted from code-blocks and rendered in the Workbook. This simple example uses string interpolation to customize an HTML string for display using `AsHtml()`:
+
+```csharp
+var greeting = "Hello, Workbooks";  // C# 6 string interpolation
+$"<html><h2>{greeting}</h2><b>bold</b> <i>italic</i> <u>underline</u></html>".AsHtml()
+```
+
+There’s also a `help` command, which just lists some handy tips. The help list is slightly different for each platform supported by Workbooks.
+
+```csharp
+help
+```
+
+And finally, not really a visualization, but from the help above you can see that it’s possible to affect the culture of the Workbook. These code-blocks show the date rendered in English and then Spanish (after setting the `CurrentCulture`):
+
+```csharp
+DateTime.Now.ToLongDateString()
+```
+
+```csharp
+CurrentCulture = new System.Globalization.CultureInfo("es");
+DateTime.Now.ToLongDateString()
+```
+
+```csharp
+// reset to English
+CurrentCulture = new System.Globalization.CultureInfo("en");
+```

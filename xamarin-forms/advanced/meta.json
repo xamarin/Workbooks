@@ -1,0 +1,6 @@
+{
+  "order":{
+    "advanced/MandelbrotTouch.workbook":"Mandelbrot Touch",
+    "advanced/RPNCalculator/RpnCalculator.workbook":"RPN Calculator"
+  }
+}

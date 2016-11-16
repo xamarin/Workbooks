@@ -1,0 +1,94 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Newtonsoft.Json
+  version: 8.0.3
+- id: Xamarin.Forms.Dynamic
+  version: 0.1.18-pre
+- id: Xamarin.Forms
+  version: 2.3.3.166-pre4
+---
+
+# Xamarin.Forms XAML Workbook Demonstration (iOS)
+
+There’s currently no way to import or reference XAML files from a Workbook,
+so it might seem impossible to use XAML in a demo... however with NuGet helper
+it is possible to use XAML in a Workbook.
+
+> 🚫 This isn't recommended for implementation in production applications, but may be useful to teach or demonstrate XAML concepts using Workbooks
+
+## Steps to use XAML
+
+*1.* Start by importing the NuGets for Xamarin.Forms and the iOS Platform Renderers
+
+```csharp
+#r "Xamarin.Forms.Platform.iOS"
+#r "Xamarin.Forms.Core"
+#r "Xamarin.Forms.Xaml"
+#r "Xamarin.Forms.Platform"
+```
+
+And for this hack to work, add the [Dynamic Xamarin Forms (preview)](http://www.cazzulino.com/dynamic-forms.html)
+NuGet (which contains the magic to load XAML from a string):
+
+```csharp
+#r "Xamarin.Forms.Dynamic"
+```
+
+*2.* Add the `using` statements next:
+
+```csharp
+using Xamarin.Forms;
+using Xamarin.Forms.Platform.iOS;
+```
+
+*3.* Write up a simple XAML `ContentPage`to render on iOS:
+
+```csharp
+static string xaml = @"<?xml version='1.0' encoding='UTF-8' ?>
+<ContentPage xmlns='http://xamarin.com/schemas/2014/forms'
+    xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
+    x:Class='XamlPage'
+    Title='Xaml Text' Padding='40'>
+    <StackLayout Orientation='Vertical'>
+		<Label Text='Hello from XAML' x:Name='helloLabel'/>
+		<BoxView Color='Blue' WidthRequest='300' HeightRequest='2' />
+	</StackLayout>
+</ContentPage>";
+```
+
+*4.* Bootstrap the Xamarin.Forms app object and and for the main page class, then use the **Dynamic Xamarin Forms** `LoadFromXaml` extension method to parse the `xaml` string:
+
+```csharp
+public class App : Application
+{
+	public ContentPage XamlPage {get;set;}
+	public App ()
+	{
+		XamlPage = new ContentPage();
+		XamlPage.LoadFromXaml (xaml); // loads XAML
+
+		MainPage = XamlPage;
+	}
+}
+```
+
+*5.* Finally, set the iOS root view controller directly (in a real Xamarin.Forms app, this would be taken care of by the `FormsApplicationDelegate` subclass):
+
+```csharp
+Xamarin.Forms.Forms.Init();
+var a = new App();
+KeyWindow.RootViewController = a.MainPage.CreateViewController();
+```
+
+## One More Thing...
+
+Loading XAML in this way does not allow strongly-typed access to the elements by their `x:Name`, instead they can only be referenced using `FindByName`as shown here to update the label:
+
+```csharp
+var l = a.XamlPage.FindByName<Xamarin.Forms.Label>("helloLabel");
+l.Text = "Updated by the Workbook!";
+a.XamlPage.Content
+```

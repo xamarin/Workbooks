@@ -1,0 +1,129 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Collections: Arrays
+
+An array is a simple data structure:
+
+* it stores a collection of data elements,
+* it has a fixed size,
+* it only contains elements that match the declared type.
+
+## Initialization Syntax
+
+The easiest way to create an array with known values
+is using C#'s initialization syntax:
+
+```csharp
+int[] primes = {2,3,5,7,11,13,17,19,31,37,41,43,47,53,59,61,67,71}
+```
+
+Each value in the array has an `index`, and we can get a value
+by its index:
+
+```csharp
+primes[9] // prints the 10th prime - arrays are zero-based!
+```
+
+## Create a fixed size array
+
+Another way to create an array is to declare the array
+with a known size (20 elements in this example), and
+then set each value using the index (remember it starts at zero):
+
+```csharp
+var squares = new int[20]; // 20 elements with default(int) value
+for (var i = 0; i <20; i++) {
+	squares[i] = i*i;
+}
+
+squares
+```
+
+The values in the array can then be retrieved by their index:
+
+```csharp
+squares[4] // 5th square
+```
+
+The value at an index can also be set to a different value:
+
+```csharp
+squares[4] = 444 // replace the value in index '4'
+```
+
+## Declare and then set
+
+If the size of the array is initially unknown, an
+array variable can be declared without specifying the size.
+
+```csharp
+string[] dwarves;
+// ...
+dwarves = new string[4];
+dwarves[0] = "Sleepy";
+dwarves[1] = "Sneezy";
+dwarves[2] = "Dopey";
+dwarves[3] = "Doc";
+
+dwarves
+```
+
+This highlights a problem with arrays – once the
+size has been declared, we can't easily change it
+to add another three dwarves:
+
+`dwarves[4] = "Bashful"`
+
+will result in an `IndexOutOfRangeException`. The only
+option is to assign a totally new array to the variable:
+
+```csharp
+dwarves = new string[7];
+dwarves[0] = "Sleepy";
+dwarves[1] = "Sneezy";
+dwarves[2] = "Dopey";
+dwarves[3] = "Doc";
+dwarves[4] = "Bashful";
+dwarves[5] = "Grumpy";
+dwarves[6] = "Happy";
+
+dwarves
+```
+
+## Not just simple Types
+
+Arrays can also store objects, not just `string` and `int`:
+
+```csharp
+class Person {
+  public string FirstName {get;set;}
+  public string LastName {get;set;}
+  public override string ToString() => $"{FirstName} {LastName}";
+}
+var goodguys = new Person[2];
+goodguys[0] = new Person {FirstName="Snow",LastName="White"};
+goodguys[1] = new Person {FirstName="Humbert",LastName="Huntsman"};
+```
+
+```csharp
+goodguys // view the array data
+```
+
+## Pros & Cons of Arrays
+
+### Pros
+
+* Simple and easy to understand
+* Fast and efficient
+
+### Cons
+
+* Cannot be resized
+* Elements cannot be added or removed
+
+Other collection types like `List` and `Dictionary` address some
+of the array's limitations.

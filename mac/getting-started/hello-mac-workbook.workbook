@@ -1,0 +1,115 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# Mac
+
+Getting started with the Mac agent requires a little more setup than the others, because there’s have a whole windowing system to configure! Follow these steps below to display “Hello, Workbooks”!
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public class CodeBasedWindow : NSWindow {
+
+    #region Computed Properties
+    public NSTextField ClickMeLabel { get ; set;}
+    #endregion
+
+    #region Constructors
+    public CodeBasedWindow (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public CodeBasedWindow (NSCoder coder) : base (coder)
+    {
+    }
+
+    public CodeBasedWindow (CGRect contentRect, NSWindowStyle aStyle, NSBackingStore bufferingType, bool deferCreation): base (contentRect, aStyle,bufferingType,deferCreation)
+    {
+        // Create a title for the window
+		Title = "Window From Code";
+
+		// Create the content view for the window and make it fill the window
+		ContentView = new NSView (Frame);
+
+        ClickMeLabel = new NSTextField (new CGRect (10, Frame.Height - 65, Frame.Width - 130, 20)) {
+            BackgroundColor = NSColor.Clear,
+            TextColor = NSColor.Black,
+            Editable = false,
+            Bezeled = false,
+            AutoresizingMask = NSViewResizingMask.WidthSizable | NSViewResizingMask.MinYMargin,
+            StringValue = "Hello, Workbooks!"
+        };
+        ContentView.AddSubview (ClickMeLabel);
+    }
+    #endregion
+
+    #region Override Methods
+    public override void AwakeFromNib ()
+    {
+        base.AwakeFromNib ();
+    }
+    #endregion
+}
+```
+
+and then
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using CoreGraphics;
+
+public  class CodeBasedWindowController : NSWindowController
+{
+    #region Computed Properties
+    public new CodeBasedWindow Window {
+        get { return base.Window as CodeBasedWindow; }
+    }
+    #endregion
+
+    #region Constructors
+    public CodeBasedWindowController (IntPtr handle) : base (handle)
+    {
+    }
+
+    [Export ("initWithCoder:")]
+    public CodeBasedWindowController (NSCoder coder) : base (coder)
+    {
+    }
+
+    public CodeBasedWindowController () : base ("CodeBasedWindow")
+    {
+        // Define the Window's default location and size
+        CGRect contentRect = new CGRect (0, 0, 500, 300);
+
+        // Create a new instance of the CodeBasedWindow
+        base.Window = new CodeBasedWindow(contentRect, (NSWindowStyle.Titled | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable | NSWindowStyle.Resizable), NSBackingStore.Buffered, false);
+
+        // Simulate Awaking from Nib
+        Window.AwakeFromNib ();
+    }
+    #endregion
+
+    #region Override Methods
+    public override void AwakeFromNib ()
+    {
+        base.AwakeFromNib ();
+    }
+    #endregion
+}
+```
+
+finally
+
+```csharp
+var mainWindowController = new CodeBasedWindowController ();
+mainWindowController.Window.MakeKeyAndOrderFront ((NSObject)NSApplication.SharedApplication.Delegate);
+```

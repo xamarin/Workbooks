@@ -1,0 +1,199 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Getting Started with Xamarin.Forms (iOS)
+
+If you want to create a Xamarin.Forms application in Xamarin Workbooks, you must create either a new Xamarin.iOS or Xamarin.Android workbook. This discussion focuses on using Xamarin.Forms from an iOS application.
+
+After creating a new iOS workbook, you must add the Xamarin.Forms NuGet package. That’s already been done for this particular workbook,  but normally you would invoke the **File** and **Add Package** menu item, and search for **Xamarin.Forms**. Select the top item and click the **Add Package** button.
+
+Now use the `#r` command to reference the following Xamarin.Forms assemblies:
+
+```csharp
+#r "Xamarin.Forms.Core"
+#r "Xamarin.Forms.Xaml"
+#r "Xamarin.Forms.Platform"
+#r "Xamarin.Forms.Platform.iOS"
+```
+
+You’ll also want a few standard `using` directives:
+
+```csharp
+using System;
+using Xamarin.Forms;
+using Xamarin.Forms.Platform.iOS;
+```
+
+The first step is to define a class that derives from `Application` that creates a Xamarin.Forms `ContentPage` object and sets it to its `MainPage` property:
+
+```csharp
+class App : Application
+{
+    public App()
+    {
+        MainPage = new ContentPage();
+    }
+}
+```
+
+The `ContentPage` is the simplest kind of page in Xamarin.Forms. This is the page that will contain all your program’s Xamarin.Forms visual elements.
+
+Now you must execute some iOS startup code. You first need to call the `Forms.Init` method to initialize Xamarin.Forms. You can then instantiate the `App` class defined above, and call the `CreateViewController` method of the page that the `App` class creates. This you set to the `RootViewController` property of the iOS window that Workbooks has created for you:
+
+```csharp
+Xamarin.Forms.Forms.Init();
+App app = new App();
+KeyWindow.RootViewController = app.MainPage.CreateViewController();
+```
+
+At this point, you have a Xamarin.Forms program running on the iOS simulator. Now get access to the `ContentPage` instance that the `App` class constructor created:
+
+```csharp
+ContentPage page = app.MainPage as ContentPage;
+```
+
+You use the Xamarin.Forms `Label` element to display up to a paragraph of text. Create a `Label` and set it to the `Content` property of the `ContentPage`:
+
+```csharp
+Label label = new Label
+{
+    Text = "Hello Xamarin.Forms in Workbooks!"
+};
+page.Content = label;
+```
+
+You’ll see the `Label` on the iOS Simulator, but it overlaps the iOS status bar. One way to avoid that is to set the `Padding` property on the page. This sets an area within the page that content cannot intrude. The four arguments to the `Thickness` constructor are in the order left, top, right, and bottom. The 20-unit space at the top is the height of the status bar:
+
+```csharp
+page.Padding = new Thickness(0, 20, 0, 0);
+```
+
+Now the `Label` is directly under the status bar.
+
+You can also center the `Label` on the page by setting its `HorizontalOptions` and `VerticalOptions` properties:
+
+```csharp
+label.HorizontalOptions = LayoutOptions.Center;
+label.VerticalOptions = LayoutOptions.Center;
+```
+
+Try the `Start` and `End` fields of the `LayoutOptions` structure to position the `Label` in one of nine locations around the page.
+
+You can set the color of the `Label` with the `TextColor` property. One convenient approach is to obtain a `Color` value from one of the static read-only properties of the `Color` class:
+
+```csharp
+label.TextColor = Color.Blue;
+```
+
+Another approach is using the static `Color.FromRgb`, `Color.FromRgba`, or `Color.FromHsla` methods to define colors using either the RGB (red-green-blue) or the HSL (hue-saturation-luminosity) color models. Or you can use the `Color` constructor to specify floating point values of red, green, blue, and alpha (opacity). This statement sets the page’s background color:
+
+```csharp
+page.BackgroundColor = new Color(1.0, 1.0, 0, 1.0);
+```
+
+You can set the `FontFamily` property to a string specifying a font that you know is available on the phone:
+
+```csharp
+label.FontFamily = "Times New Roman";
+```
+
+You can set the FontAttributes property to a member of the `FontAttributes` enumeration, `Bold`, `Italic`, or `None`. If you want both bold and italic, combine the two members with the C# bitwise OR operator:
+
+```csharp
+label.FontAttributes = FontAttributes.Bold | FontAttributes.Italic;
+```
+
+Set the `FontSize` property to increase or decrease the size of the font:
+
+```csharp
+label.FontSize = 30;
+```
+
+You should see the text string wrap to two lines. If not, try a larger value.
+
+The wrapping behavior is governed by the `LineBreakMode` property that you can set to a member of the `LineBreakMode` enumeration:
+
+```csharp
+label.LineBreakMode = LineBreakMode.WordWrap;
+```
+
+That’s the default, but you can try the other members:
+
+* `NoWrap`
+
+* `CharacterWrap`
+
+* `HeadTruncation`
+
+* `TailTruncation`
+
+* `MiddleTruncation`
+
+Generally you’ll use one `Label` for every paragraph of text that you display on the screen. If you have multiple paragraphs, you can put the multiple `Label` elements in a `StackLayout`, and then put the `StackLayout` in a `ScrollView`. You’ll see how to do this in a future exercise.
+
+Let’s give `Label` a whole paragraph of text:
+
+```csharp
+label.Text = "Alice was beginning to get very tired of sitting by " +
+             "her sister on the bank, and of having nothing to do: " +
+             "once or twice she had peeped into the book her sister " +
+             "was reading, but it had no pictures or conversations " + 
+             "in it, “and what is the use of a book,” thought Alice, " +
+             "“without pictures or conversations?”";
+```
+
+You might want to adjust the `FontSize` so it fits comfortably on the page. If you flip the iOS Simulator between portrait and landscape you can see how the `Label` dynamically reformats the text.
+
+By default, the lines of the paragraph are left-justified, but you can set the `HorizontalTextAlignment` property to right justify or center each line:
+
+```csharp
+label.HorizontalTextAlignment = TextAlignment.Center;
+```
+
+Try the `End` member of the `TextAlignment` enumeration to right justify the line, or `Start` for the default left justification.
+
+`Label` inherits several transform properties from the `VisualElement` class. The `TranslationX` and `TranslationY` properties move the element horizontally and vertically. The default values are 0 but try some other values:
+
+```csharp
+label.TranslationX = 0;
+label.TranslationY = 0;
+```
+
+These two properties move the element from the location determined for the element by the Xamarin.Forms layout system. There is nothing to prevent you from setting `TranslationX` or `TranslationY` values that move the element right off the screen!
+
+The `Scale` property has a default value of 1:
+
+```csharp
+label.Scale = 1.0;
+```
+
+Try a value of 2 to double the size of the text or 0.5 to decrease the size in half. You’ll notice that the text does not reformat itself to stay within the width of the page. Like the other transform properties, `Scale` is applied after the Label has formatted the text and only affects the element’s visuals.
+
+Finally, there is `Rotation`, which you can set to an angle in degrees to rotate the text around its center. The default value is 0 but try 90 or 180 or any number you want:
+
+```csharp
+label.Rotation = 0;
+```
+
+Xamarin.Forms also has a facility to animate these properties. For example, you can apply an animation to the `Label` that is triggered when the user taps the `Label`. To do this, you need to add a `TapGestureRecognizer` object to the `GestureRecognizers` collection of the `Label`:
+
+```csharp
+// Empty the collection during re-executions
+label.GestureRecognizers.Clear();
+
+TapGestureRecognizer tap = new TapGestureRecognizer();
+tap.Tapped += async (sender, args) =>
+{
+    label.Rotation = 0;
+    await label.RotateTo(360, 5000);
+};
+label.GestureRecognizers.Add(tap);
+```
+
+The `Tapped` event handler is executed when you tap the `Label` on the phone or click the `Label` in the iOS Simulator. It rotates the text in a 360-degree circle in 5,000 milliseconds.  Notice that the `RotateTo` method is asynchronous. It completes execution when the rotation has completed. This means that you can add other animations to run in sequence, and you can use the static `Task.WhenAll` and `Task.WhenAny` methods to combine animations. Have fun!

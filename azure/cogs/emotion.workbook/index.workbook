@@ -1,0 +1,188 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Newtonsoft.Json
+  version: 8.0.3
+- id: Microsoft.Net.Http
+  version: 2.2.29
+- id: Microsoft.ProjectOxford.Emotion
+  version: 1.0.331.1
+- id: Microsoft.ProjectOxford.Common
+  version: 1.0.308
+- id: Microsoft.Bcl.Build
+  version: 1.0.21
+- id: Microsoft.Bcl
+  version: 1.1.10
+---
+
+# Azure Cognitive Services
+
+Image analysis with the Cognitive Services' `EmotionServiceClient`
+
+---
+
+⚠️  Visit [Microsoft Cognitive Services](https://www.microsoft.com/cognitive-services) and get a key before you begin.
+
+---
+
+```csharp
+var emotionKey = "YOUR_EMOTION_SERVICE_KEY_HERE";
+```
+
+Start by adding the `Microsoft.ProjectOxford.Emotion` NuGet to the iOS Workbook.
+The required references are loaded into the workbook below:
+
+```csharp
+#r "System.Collections"
+#r "System.IO"
+#r "System.Runtime"
+#r "System.Threading.Tasks"
+#r "System.Net.Http"
+#r "System.Net.Http.Primitives"
+#r "System.Net.Http.Extensions"
+#r "Newtonsoft.Json"
+#r "Microsoft.ProjectOxford.Common"
+#r "Microsoft.ProjectOxford.Emotion"
+```
+
+We first define a simple data structure to model an employee. Remote properties will be populated from Azure. We define a couple of local properties as well that we’ll need later.
+
+```csharp
+using Newtonsoft.Json;
+
+public class Acquaintance
+{
+	public string FirstName { get; set; }
+	public string LastName { get; set; }
+	public string Company { get; set; }
+	public string JobTitle { get; set; }
+	public string Email { get; set; }
+	public string Phone { get; set; }
+	public string Street { get; set; }
+	public string City{ get; set; }
+	public string PostalCode { get; set; }
+	public string State { get; set; }
+	public string PhotoUrl { get; set; }
+	public override string ToString () {
+		return $"{FirstName} {LastName} ({JobTitle}) " + (AvatarImage == null?"⚪️":"☑️");
+	}
+	// client-local properties
+	[JsonIgnore] public float Happiness { get; set; }
+	[JsonIgnore] public UIImage AvatarImage { get; set; }
+}
+```
+
+The list is populated from another sample’s [seed data](https://github.com/xamarinhq/app-acquaint/blob/2ca9e83c8344d35288e4ea7868ea6e5795a25e9c/App/Common/Acquaint.Data/SeedData.cs).
+
+```csharp
+#load "employees.csx"
+
+var employees = SeedData.Get();
+```
+
+Here we fetch the avatar images for each person and cache them back on the model object. Inspecting the `employees` list now shows happy faces!
+
+```csharp
+foreach (var employee in employees) {
+	var imageData = NSData.FromUrl (new NSUrl (employee.PhotoUrl));
+	if (imageData != null)
+		employee.AvatarImage = UIImage.LoadFromData (imageData);
+}
+
+employees
+```
+
+## Cognitive Services
+
+For some real fun, we can analyze employee emotions using the Emotions API from [Microsoft Cognitive Services](https://www.microsoft.com/cognitive-services).
+
+To test the process, analyze the first employee’s emotions in their avatar photo.
+The Emotion service will fetch the avatar from a URL in this case, but it can also process raw image data sent directly from the client.
+
+```csharp
+using System.IO;
+using Microsoft.ProjectOxford.Emotion;
+
+var emotionClient = new EmotionServiceClient (emotionKey);
+await emotionClient.RecognizeAsync (employees.First ().PhotoUrl)
+```
+
+The Emotion API provides an estimation of overall happiness. Perform the same analysis for all the employees and record their happiness. If the service cannot detect a human face, it will return no scores.
+
+```csharp
+foreach (var employee in employees) {
+	var emotionData = await emotionClient.RecognizeAsync (employee.PhotoUrl);
+	employee.Happiness = (emotionData.FirstOrDefault ()?.Scores?.Happiness).GetValueOrDefault ();
+}
+
+employees
+```
+
+We want our least happy employees to show up first...
+
+```csharp
+employees = employees.OrderBy (x => x.Happiness).ToList ()
+```
+
+## Bringing it together on iOS
+
+The data can be rendered in a UITableView, to interact with live in the iOS simulator.
+
+```csharp
+class EmployeeTableSource : UITableViewDataSource
+{
+    List<Acquaintance> employees;
+    public EmployeeTableSource (List<Acquaintance> emps)
+    { employees = emps; }
+	public override nint RowsInSection (UITableView tableview, nint section)
+		=> employees.Count;
+
+	public override UITableViewCell GetCell (UITableView tableView, NSIndexPath indexPath)
+	{
+		var employee = employees [indexPath.Row];
+
+		string emoji;
+
+		if (employee.Happiness >= 0.9) {
+			emoji = "😀";
+		} else if (employee.Happiness >= 0.8) {
+			emoji = "🙂";
+		} else if (employee.Happiness >= 0.4) {
+			emoji = "😕";
+		} else if (employee.Happiness == 0) {
+			emoji = "🐶";
+		} else {
+			emoji = "😡";
+		}
+
+		return new UITableViewCell (UITableViewCellStyle.Subtitle, "MyTableCell") {
+			TextLabel  = { Text = $"{employee.FirstName} {employee.LastName}" },
+			DetailTextLabel = { Text = $"{employee.Happiness:P} {emoji}" },
+			ImageView = { Image = employee.AvatarImage }
+		};
+	}
+}
+```
+
+To actually render on the simulator, set the the root view controller:
+
+```csharp
+KeyWindow.RootViewController = new UINavigationController (new UITableViewController {
+	Title = "Happiness Training Candidates",
+	TableView = { DataSource = new EmployeeTableSource (employees) }
+})
+```
+
+---
+
+### Exercises
+
+* Change the background color of the `UITableViewCell` based on the happiness of the employee.
+
+* The Emotions API covers more than just happiness. Try adding information about anger, available in `emotionData`.
+
+* Implement a custom `UITableViewCell` that shows all emotion data.
+
+---

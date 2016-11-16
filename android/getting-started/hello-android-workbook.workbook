@@ -1,0 +1,15 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+---
+
+# Android
+
+```csharp
+var mainActivity = StartedActivities.First();
+var label = new Android.Widget.TextView(mainActivity) {
+  Text = "Hello, Workbooks",
+  TextSize = 36
+};
+mainActivity.SetContentView(label);
+```

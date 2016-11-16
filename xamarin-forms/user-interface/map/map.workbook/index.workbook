@@ -1,0 +1,121 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms.Maps
+  version: 2.3.2.127
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Displaying a Map
+
+The Xamarin.Forms `Map` view displays a map using the native map for the platform. This provides a fast, familiar maps experience for users.
+
+## Initializing the Workbook
+
+To use maps in Xamarin Workbooks, you must:
+
+* Add the `Xamarin.Forms.Maps` NuGet package to the Workbook.
+* Use the `#r` command to reference the `Xamarin.Forms.Maps` and `Xamarin.Forms.Maps.iOS` assemblies.
+* Add a `using` directive to reference the `Xamarin.Forms.Maps` assembly.
+* Call the `Xamarin.FormsMaps.Init` method, after the `Xamarin.Forms.Forms.Init` method, to initialize `Xamarin.Forms.Maps`.
+
+These steps have been performed in this workbook.
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+using Xamarin.Forms.Maps;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Adding a Map to a Page
+
+An instance of the `Map` class is created to display a map:
+
+```csharp
+var map = new Map(
+  MapSpan.FromCenterAndRadius(
+    new Position(37.8044866, -122.4324132),
+    Distance.FromMiles(0.3)))
+{
+  IsShowingUser = false
+};
+stackLayout.Children.Add(map);
+```
+
+A `MapSpan` represents a circular region on a `Map`. Supplying a `MapSpan` instance to the `Map` constructor sets the initial view (center point and zoom level) of the map when it's loaded. In addition, the `IsShowingUser` property controls whether the `Map` is showing the user's current location.
+
+The `Position` structure stores latitude and longitude as `double` values. The `Distance` structure contains a number of methods that can be used to set the zoom level of the map. In this case, the `Distance.FromMiles` method is used.
+
+## Changing the Map Type
+
+The `MapType` property of the `Map` class can be set to a value of the `MapType` enumeration to change the display style of the `Map`:
+
+```csharp
+map.MapType = MapType.Satellite;
+```
+
+The values of the `MapType` enumeration are:
+
+* `Hybrid` – a map that combines satellite imagery and street data.
+* `Satellite` – a map that contains satellite imagery.
+* `Street` – a map that contains street data. This is the default value.
+
+## Adding Pins
+
+A location can be marked on the `Map` with a `Pin` instance, which is added to the `Pins` collection of the `Map` class:
+
+```csharp
+var pin = new Pin
+{
+  Type = PinType.Place,
+  Position = new Position(37.8044866, -122.4324132),
+  Label = "Pin Title Goes Here",
+  Address = "Pin Address Goes Here"
+};
+map.Pins.Add(pin);
+```
+
+The `Pin` instance specifies the data required to display the pin on the `Map`. The values of the `PinType` enumeration are:
+
+* `Generic` – a generic pin.
+* `Place` – a pin for a place.
+* `SavedPin` – a pin for a saved location.
+* `SearchResult` – a pin for a search result.
+
+## Changing the Map Position and Zoom Level
+
+The `MoveToRegion` method of the `Map` class can be used to change the position and zoom level of the map:
+
+```csharp
+var slider = new Slider(1, 18, 1);
+slider.ValueChanged += (sender, e) =>
+{
+  var zoomLevel = e.NewValue; // between 1 and 18
+  var latLongDegrees = 360 / (Math.Pow(2, zoomLevel));
+  map.MoveToRegion(
+    new MapSpan(map.VisibleRegion.Center, latLongDegrees, latLongDegrees));
+};
+stackLayout.Children.Insert(0, slider);
+```
+
+Here, the zoom level of the map is changed as the slider moves, without altering the location. This is achieved creating a new `MapSpan` using the current location from the `VisibleRegion.Center` property of the `Map` class.
+
+## 👍 Try it now!
+
+* Set the `Map` instance to a zoom level of 1 kilometer.
+
+* Change the `Map` instance to display hybrid map data.
+
+* Set the `Map` position to a location in another continent.
+
+## Further Reading
+
+For more information about displaying a map, see [Map Control](https://developer.xamarin.com/guides/xamarin-forms/user-interface/map/).

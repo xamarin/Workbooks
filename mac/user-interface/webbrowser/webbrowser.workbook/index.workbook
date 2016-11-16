@@ -1,0 +1,520 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# How to Build a Web Browser in Xamarin.Mac
+
+### An exercise in creating a simple macOS app with many standard features using a Storyboard
+
+This workbook will cover the steps required to build a mini, multi-windowed web browser in a Xamarin.Mac app. By going through the steps in this workbook, the reader will gain insights and skills required to work with many elements of a standard macOS app such as Menus, Windows, Window Controllers, Views, View Controllers, Toolbars, Text Field, Buttons and the Xcode Interface Builder Storyboard files used to define them.
+
+Before starting this workbook, it is suggested that the reader reads our [Hello, Mac](https://developer.xamarin.com/guides/mac/getting_started/hello,_mac/) and [Introduction to Storyboards](https://developer.xamarin.com/guides/mac/platform-features/storyboards/) documentation first, as they provide a basis for the topics covered here.
+
+## An Introduction to Storyboards
+
+Before getting started, let’s take a quick refresher in what a [Storyboard](https://developer.xamarin.com/guides/mac/platform-features/storyboards/#What_are_Storyboards) is and how it is used to define the User Interface for a macOS app. Storyboards allow the developer to create a User Interface for a Xamarin.Mac app that not only includes the window definitions and controls, but also contains the links between different windows (via segues) and view states. For example:
+
+![](Images/Intro01.png)
+
+A Storyboard defines all of the UI for a given app broken down into a functional overview of its View Controllers. Window Controllers contain and control the different Window types that a macOS app can create and contain these View Controllers. In Xcode's Interface Builder, each of these controllers lives in its own Scene:
+
+![](Images/Intro02.png)
+
+Each Scene represents a given View and View Controller Pair with a set of lines (called Segues) that connect each Scene in the UI, thus showing their relationships. Some Segues define how one View Controller contains one or more child Views or View Controllers. Other Segues, define transitions between View Controller (such as displaying a popover or dialog box).
+
+After the UI has been designed, the developer exposes the elements and controls to C# code using *Outlets* and *Actions*. Please see our [Outlets and Actions](https://developer.xamarin.com/guides/mac/getting_started/hello,_mac/#Outlets_and_Actions) documentation for more information.
+
+### Outlets and Actions
+
+So what are Outlets and Actions? In traditional .NET User Interface programming, a control in the User Interface is automatically exposed as a property when it’s added. Things work differently in Mac, simply adding a control to a view doesn’t make it accessible to code. The developer must explicitly expose the UI element to code. In order do this, Apple provides two options:
+
+* **Outlets** – Outlets are analogous to properties. If the developer wires up a control to an Outlet, it’s exposed to the app’s code via a property, so the developer can do things like attach event handlers, call methods on it, etc.
+
+* **Actions** – Actions are analogous to the command pattern in WPF. For example, when an Action is performed on a control, say a button click, the control will automatically call a method in the app’s code. Actions are powerful and convenient because the developer can wire up many controls to the same Action.
+
+In Xcode, Outlets and Actions are added directly in code via Control-dragging. More specifically, this means that in order to create an Outlet or Action, the developer chooses a control element to add an Outlet or Action for, holds down the Control key on the keyboard, and drags that control directly into their code.
+
+## Storyboards and Workbooks
+
+Workbooks don’t natively support macOS Storyboards, so the first thing that will need to be done is to load a library that provides support:
+
+```csharp
+#load "StoryboardResources.csx"
+```
+
+Using this library, there are a few differences that will need to be taken into account when designing UI in Xcode’s Interface Builder.
+
+First, Outlets cannot be defined by Control-Dragging as normal (because there is no `.h` header file to attach to), so a few different techniques will need to be used to define Outlets in Interface Builder for workbooks:
+
+* **Windows, Views and View based Controls** - Select the element in the design surface, switch to the **Identity Inspector** and enter the name of the Outlet in the **Identifier** field.
+
+* **Menu Items** - Menu Items will automatically bind to any Outlet that match their **Title** \+ “*MenuItem*”. For example, the “*New*” Menu Item will bind to the “*NewMenuItem*” Outlet.
+
+* **Toolbar Items** - Toolbar Items will automatically bind to any Outlet that match their **Label** \+ “*ToolbarItem*”. For example, the “*Color*” Toolbar Item will bind to the “*ColorToolbarItem*” Outlet.
+
+Actions also require a slightly different technique to create (again, because there is no `.h` header file to attach to):
+
+1. Select the **First Responder** in the **Scene** to create an **Action** for.
+
+2. In the **Attribute Inspector**, click the **\+** button to add a new User Defined **Action**. For example, `GoButtonClicked:`.
+
+3. Select the element to attach to the new **Action**, Control-Click and drag a line to the **First Responder** in the same **Scene**. For example, from a `NSButton`.
+
+4. From the dialog box select the new **Action** just created. For example, to the `GoButtonClicked:` **Action**.
+
+Several standard macOS controls have built-in Actions already attached to them, such as the `newDocument:` Action for the New Menu Item. These will automatically bind to like named Actions in the workbook classes.
+
+Because of the way workbooks function, loading and instantiating Window and View Controllers  is done using methods of the `StoryboardInflator` helper class as opposed to using the typical `NSStoryboard` methods. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
+
+Only Containment Segues are currently supported by the library. For all other types of Segues, the developer will have to manually load and display the child Window or View Controller.
+
+With these differences aside, after the Windows and View Controllers are loaded and the Outlets and Actions are bound, they are used same way as Windows, View Controllers, Outlets and Actions created and loaded the typical way in a normal macOS app. So the knowledge gained here can be used when building a regular Xamarin.Mac app project.
+
+---
+
+⚠️ NOTE: To edit the Storyboard that is part of this workbook, select the `webbrowser.workbook` file in Finder and right-click on **Show Package Contents**. 
+
+---
+
+### Compiling the Storyboard
+
+Every time the developer edits the Storyboard, those changes will need to be compiled before they can be loaded in the workbook. Do this using the following command:
+
+```csharp
+var usingStoryboard = "Main";
+StoryboardCompiler.Compile(usingStoryboard);
+```
+
+## Defining the Supporting Classes
+
+There are several supporting classes that will be required when working with a Xamarin.Mac app’s UI that has been loaded from a Storyboard. These include at least an `AppDelegate`, a `NSWindowController` (for each Window type that the app creates) and a `NSViewController` for every `NSView` that belongs to a Window.
+
+The following sections will go over each of these required classes in detail.
+
+### The Main View Controller
+
+Cocoa (and by derivation, CocoaTouch) uses what’s known as the Model View Controller (MVC) pattern. The `MainViewController` declaration represents the object that controls the actual content of the application Window. Generally, for every View created (and for many other things within the Windows and Views), there is a controller, which is responsible for the elements’s life cycle, such as showing it, adding new SubViews (controls) to it, etc. For more information, please see our [View Controllers](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#View_Controllers) documentation.
+
+The `MainViewController` class will act as this app’s Window *Content Controller* and will be responsible for the life cycle of the main Window’s content:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainViewController : NSViewController {
+
+    #region Outlets
+    [Outlet]
+    public NSButton GoButton {get; set;}
+
+    [Outlet]
+    public NSSegmentedControl HistoryButtons {get; set;}
+
+    [Outlet]
+    public NSTextField StatusLabel {get; set;}
+
+    [Outlet]
+    public NSTextField URLField {get; set;}
+
+    [Outlet]
+    public WebView WebBrowser {get; set;}
+    #endregion
+
+    #region Constructors
+    public MainViewController () : base() {
+
+    }
+    #endregion
+
+    #region Override Methods
+    public override void ViewWillAppear ()
+    {
+        base.ViewWillAppear ();
+
+        // Wireup interface
+        WebBrowser.ReceivedTitle += (sender, e) => {
+            View.Window.Title = e.Title;
+        };
+
+        WebBrowser.StartedProvisionalLoad += (sender, e) => {
+            StatusLabel.StringValue = "Loading page...";
+		};
+
+        WebBrowser.FinishedLoad += (sender, e) => {
+            StatusLabel.StringValue = "Ready";
+            HistoryButtons.SetEnabled(WebBrowser.CanGoBack(),0);
+            HistoryButtons.SetEnabled(WebBrowser.CanGoForward(),1);
+		};
+
+        // Display the Home website
+        ShowFavoriteWebsite("msn");
+    }
+    #endregion
+
+    #region Public Methods
+    public void ShowURL(string path) {
+
+        // Display the given URL in the web browser
+        View.Window.Title = path;
+        var url = NSUrl.FromString(path);
+        var request = NSUrlRequest.FromUrl(url);
+        WebBrowser.MainFrame.LoadRequest(request);
+    }
+
+    public void ShowFavoriteWebsite(string name) {
+
+        var url = "";
+
+        // Set URL based on the favorite website name
+        switch(name){
+        case "Amazon":
+            url = "http://amazon.com";
+            break;
+        case "Apple":
+            url = "http://apple.com";
+            break;
+        case "Bing":
+            url = "http://bing.com";
+            break;
+        case "Digg":
+            url = "http://digg.com";
+            break;
+        case "Facebook":
+            url = "http://facebook.com";
+            break;
+        case "Google":
+            url = "http://google.com";
+            break;
+        case "LinkedIn":
+            url = "http://linkedin.com";
+            break;
+        case "Microsoft":
+            url = "http://microsoft.com";
+            break;
+        case "msn":
+            url = "http://msn.com";
+            break;
+        case "Skype":
+            url = "http://skype.com";
+            break;
+        case "Twitter":
+            url = "http://twitter.com";
+            break;
+        case "YouTube":
+            url = "http://youtube.com";
+            break;
+        }
+
+        // Update URL bar and show website
+        URLField.StringValue = url;
+        ShowURL(url);
+        View.Window.Title = name;
+    }
+    #endregion
+
+    #region Custom Actions
+    [Action ("goButtonClicked:")]
+    public void GoButtonClicked (Foundation.NSObject sender) {
+        // Anything to do?
+        if (URLField.StringValue == "") {
+            // No, report issue to user
+            StatusLabel.StringValue = "Please enter a URL before clicking Go.";
+            return;
+        }
+
+        // Display the requested URL
+        ShowURL(URLField.StringValue);
+    }
+    
+    [Action ("historyButtonClicked:")]
+    public void HistoryButtonClicked (Foundation.NSObject sender) {
+        // Cast to correct type
+        var segment = sender as NSSegmentedControl; 
+        
+        // Take action based on the button selected
+        switch(HistoryButtons.SelectedSegment) {
+        case 0:
+            WebBrowser.GoBack();
+            break;
+        case 1:
+            WebBrowser.GoForward();
+            break;
+        }
+    }
+    #endregion
+}
+```
+
+Let’s take a look at what this code is doing in detail. First, several Outlets have been defined that relate to the UI elements that make up the main User Interface for the app as they were laid out in Xcode’s Interface builder:
+
+![](Images/UI01.png)
+
+When working with a real Xamarin.Mac project, the Outlets are typically automatically built by Xamarin Studio and would be in the `MainViewController.designer.cs` companion file. Because of the way workbooks function, they need to be manually defined here.
+
+The `ViewWillAppear` method is called after the View Controller and View have been loaded and initialized from a Storyboard just before the View is displayed to the user.  Here it is being used to wire-up the UI elements that were exposed via the Outlets above.
+
+Two custom Actions were also defined. The `historyButtonClicked:` Action is called when the user clicks on the forward and backward segments defined in the `NSSegmentedControl` included the UI. The `goButtonClicked:` Action is called when the user clicks the Go `NSButton` to navigate to the given web address.
+
+The `WebBrowser.ReceivedTitle` event is called when the Web Browser control receives a new title from the web page being visited. The `WebBrowser.StartedProvisionalLoad` event is called when the Web Browser starts loading a web page. The `WebBrowser.FinishedLoad` event is called when the web page finishes loading. It is also responsible for enabling and disabling the forward and backward history buttons.
+
+The `ShowURL` method will display the given URL in the web browser and the `ShowFavoriteWebsite` method is used to show URLs from the built-in favorite web pages that will be defined as both Menu Items and Toolbar Items below.
+
+---
+
+###### 👍 Try it now!
+
+* Change the default URL that is displayed when a new Window is opened.
+
+* Set a new `BackgroundColor` and `TextColor` for the `GoButton` by editing the Storyboard in Xcode's Interface Builder.
+
+* Adjust the appearance of the `StatusLabel` and set a new default value by editing the Storyboard in Xcode's Interface Builder.
+
+* Make hitting the Enter key in the `URLField` cause the URL to load the same as clicking the Go button. ***Hint:** Use the `ShouldEndEditing` event of the `NSTextField` class.*
+
+***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
+
+---
+
+### The Main Window Controller
+
+Just like the `MainViewController` presented above, the `MainWindowController` represents the object that controls the application’s Window. Generally, for every Window created (and for many other things within the Windows), there is a controller, which is responsible for the Window’s life cycle, such as showing it, adding Content Views and View Controllers, etc. For more information, please see our [Window Controller](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Window_Controllers) documentation.
+
+The `MainWindowController` class will act as the app’s Window Controller and will be responsible for the life cycle of the app’s main Window:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainWindowController : NSWindowController {
+
+    #region Computed Properties
+    public MainViewController ViewController {get; set;}
+    #endregion
+
+    #region Constructors
+    public MainWindowController() : base() {
+        
+    }
+    #endregion
+
+    #region Override Methods
+    public override void WindowDidLoad () {
+        // Initialize the window after it has loaded
+        Window.Title = "Untitled";
+
+    }
+    #endregion
+
+    #region Custom Actions
+    [Action ("showFavoriteWebsite:")]
+    public void ShowFavoriteWebsite (Foundation.NSObject sender) {
+        var item = sender as NSToolbarItem;
+        ViewController.ShowFavoriteWebsite(item.Label);
+    }
+    #endregion
+}
+```
+
+Let’s take a look at what this code is doing in detail. A custom `showFavoriteWebsite:` Action is created and every Toolbar Item in the custom Toolbar is hooked up to it:
+
+![](Images/UI02.png)
+
+The `WindowDidLoad` event will be called after the Window and WindowController have been loaded and instantiated from the Storyboard. The default Window Title is being set here.
+
+---
+
+###### 👍 Try it now!
+
+* Add more available Favorite URL items to the Toolbar in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add the new URLs to the `ShowFavoriteWebsite` method of the `MainViewController`. ***Hint:** Use a **Image Toolbar Item** in Interface Builder to add more items.* Please see our [Creating and Maintaining Toolbars in Xcode](https://developer.xamarin.com/guides/mac/user-interface/working-with-toolbars/#Creating_and_Maintaining_Toolbars_in_Xcode) documentation for more details.
+
+***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
+
+---
+
+### The Main Window Delegate
+
+The `MainWindowDelegate` will be attached to each of the Main Windows created by the app to monitor and respond to events such as the Window becoming Key (being set as the active, front-most Window), the Window closing, etc.:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainWindowDelegate : NSWindowDelegate {
+
+    #region Computed Properties
+    public NSWindow Window { get; set;}
+    public MainWindowController WindowController {get; set;}
+    public MainViewController ViewController {get;set;}
+    #endregion
+
+    #region constructors
+    public MainWindowDelegate (NSWindow window, MainWindowController windowController, MainViewController viewController)
+    {
+        // Initialize
+        this.Window = window;
+        this.WindowController = windowController;
+        this.ViewController = viewController;
+    }
+    #endregion
+
+    #region Override Methods
+    public override void DidBecomeKey (NSNotification notification) {
+
+    }
+    #endregion
+}
+```
+
+For now, `MainWindowDelegate` is just keeping track of the other Supporting Classes for each Window created. This will be required later when tracking which of the app’s Windows is currently Key.
+
+### The App Delegate
+
+The [AppDelegate](https://developer.xamarin.com/guides/mac/getting_started/hello%2C_mac/#AppDelegate.cs) is responsible for starting the app, loading its initial Menu Bar and Window and listening to OS events:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class AppDelegate : NSApplicationDelegate {
+
+    #region Computed Properties
+    public StoryboardInflator Inflator {get; set;}
+    public NSMenu MainMenu {get; set;}
+    public MainWindowController WindowController {get; set;} = new MainWindowController();
+    public MainViewController ViewController {get; set;} = new MainViewController();
+    public MainViewController KeyWindowViewController {get; set;}
+    #endregion
+
+    #region Outlets
+    [Outlet]
+    public NSMenuItem FavoritesMenuItem {get; set;}
+    #endregion
+
+    #region Constructors
+    public AppDelegate() : base() {
+
+    }
+
+    public AppDelegate(string bundleName) : base() {
+
+        // Load the storyboard bundle into an inflator
+        Inflator = new StoryboardInflator($"{bundleName}.storyboardc");
+
+        // Initialize main menu
+        MainMenu = Inflator.InstantiateMainMenu(this);
+
+        // Load the initial window from the Storyboard
+        Inflator.InstantiateInitialController(WindowController);
+        WindowController.Window.Delegate = new MainWindowDelegate(WindowController.Window, WindowController, ViewController);
+
+        // Bind the main view controller
+        StoryboardBinder.Bind(WindowController, ViewController);
+        WindowController.ViewController = ViewController;
+
+        // Simulate the app launching
+        DidFinishLaunching(NSNotification.FromName("AppDelegate",this));
+    }
+    #endregion
+
+    #region Override Methods
+    public override void DidFinishLaunching (NSNotification notification)
+    {
+        // Initialize app here
+    }
+    #endregion
+
+    #region Custom Actions
+    [Action ("showFavoriteWebsite:")]
+    public void ShowFavoriteWebsite (Foundation.NSObject sender) {
+        var item = sender as NSMenuItem;
+        var window = NSApplication.SharedApplication.KeyWindow;
+        if (window !=null ) {
+            var windowDelegate = window.Delegate as MainWindowDelegate;
+            if (windowDelegate!=null) {
+                windowDelegate.ViewController.ShowFavoriteWebsite(item.Title);
+            } 
+        }
+    }
+
+    [Action ("newDocument:")]
+    public void NewDocument (Foundation.NSObject sender) {
+        var windowController = new MainWindowController();
+        var viewContoller = new MainViewController();
+
+        Inflator.InstantiateInitialController(windowController);
+        windowController.Window.Delegate = new MainWindowDelegate(windowController.Window, windowController, viewContoller);
+
+        StoryboardBinder.Bind(windowController, viewContoller);
+        windowController.ViewController = viewContoller;
+    }
+    #endregion
+
+}
+```
+
+Let’s take a look at what this code is doing in detail. First, it creates and exposes several Computed Properties to keep track of the main elements of the app. Again, like the `MainViewController` above, a `showFavoriteWebsite:` Action has been defined and attached to the custom Menu Items that were added to the Main Menubar in Interface Builder:
+
+![](Images/UI03.png)
+
+The `showFavoriteWebsite:` Action method gets the currently currently Key Window and calls the `ShowFavoriteWebsite` method of its `MainViewController` instance to display the requested web site.
+
+When a new instance of the `AppDelegate` is created, it creates a `StoryboardInflator` to load the specified Storyboard’s bundle into memory (`Inflator = new StoryboardInflator($"{bundleName}.storyboardc");`).
+
+Next, the app’s Menu Bar is loaded and displayed using the `InstantiateMainMenu` method. The `InstantiateInitialController` method loads and displays the app’s main, default Window which gets a `MainWindowDelegate` attached to it.
+
+The WindowController is bound to the ViewController using the `StoryboardBinder`’s `Bind` method and the `DidFinishLaunching` method is called to simulate the normal launch sequence of a macOS app.
+
+---
+
+⚠️ NOTE: None of the code in the `AppDelegate` constructor would be required in an actual Xamarin.Mac app project, it is here simply to load and launch a Storyboard for a workbook using the support library included at the start of this workbook. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
+
+---
+
+The `DidFinishLaunching` method is called after the app has been started to configure the app. By adding the `newDocument:` Action, the New Menu Item will be enabled in the File Menu. When the user selects it, the `StoryboardInflator` helper class is used to open a new Window from the Storyboard (normally this would be done from a `NSStoryboard` class instance).
+
+---
+
+###### 👍 Try it now!
+
+* Add more Favorite URL items to the Favorites Menu in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add their URLs to the `ShowFavoriteWebsite` method of the `MainViewController` class. Please see our [Menus](https://developer.xamarin.com/guides/mac/user-interface/working-with-menus/) documentation for more details.
+
+* Add Forward and Backward Menu Items to the View Menu in Xcode's Interface Builder and Add new Actions to support them. ***Hint:** Create new public `GoForward` and `GoBackward` methods in the `MainViewController` class, create `goForward:` and `goBackward:` Actions in `AppDelegate` and attach the new Menu Items to these Actions.*
+
+***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
+
+---
+
+## Starting the App and Displaying the Default Menu Bar and Window
+
+With this code in place, an instance of the `AppDelegate` can be created:
+
+```csharp
+// Initialize and display the app
+var appDelegate = new AppDelegate(usingStoryboard);
+```
+
+This will load the **Main Menu** (as defined in the Storyboard file) using the `InstantiateMainMenu` method of the `StoryboardInflator` class:
+
+![](Images/UI04.png)
+
+Next, the `InstantiateInitialController` method of the `StoryboardInflator` loads and displays the Main Window as defined by the **Storyboard Entry Point**:
+
+![](Images/UI05.png)
+
+When the Main Window is first displayed, the `ViewWillAppear` method of the `MainViewController` will be called and the default website will be displayed:
+
+```csharp
+// Take a screen shot of the main window
+var window = appDelegate.WindowController.Window;
+var screenshot = Capture(window);
+```

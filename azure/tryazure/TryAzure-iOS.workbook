@@ -1,0 +1,60 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages:
+- id: Microsoft.Bcl
+  version: 1.1.10
+- id: Microsoft.Net.Http
+  version: 2.2.29
+- id: Microsoft.Azure.Mobile.Client
+  version: 3.0.1
+- id: Newtonsoft.Json
+  version: 9.0.1
+---
+
+# Azure TryAppService
+
+Two NuGets - **Microsoft.Azure.Mobile.Client** & Newtonsoft.Json - have been added and require these references:
+
+```csharp
+#r "Newtonsoft.Json"
+#r "Microsoft.WindowsAzure.Mobile"
+#r "Microsoft.WindowsAzure.Mobile.Ext"
+```
+
+Use the [tryappservice.azure.com](https://tryappservice.azure.com/ "tryappservice.azure.com") **Mobile App > TodoList** to create a free back-end to test. This class matches the mobile app backend that is automatically created:
+
+```csharp
+using Newtonsoft.Json;
+using Microsoft.WindowsAzure.MobileServices;
+
+public class TodoItem
+{
+    [JsonProperty(PropertyName = "id")]
+    public string ID {get;set;}
+    [JsonProperty(PropertyName = "text")]
+    public string Name {get;set;}
+    [JsonProperty(PropertyName = "complete")]
+    public bool Done {get;set;}
+    [Version]
+    public string Version { get; set; }
+	public override string ToString() {
+		return $"{Name} is " + (Done?"done":"not done");
+	}
+}
+```
+
+Replace the URL below with your temporary, generated endpoint URL:
+
+```csharp
+var mobileService = new MobileServiceClient ("https://da0cfa57-0ee0-4-231-b9ee.azurewebsites.net/");
+var table = mobileService.GetTable<TodoItem> ();
+```
+
+Now it’s possible to interact with the **Azure App Service**. The following code creates a new `TodoItem` class, inserts it into the table on the server, and retrieves the list from the server:
+
+```csharp
+var rememberTo = new TodoItem {Name="buy apples"};
+await table.InsertAsync (rememberTo);
+List<TodoItem> todos = await table.Take (10).ToListAsync ();
+```

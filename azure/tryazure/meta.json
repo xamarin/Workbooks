@@ -1,0 +1,7 @@
+{
+  "order":{
+    "TryAzure-iOS.workbook":"Try Azure for iOS",
+    "TryAzure-Mac.workbook":"Try Azure for Mac",
+    "TryAzure-WPF.workbook":"Try Azure for WPF"
+  }
+}

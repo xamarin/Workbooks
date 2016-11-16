@@ -1,0 +1,100 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Selecting Items with a Picker
+
+The Xamarin.Forms `Picker` view is used for selecting an item from a list.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Creating a Picker
+
+A `Picker` is created as follows:
+
+```
+var picker = new Picker
+{
+  Title = "Choose a Color"
+};
+stackLayout.Children.Add(picker);
+```
+
+The `Title` property value should instruct the user what action to perform with the `Picker` view, and will be displayed prior to the user selecting an item from the list.
+
+## Populating the Picker with Items
+
+The items displayed by a `Picker` are set by populating the `Items` collection with data:
+
+```csharp
+var colors = new List<string>
+{
+  "Black", "Gray", "Silver", "White",
+  "Red", "Maroon", "Yellow", "Olive",
+  "Lime", "Green", "Aqua", "Teal",
+  "Blue", "Navy", "Fuchsia", "Purple", "Pink"
+};
+
+foreach (string color in colors)
+{
+  picker.Items.Add(color);
+}
+```
+
+This populates the `Picker` with a list of color names.
+
+## Responding to an Item being Selected
+
+In order to demonstrate responding to an item being selected from the `Picker`, a `BoxView` is added to the page:
+
+```csharp
+var boxView = new BoxView
+{
+  HeightRequest = 150,
+  WidthRequest = 150,
+  HorizontalOptions = LayoutOptions.Center,
+  VerticalOptions = LayoutOptions.CenterAndExpand
+};
+stackLayout.Children.Add(boxView);
+```
+
+The `SelectedIndexChanged` event fires when the user selects an item from the `Picker`. This event should be handled to perform the desired response:
+
+```csharp
+var colorTypeConverter = new ColorTypeConverter();
+
+picker.SelectedIndexChanged += (sender, args) =>
+{
+  boxView.Color = (Color)colorTypeConverter
+    .ConvertFromInvariantString(picker.Items[picker.SelectedIndex]);
+}
+```
+
+When the user selects the name of a color from the `Picker`, the `BoxView` is set to that color. The name of the selected color is retrieved from the `Items` collection by using the `SelectedIndex` property value. The value of this property ranges from 0 to 1 less than the number of items in the `Items` collection. The retrieved color name is then converted to a `Color` instance using the `ColorTypeConverter` class, which is built into Xamarin.Forms.
+
+## 👍 Try it now!
+
+* Create a `Dictionary<string, Color>` that contains a list of color names and corresponding color values.
+
+* Populate the `Items` collection of the `Picker` with the `Dictionary` key values.
+
+* Update the `SelectedIndexChanged` event handler so that the correct `Color` value is retrieved from the `Dictionary` for the selected item.
+
+## Further Reading
+
+For more information about the `Picker` view, see [Picker Class](https://developer.xamarin.com/api/type/Xamarin.Forms.Picker/).

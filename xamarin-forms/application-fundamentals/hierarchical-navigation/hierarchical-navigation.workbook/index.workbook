@@ -1,0 +1,233 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Performing Hierarchical Navigation
+
+The Xamarin.Forms `NavigationPage` class provides a hierarchical navigation experience where the user is able to navigate through pages, forwards and backwards, as desired.
+
+To move from one page to another, an application will push a new page onto the navigation stack, where it will become the active page, as shown in the following diagram:
+
+![](pushing.png)
+
+To return back to the previous page, the application will pop the current page from the navigation stack, and the new topmost page becomes the active page, as shown in the following diagram:
+
+![](popping.png)
+
+In hierarchical navigation, the `NavigationPage` class is used to navigate through a stack of `ContentPage` objects.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+using Xamarin.Forms.Platform.iOS;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Creating the Root page
+
+The `MainPage` property of the `App` class should be set to a `NavigationPage` instance, with the `NavigationPage` constructor expecting a `Page` instance as an argument:
+
+```csharp
+var firstContentPage = new ContentPage
+{
+  Title = "First Page"
+};
+
+App.Current.MainPage = new NavigationPage(firstContentPage);
+KeyWindow.RootViewController = app.MainPage.CreateViewController();
+```
+
+---
+
+###### Note
+
+In a Xamarin Studio or Visual Studio solution, the code that sets `KeyWindow.RootViewController` will be created by the project template, and will reside in the iOS project.
+
+---
+
+The first page added to the navigation stack is referred to as the *root* page of the application, and the value of the `Page.Title` property will be displayed as the page title.
+
+## Pushing Pages to the Navigation Stack
+
+Forward navigation is accomplished by invoking the `PushAsync` method on the `Navigation` property of the current page:
+
+```csharp
+var secondContentPage = new ContentPage
+{
+  Title = "Second Page"
+};
+await firstContentPage.Navigation.PushAsync(secondContentPage);
+```
+
+This causes the `secondContentPage` instance to be pushed onto the navigation stack, where it becomes the active page.
+
+When the `PushAsync` method is invoked, the following events occur:
+
+* The page calling `PushAsync` has its `OnDisappearing` override invoked.
+
+* The page being navigated to has its `OnAppearing` override invoked.
+
+* The `PushAsync` task completes.
+
+However, the precise order in which these events occur is platform dependent.
+
+---
+
+###### ⚠ Warning
+
+Calls to the `OnDisappearing` and `OnAppearing` overrides cannot be treated as guaranteed indications of page navigation. For example, on iOS, the `OnDisappearing` override is called on the active page when the application terminates.
+
+---
+
+## Popping Pages from the Navigation Stack
+
+The active page can be popped from the navigation stack by pressing the *Back* button on the device, regardless of whether it's a physical button on the device or an on-screen button.
+
+To programmatically return to the original page, the `secondContentPage` instance must invoke the `PopAsync` method:
+
+```csharp
+await secondContentPage.Navigation.PopAsync();
+```
+
+This causes the `secondContentPage` instance to be removed from the navigation stack, with the new topmost page becoming the active page.
+
+When the `PopAsync` method is invoked, the following events occur:
+
+* The page calling `PopAsync` has its `OnDisappearing` override invoked.
+
+* The page being returned to has its `OnAppearing` override invoked.
+
+* The `PopAsync` task returns.
+
+However, the precise order in which these events occur is platform dependent.
+
+The `Navigation` property of each page also provides a `PopToRootAsync` method:
+
+```csharp
+var thirdContentPage = new ContentPage
+{
+  Title = "Page Three"
+};
+
+await firstContentPage.Navigation.PushAsync(secondContentPage);
+await secondContentPage.Navigation.PushAsync(thirdContentPage);
+await thirdContentPage.Navigation.PopToRootAsync();
+```
+
+This method pops all but the root `ContentPage` off the navigation stack, therefore making the root page of the application the active page.
+
+## Animating Page Transitions
+
+The `Navigation` property of each page also provides overridden push and pop methods that include a `boolean` parameter that controls whether to display a page animation during navigation:
+
+```csharp
+await firstContentPage.Navigation.PushAsync(secondContentPage, false);
+```
+
+Setting the `boolean` parameter to `false` disables the page-transition animation, while setting the parameter to `true` enables the page-transition animation, provided that it's supported by the the underlying platform. However, the push and pop methods that lack this parameter enable the animation by default:
+
+```csharp
+await secondContentPage.Navigation.PopAsync();
+```
+
+## Passing Data when Navigating
+
+Sometimes it's necessary for a page to pass data to another page during navigation. Two techniques for accomplishing this are passing data through a page constructor, and by setting the new page's `BindingContext` to the data.
+
+## Passing Data through a Page Constructor
+
+The simplest technique for passing data to another page during navigation is through a page constructor parameter:
+
+```
+public class FourthContentPage : ContentPage
+{
+  public FourthContentPage(string date)
+  {
+    Title = "Fourth Page";
+    Content = new Label
+    {
+      Text = date,
+      HorizontalOptions = LayoutOptions.Center,
+      VerticalOptions = LayoutOptions.CenterAndExpand
+    };
+  }
+}
+
+var fourthContentPage = new FourthContentPage(DateTime.Now.ToString("u"));
+await firstContentPage.Navigation.PushAsync(fourthContentPage);
+```
+
+The current date and time is passed in ISO8601 format to the `FourthContentPage` constructor, where it's displayed by a `Label` instance.
+
+## Passing Data through a BindingContext
+
+An alternative approach for passing data to another page during navigation is by setting the new page's `BindingContext` to the data:
+
+```csharp
+public class FifthContentPage : ContentPage
+{
+  public FifthContentPage()
+  {
+    Title = "Fifth Page";
+    var label = new Label
+    {
+      HorizontalOptions = LayoutOptions.Center,
+      VerticalOptions = LayoutOptions.CenterAndExpand
+    };
+    label.SetBinding(Label.TextProperty, ".");
+    Content = label;
+  }
+}
+
+await fourthContentPage.Navigation.PopAsync();
+var fifthContentPage = new FifthContentPage();
+fifthContentPage.BindingContext = DateTime.Now.ToString("u");
+await firstContentPage.Navigation.PushAsync(fifthContentPage);
+```
+
+This code sets the `BindingContext` of the `FifthContentPage` instance to the current date and time in ISO8601 format and then navigates to the `FifthContentPage`, which uses data binding to display the data.
+
+## Manipulating the Navigation Stack
+
+The `Navigation` property exposes a `NavigationStack` property from which the pages in the navigation stack can be obtained. While Xamarin.Forms maintains access to the navigation stack, the `Navigation` property provides the `InsertPageBefore` and `RemovePage` methods for manipulating the stack by inserting pages or removing them.
+
+The `InsertPageBefore` method inserts a specified page in the navigation stack before an existing specified page, as shown in the following diagram:
+
+![](insert-page-before.png)
+
+The `RemovePage` method removes the specified page from the navigation stack, as shown in the following diagram:
+
+![](remove-page.png)
+
+These methods allow manipulation of the navigation stack:
+
+```csharp
+fifthContentPage.Navigation.InsertPageBefore(fourthContentPage, fifthContentPage);
+await fifthContentPage.Navigation.PopAsync();
+fourthContentPage.Navigation.RemovePage(fourthContentPage);
+```
+
+The `fourthContentPage` instance is inserted before the `fifthContentPage` instance using the `InsertPageBefore` method. The `PopAsync` method then removes the current page from the navigation stack, with the `fourthContentPage` instance becoming the active page. The `fourthContentPage` instance is then removed from the navigation stack with the `RemovePage` method, which makes the root page the active page.
+
+## 👍 Try it now!
+
+* Push some pages to the navigation stack, and then return to the root page without displaying page transition animations.
+
+* Pass an object containing multiple pieces of data to a page, through its `BindingContext`.
+
+* Push some pages to the navigation stack, and then remove the odd numbered pages from the stack.
+
+## Further Reading
+
+For more information about hierarchical navigation, see [Hierarchical Navigation](https://developer.xamarin.com/guides/xamarin-forms/user-interface/navigation/hierarchical/).

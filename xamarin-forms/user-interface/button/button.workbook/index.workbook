@@ -1,0 +1,158 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Processing Button Clicks
+
+The Xamarin.Forms `Button` view initiates an action when the user presses it. The `Button` displays text, with or without an accompanying image,
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Setting the Button Text and Image
+
+A `Button` exposes the `Text` property, which is used to set the text presented by the `Button`:
+
+```csharp
+var button = new Button
+{
+  Text = "Click Me!"
+};
+stackLayout.Children.Add(button);
+```
+
+A `Button` can optionally display an image next to the text by setting the `Image` property:
+
+```csharp
+button.Image = "coffee.png";
+```
+
+The `Button` instance can be left-aligned on the page by setting its `HorizontalOptions` property:
+
+```csharp
+button.HorizontalOptions = LayoutOptions.Start;
+```
+
+The `Button` can be returned to the center by settings its `HorizontalOptions` property to `LayoutOptions.Center`:
+
+```csharp
+button.HorizontalOptions = LayoutOptions.Center;
+```
+
+In addition, the `VerticalOptions` property can be set to center the `Button` vertically.
+
+
+## Responding to Clicks
+
+When a user presses the `Button`, its appearance changes to provide feedback. When the finger is released, a `Clicked` event fires:
+
+```csharp
+// Number of times the button has been pressed
+var count = 0;
+
+void OnButtonClicked(object sender, EventArgs e)
+{
+  button.Text = string.Format("Clicked {0} times", ++count);
+}
+
+button.Clicked += OnButtonClicked;
+```
+
+This code defines an event handler named `OnButtonClicked`, which updates the `Button.Text` property on each click. Generally, event handlers are given names beginning with the word `On`, followed by an identifier for the view firing the event, followed by the event name.
+
+Alternatively, the `Clicked` event handler can be written using a lambda expression:
+
+```csharp
+var count2 = 0;
+
+var button2 = new Button
+{
+  Text = "Click Me!"
+};
+button2.Clicked += (sender, e) => button2.Text = string.Format("Clicked {0} times", ++count2);
+stackLayout.Children.Add(button2);
+```
+
+## Setting Colors and Border Options
+
+The color of a `Button` can be changed by setting the `TextColor` property:
+
+```csharp
+button.TextColor = Color.Blue;
+```
+
+Another approach is using the static `Color.FromRgb` method:
+
+```csharp
+button.TextColor = Color.FromRgb(128, 64, 32);
+```
+
+The background color can be changed by setting the `BackgroundColor` property:
+
+```csharp
+button.BackgroundColor = Color.Yellow;
+```
+
+In addition, a border color can be set with the `BorderColor` property:
+
+```csharp
+button.BorderColor = Color.Black;
+```
+
+However, the border won't appear until a border width is specified with the `BorderWidth` property:
+
+```csharp
+button.BorderWidth = 2;
+```
+
+The corner radius of the border can be set with the `BorderRadius` property:
+
+```csharp
+button.BorderRadius = 0;
+```
+
+A `BorderRadius` value of 0 will ensure that the border corners are square.
+
+## Setting the Font
+
+A `Button`s font can be changed by setting the `FontFamily` property to a string that specifies a font that is available on the phone:
+
+```csharp
+button.FontFamily = "Times New Roman";
+```
+
+The `FontAttributes` enumeration can be used to change the text displayed by a `Button` to bold and/or italic:
+
+```csharp
+button.FontAttributes = FontAttributes.Italic;
+```
+
+The size of the text being displayed by a `Button` can be changed with the `FontSize` property:
+
+```csharp
+button.FontSize = 30;
+```
+
+## 👍 Try it now!
+
+* Replace the `button` event handler with a lambda expression.
+* Add an image to `button2` by setting its `Image` property.
+* Right align a `Button` by setting its `HorizontalOptions` property to `End`.
+
+## Further Reading
+
+For more information about the `Button` view, see [Button Class](https://developer.xamarin.com/api/type/Xamarin.Forms.Button/).

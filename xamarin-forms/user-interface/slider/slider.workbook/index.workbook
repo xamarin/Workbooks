@@ -1,0 +1,77 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Changing A Color Value with Sliders
+
+The Xamarin.Forms `Slider` view is used to input a range of values.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Initializing Sliders
+
+A `Slider` is initialized with its minimum and maximum values, and its initial value. To use a slider, initialize it with a range of values, starting with the `Minimum`, and an intial `Value`:
+
+```csharp
+var colorLabel = new Label {
+    Text = "Use the sliders to change the text color"
+};
+
+var redSlider = new Slider {
+    Minimum = 0,
+    Maximum = 255,
+    Value = 0
+};
+var greenSlider = new Slider {
+    Minimum = 0,
+    Maximum = 255,
+    Value = 0
+};
+var blueSlider = new Slider {
+    Minimum = 0,
+    Maximum = 255,
+    Value = 0
+};
+
+stackLayout.Children.Add(colorLabel);
+stackLayout.Children.Add(redSlider);
+stackLayout.Children.Add(greenSlider);
+stackLayout.Children.Add(blueSlider);
+```
+
+
+## Getting the Slider Value
+
+The 'Slider' view raises a `ValueChanged` event when the `Value` property is changed by the user. To respond to changes in the slider value, implement and add a handler for this event:
+
+```csharp
+void updateColor(object sender, EventArgs e) {
+    var r = redSlider.Value/255.0;
+    var g = greenSlider.Value/255.0;
+    var b = blueSlider.Value/255.0;
+    colorLabel.TextColor = Color.FromRgb(r, g, b);
+}
+
+redSlider.ValueChanged += updateColor;
+greenSlider.ValueChanged += updateColor;
+blueSlider.ValueChanged += updateColor;
+```
+
+## 👍 Try it now!
+
+* Change the `colorLabel` text value to display the R, G, and B values.

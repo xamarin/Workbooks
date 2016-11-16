@@ -1,0 +1,115 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Entering Multi-Line Text
+
+The Xamarin.Forms `Editor` view is used for multi-line text input.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Setting and Reading Text
+
+An `Editor`, like other text-presenting views, exposes the `Text` property, which is used to set and read the text presented by the `Editor`:
+
+```csharp
+var editor = new Editor {
+    Text = "Click here to see the virtual keyboard",
+    HeightRequest = 150
+};
+stackLayout.Children.Add(editor);
+```
+
+To read text, access the `Text` property:
+
+```csharp
+var text = editor.Text;
+```
+
+## Changing the Virtual Keyboard
+
+A virtual keyboard appears when an `Editor` has focus. The `Editor` defines a `Keyboard` property that allows you to specify the virtual keyboard that's displayed:
+
+```csharp
+editor.Keyboard = Keyboard.Chat;
+```
+
+Click in the `editor` instance and the chat keyboard will appear.
+
+The `Keyboard` property is of type `Keyboard`, which defines the following readonly-only properties:
+
+* `Default`
+
+* `Text`
+
+* `Chat`
+
+* `Url`
+
+* `Email`
+
+* `Telephone`
+
+* `Numeric`
+
+For more information about changing the virtual keyboard, see [Choose a keyboard for an Entry](https://developer.xamarin.com/recipes/cross-platform/xamarin-forms/controls/choose-keyboard-for-entry/).
+
+## Setting Colors
+
+The colors of an `Editor` can be changed by setting the `TextColor` and `BackgroundColor` properties:
+
+```csharp
+editor.TextColor = Color.White;
+editor.BackgroundColor = Color.Blue;
+```
+
+## Interacting with an Editor
+
+An `Editor` exposes `Completed` and `TextChanged` events:
+
+* The `Completed` event is raised when the user has ended input by pressing the return key on the keyboard.
+
+* The `TextChanged` event is raised when the text changes in the `Editor`, and provides the text values before and after the change.
+
+```csharp
+var completedLabel = new Label();
+var oldTextLabel = new Label();
+var newTextLabel = new Label();
+stackLayout.Children.Add(oldTextLabel);
+stackLayout.Children.Add(newTextLabel);
+stackLayout.Children.Add(completedLabel);
+
+editor.Completed += (sender, e) => { completedLabel.Text = "Completed event has fired"; };
+editor.TextChanged += (sender, e) =>
+{
+  oldTextLabel.Text = e.OldTextValue;
+  newTextLabel.Text = e.NewTextValue;
+};
+```
+
+Enter data in the `editor` instance, and watch the `Label` instances update as the value of the `editor.Text` property changes.
+
+## 👍 Try it now!
+
+* Change the `editor` instance to use the `Text` keyboard.
+
+* Change the `editor` instance to use a cyan background, with black text.
+
+## Further Reading
+
+For more information about the `Editor` view, see [Entry](https://developer.xamarin.com/guides/xamarin-forms/user-interface/text/editor/).

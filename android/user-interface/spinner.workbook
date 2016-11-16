@@ -1,0 +1,83 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Using a Spinner in Xamarin.Android
+
+This guide will demonstrate how to use a Spinner in an Android application. The Spinner doesn’t work by itself, the data displayed in a Spinner is displayed by a class that extends `Android.Widget.BaseAdapter`. In this workbook, we won’t create our own class, instead we’ll just use `Android.Widget.ArrayAdapter<String>` class.
+
+Let’s get started by importing the namespaces and initializing a list of string to display in the Spinner. We will also get a reference to the Android Activity used by this workbook:
+
+Start by importing the namespaces that will be required for the rest of this workbook and get a reference to the Activity:
+
+```csharp
+using System;
+using Android.App;
+using Android.Views;
+using Android.Widget;
+
+Activity activity = StartedActivities.First();
+List<String> allTheMonkeys =  new List<String> { "Allen's swamp monkey",
+  "Black capuchin", "Black-headed marmoset", "Black-headed night monkey", "Black-shanked douc", 
+  "Cotton top tamarin",
+  "Drill",
+  "Gee's golden lemur", "Geoffrey's tamarin", "Gelada", "Golden lion Tamarin", "Grivet", 
+  "Japanese macaque", 
+  "Lesula", 
+  "Mandril", 
+  "Yellow baboon"
+};
+```
+
+We will need to create an `ArrayAdapter<String>` and assign it to the Spinner widget. In this example, each row in the Spinner will use a built-in Android layout, the `Android.Resource.Layout.SimpleSpinnerItem`. We can also control the layout used in the Spinner’s drop down list using the `SetDropDownViewResource method`:
+
+```csharp
+ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, Android.Resource.Layout.SimpleSpinnerItem, allTheMonkeys);
+adapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+
+Spinner spinner = new Spinner(activity);
+spinner.Adapter = adapter;
+
+// Set an event handler for when the user makes a selection from the spinner.
+spinner.ItemSelected += (sender, args) => {
+    Spinner s= (Spinner) sender;
+    AdapterView.ItemSelectedEventArgs e = (AdapterView.ItemSelectedEventArgs) args;
+    string message = String.Format("Your favourite monkey is {0}.", allTheMonkeys[e.Position]);
+    Toast.MakeText(activity, message, ToastLength.Short).Show();
+};
+```
+
+In the next snippet, we add the `spinner` to the Activity. Typically, one uses *device-independent pixels (DPs)* for positioning views on an Android layout. However, the `SetPadding` method takes pixels. The `DP2Pixel` method will take a DP value and convert that to pixels appropriate to the device.
+
+```csharp
+int DP2Pixel(int dpValue)
+{
+    float density = activity.Resources.DisplayMetrics.Density;
+    int paddingDP = (int) (dpValue * density);
+    return paddingDP; 
+}
+
+int paddingLeft = DP2Pixel(10);
+int paddingRight = paddingLeft;
+int paddingTop = DP2Pixel(20);
+int paddingBottom = DP2Pixel(9);
+
+spinner.SetPadding(paddingLeft, 0, paddingRight, 0);
+
+LinearLayout rootLayout = new LinearLayout(activity);
+TextView label = new TextView(activity);
+label.Text = "Pick a Monkey:";
+label.SetPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+
+rootLayout.Orientation = Orientation.Vertical;
+rootLayout.AddView(label);
+rootLayout.AddView(spinner);
+
+activity.SetContentView(rootLayout);
+```
+
+## Further Reading
+
+You may want to check out the ListViewand the AutoCompleteTextView workbooks as they are very similar to the Spinner control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the [Xamarin ListView & Adapters guide](https://developer.xamarin.com/guides/android/user_interface/working_with_listviews_and_adapters/).

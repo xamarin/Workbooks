@@ -1,0 +1,80 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+# Text to Speech on iOS
+
+Have you ever wanted to add text to speech capability in an iOS application? Speech synthesis is built into the platform. What’s more, adding speech synthesis only requires a few lines of code.
+
+The class that synthesizes text to speech is the `AVSpeechSynthesizer`.  This class works with an `AVSpeechUtterance`instance that encapsulates the text to synthesize. You simply pass an `AVSpeechUtterance`instance to the synthesizer’s `SpeakUtterance`method and the text is “spoken” by the iOS device.
+
+The following example is all you need to have text to speech:
+
+```csharp
+using AVFoundation;
+
+var synth = new AVSpeechSynthesizer();
+var su0 = new AVSpeechUtterance("Would you like to play a game?");
+synth.SpeakUtterance(su0);
+```
+
+The `AVSpeechUtterance`also includes several properties that allow you to control the audio output of the synthesized text. These include:
+
+* `Rate`– The speed at which the speech plays back. This appears to be device specific!
+
+* `Voice`– An AVSpeechSynthesisVoice instance used to speak the text.
+
+* `Volume`– The volume level of the audio used to speak the text.
+
+* `PitchMultiplier`– A value between 0.5 and 2.0 to control the pitch of the spoken text.
+
+In particular, the default rate is somewhat fast on modern iOS devices. Adjusting the rate to 1/4 the maximum rate, available via the `AVSpeechUtterance.MaximumSpeechRate` property (there’s also an `AVSpeechUtterance.MinimumSpeechRate`) produces a better sounding result.
+
+Here is some code you can play with to explore the available properties:
+
+```csharp
+var su1 = new AVSpeechUtterance("This sentence is being spoken in a customized manner.") {
+    Rate = AVSpeechUtterance.MaximumSpeechRate / 2 ,
+    Voice = AVSpeechSynthesisVoice.FromLanguage ("en-AU"),
+    Volume = 0.5f,
+    PitchMultiplier = 0.7f
+};
+synth.SpeakUtterance(su1);
+```
+
+It’s possible to use voices from locales with non-English default languages. The words are translated, but the sentence is not translated grammatically:
+
+```csharp
+AVSpeechSynthesisVoice.GetSpeechVoices().Skip(7).Take(5).Where( voice => {
+    var su2 = new AVSpeechUtterance("These words will be spoken in the language for the locale, but the sentence is not really translated.");
+    su2.Voice = voice;
+    synth.SpeakUtterance(su2);
+    return true;
+});
+```
+
+To better understand the difference a locale-specific voice makes, compare this *Spanish* phrase spoken in Spanish and English:
+
+```csharp
+var su1 = new AVSpeechUtterance("Buenos días señor") {
+    Rate = AVSpeechUtterance.MaximumSpeechRate / 2 ,
+    Voice = AVSpeechSynthesisVoice.FromLanguage ("es-ES"),
+    Volume = 0.5f,
+    PitchMultiplier = 0.7f
+};
+synth.SpeakUtterance(su1);
+```
+
+```csharp
+var su1 = new AVSpeechUtterance("Buenos días señor") {
+    Rate = AVSpeechUtterance.MaximumSpeechRate / 2 ,
+    Voice = AVSpeechSynthesisVoice.FromLanguage ("en-US"),
+    Volume = 0.5f,
+    PitchMultiplier = 0.7f
+};
+synth.SpeakUtterance(su1);
+```
+
+The way it is spoken really does make a difference!

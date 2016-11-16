@@ -1,0 +1,56 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Binary Choices with Switches
+
+The Xamarin.Forms `Switch` view allows a user to toggle between two states.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Initializing Switches
+
+A `Switch` is initialized with default values. To use a `Switch`, call the parameterless constructor and then set the `IsToggled` state property:
+
+```csharp
+var stateLabel = new Label {
+    Text = "Off"
+};
+
+var simpleSwitch = new Switch();
+simpleSwitch.IsToggled = false;
+
+stackLayout.Children.Add(stateLabel);
+stackLayout.Children.Add(simpleSwitch);
+```
+## Handling `Toggled` Events
+
+After you have set the initial `IsToggled` state, create and assign a handler for the `Toggled` event:
+
+```csharp
+simpleSwitch.Toggled += (o, e) => {
+    if (simpleSwitch.IsToggled == false) {
+       stateLabel.Text = "Off";
+    }
+    else {
+        stateLabel.Text = "On";
+    };
+};
+```
+
+Now the text of `stateLabel` should change when `simpleSwitch` is toggled.

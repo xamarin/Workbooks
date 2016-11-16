@@ -1,0 +1,130 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# UILabel
+
+UILabel is contained within the `UIKit`namespace, so make sure to add this using directive:
+
+```csharp
+using UIKit;
+```
+
+You can create a new label by instantiating it and passing in a frame. The frame is where the control will be placed on the screen:
+
+```csharp
+var firstLabel = new UILabel(new CGRect(100, 100, 300, 100))
+```
+
+Currently, this is just an empty label with a Frame. To add some text, and make it look nice, assign the label’s Text and TextColor properties:
+
+```csharp
+firstLabel.Text = "This is a label";
+firstLabel.TextColor = UIColor.Purple
+```
+
+To add the label to your view, use the following code:
+
+```csharp
+RootViewController.View.AddSubview(firstLabel)
+```
+
+![](label1.png)
+
+In iOS, the User Experience is controlled by instances of `UIViewController`and the User Interface by instances of `UIView`. Every `UIWindow` has a `RootViewController` instance of some `UIViewController` subclass. Xamarin Workbooks exposes a global variable `RootViewController` variable for the application running in the simulator. The \`UILabel\` is a subclass of `UIView`, so the `UIButton` can be added with the `AddSubview(UIView)` method as in the example above.
+
+### 👍Try it now
+
+* Change the values of the Frame, and notice how this affects the size and position of the label
+
+* Change the Text and TextColor of the label.
+
+* What other properties can you change that may be useful?
+
+## Appearance
+
+Many properties can be added to a label to adjust its appearance.
+
+The `ShadowColor`property can be used to add a shadow effect to any label. The `ShadowOffset`can be used to offset the shadow, in points, from the label where the label is at (0,0). Positive numbers will offset the shadow to the right and down respectively. Negative numbers will offset it to the left and up.
+
+The code below creates a new label, aligns it to the left-hand side of the Frame, and creates a shadow effect.
+
+```csharp
+var secondLabel = new UILabel(new CGRect(100,150, 300, 100)){Text = "Another Label"};
+secondLabel.TextAlignment = UITextAlignment.Left;
+secondLabel.ShadowColor = UIColor.Magenta;
+secondLabel.ShadowOffset = new CGSize(2.0, -2.0);
+RootViewController.View.AddSubview(secondLabel)
+```
+
+![](label2.png)
+
+### 👍Try it now
+
+* Adjust the properties above to see how TextAlignment and Shadow’s are used on labels in iOS.
+
+The font and font size can be changed on any label. Refer to the [Enumerate fonts recipe](https://developer.xamarin.com/recipes/ios/standard_controls/fonts/enumerate_fonts/) to view a list of supported fonts on iOS.
+
+In the code below, setting the `AdjustsFontSizeToFitWidth`to `true`constrains the text to the size of the label, regardless of size the font has been set to.
+
+```csharp
+var thirdLabel = new UILabel(new CGRect(100,200, 150, 100)){Text = "Third Label"};
+thirdLabel.Font = UIFont.FromName("Chalkduster", 40f);
+thirdLabel.AdjustsFontSizeToFitWidth = true;
+RootViewController.View.AddSubview(thirdLabel)
+```
+
+![](label3.png)
+
+### 👍Try it now
+
+* What happens if you set `AdjustsFontSizeToFitWidth`to `false`?
+
+## Adjusting the size of a label
+
+The last section introduced the concept of changing the text to fit the label. However, you may need to create a long label, or dynamically adjust the size of the label to fit a large amount of text.
+
+The code below creates a new label, with a static frame, and multiline text:
+
+```csharp
+var longLabel = new UILabel (new CGRect(50,75,250,300)){Text = "There would have been a time for such a word.\nTomorrow, and tomorrow, and tomorrow,\nCreeps in this petty pace from day to day\nTo the last syllable of recorded time,\nAnd all our yesterdays have lighted fools\nThe way to dusty death. Out, out, brief candle!\nLife’s but a walking shadow, a poor player\nThat struts and frets his hour upon the stage\nAnd then is heard no more: it is a tale\nTold by an idiot, full of sound and fury,\nSignifying nothing.", Alpha=0.3f};
+RootViewController.View.AddSubview(longLabel)
+```
+
+This creates a new label, whose text is truncated at the rightmost edge, as illustrated below:
+
+![truncated](longLabel.png "truncated")
+
+The truncation is caused because the default number of lines for a label is 1. The `Line` property can be set to any int value, but setting it to 0 will allow the label to display as many lines as it needs to. SizeToFit can also be called on the label, allowing the view to resize to use the most appropriate amount of space. The code below shows how to do this:
+
+```csharp
+longLabel.Lines = 0;
+longLabel.SizeToFit();
+```
+
+## Responding to Touch Events
+
+In some scenarios, you may wish to respond to user interaction in your app. Implementing this is fairly straightforward. First, create a new UITapGestureRecognizer, which will contain all the actions that you want to call when a tap is recognized.
+
+```csharp
+var eventLabel = new UITapGestureRecognizer(() => {
+    secondLabel.Text = "Here is some updated text";
+    secondLabel.ShadowOffset = new CGSize(-2.0,2.0);
+    longLabel.Text = "Short text";
+    longLabel.Alpha = 1.0f;
+    firstLabel.TextColor = UIColor.Orange;
+});
+```
+
+Then, for the label in which you wish to monitor for user interaction set the `UserInteractionEnabled  `property to `true.` Finally, attach the newly created gesture recognizer to your label by passing it as a parameter:
+
+```csharp
+thirdLabel.UserInteractionEnabled = true;
+thirdLabel.AddGestureRecognizer(eventLabel)
+```
+
+## Further Reading
+
+For more information on using a UILabel, refer to the [API documentation.](https://developer.xamarin.com/api/type/UIKit.UILabel/)

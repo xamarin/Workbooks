@@ -1,0 +1,169 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Using a StackLayout
+
+The Xamarin.Forms `StackLayout` is used to arrange views linearly, either horizontally or vertically. View position and size within the layout is based on a view's `HeightRequest`, `WidthRequest`, `HorizontalOptions`, and `VerticalOptions` property values.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Creating a Vertical StackLayout
+
+A vertical layout is the default layout when creating a `StackLayout`:
+
+```csharp
+var verticalStackLayout = new StackLayout
+{
+  Margin = new Thickness(20),
+  Children =
+  {
+    new Label
+    {
+      Text = "StackLayout Demo",
+      FontAttributes = FontAttributes.Bold,
+      HorizontalOptions = LayoutOptions.Center
+    },
+    new Entry
+    {
+      Placeholder = "Enter text here"
+    },
+    new Button
+    {
+      Text = "This Button does nothing"
+    }
+  }
+};
+page.Content = verticalStackLayout;
+```
+
+This `StackLayout` lays out its child views in a vertical stack. The child views are contained in the `Children` collection of the `StackLayout`.
+
+## Creating a Horizontal StackLayout
+
+A horizontal layout can be achieved by setting the `Orientation` property of a `StackLayout`:
+
+```csharp
+var horizontalStackLayout = new StackLayout
+{
+  Orientation = StackOrientation.Horizontal,
+  Margin = new Thickness(20),
+  Children =
+  {
+    new Label
+    {
+      Text = "Enter name:",
+      Margin = new Thickness(0, 5, 0, 0)
+    },
+    new Entry
+    {
+      Placeholder = "Enter name here",
+      VerticalOptions = LayoutOptions.Start
+    }
+  }
+};
+page.Content = horizontalStackLayout;
+```
+
+This `StackLayout` lays out its child views in a horizontal stack.
+
+## Nesting StackLayout Instances
+
+More complex layouts can be achieved by nesting `StackLayout` instances:
+
+```csharp
+page.Content = null;
+var stackLayout = new StackLayout
+{
+  Margin = new Thickness(0, 20, 0, 0),
+  Children =
+  {
+    new Label
+    {
+      Text = "StackLayout Demo",
+      FontAttributes = FontAttributes.Bold,
+      HorizontalOptions = LayoutOptions.Center
+    },
+    horizontalStackLayout
+  }
+};
+page.Content = stackLayout;
+```
+
+This code nests a horizontal `StackLayout` inside a vertical `StackLayout`.
+
+## Adding Views to an Existing StackLayout
+
+Views can be added to a `StackLayout` after it has been instantiated:
+
+```csharp
+var button = new Button
+{
+  Text = "This Button does nothing"
+};
+stackLayout.Children.Add(button);
+```
+
+This code adds a `Button` instance to the bottom of a vertical `StackLayout`.
+
+## Controlling Spacing
+
+By default, a `StackLayout` will add a 6px margin between views. This can be changed by setting the `Spacing` property:
+
+```csharp
+stackLayout.Spacing = 20;
+horizontalStackLayout.Spacing = 20;
+```
+
+This code results in an increased spacing between views in each `StackLayout`.
+
+## Controlling Positioning and Sizing
+
+Views in a `StackLayout` can be positioned by specifying `HorizontalOptions` and `VerticalOptions` property values. The following `LayoutOptions` values define how views will position themselves relative to the layout:
+
+* `Start` – places the view at the start of the layout.
+
+* `Center` – centers the view within the layout.
+
+* `End` – places the view at the end of the layout (bottom or right-most boundary).
+
+* `Fill` – places the view so that it has no padding.
+
+The size of a view in a `StackLayout` depends on the `HeightRequest`, `WidthRequest`, `HorizontalOptions`, and `VerticalOptions` property values. The following `LayoutOptions` values will result in views taking up as much space as is available from the layout:
+
+* `StartAndExpand` – places the view at the start of the layout, and takes up as much space as the layout will give it.
+
+* `CenterAndExpand` – centers the view within the layout and expands it to take up as much space as the layout will give it.
+
+* `EndAndExpand` – places the view at the end of the layout (bottom or right-most boundary) and expands it to take up as much space as the layout will give it.
+
+* `FillAndExpand` – places the view so that it has no padding and takes up as much space as the layout will give it.
+
+For examples of setting these `LayoutOption` values, see the Setting LayoutOptions workbook.
+
+## 👍 Try it now!
+
+* Create a horizontal `StackLayout` instance that asks the user to enter their forename.
+
+* Create a horizontal `StackLayout` instance that asks the user to enter their surname.
+
+* Create a vertical `StackLayout` instance, and add the two horizontal `StackLayout` instances to it.
+
+## Further Reading
+
+For more information about `StackLayout`, see [StackLayout](https://developer.xamarin.com/guides/xamarin-forms/user-interface/layouts/stack-layout/).

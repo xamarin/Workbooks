@@ -1,0 +1,94 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Displaying Pop-ups
+
+Xamarin.Forms provides two pop-up like user interface elements: an alert and an action sheet. An alert is a modal pop-up to alert the user, or to ask simple question of them. An action sheet is a modal pop-up that' used to guide the user through a task.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Displaying an Alert
+
+An alert is displayed with the `DisplayAlert` method on any `Page`:
+
+```csharp
+await page.DisplayAlert("Alert", "You have been alerted.", "OK");
+```
+
+The alert displays modally and once dismissed you can continue interacting with the application.
+
+---
+
+###### Note
+
+The `DisplayAlert` method is asynchronous, and should be preceded by the `await` keyword.
+
+---
+
+An alert can also be used to capture a user's response by presenting two buttons:
+
+```csharp
+bool answer = await page.DisplayAlert("Question", "Would you like to play a game?", "Yes", "No");
+```
+
+The response to the alert is returned as a `boolean` value.
+
+## Displaying an Action Sheet
+
+An action sheet is displayed with the `DisplayActionSheet` method on any `Page`:
+
+```csharp
+string result = await page.DisplayActionSheet("Send to?", "Cancel", null, "Email", "Twitter", "Facebook");
+```
+
+The response to the action sheet is returned as a `string` value.
+
+---
+
+###### Note
+
+The `DisplayActionSheet` method is asynchronous, and should be preceded by the `await` keyword.
+
+---
+
+The third argument to the `DisplayActionSheet` method is known as the *destruct* button, and can be `null` or given a value:
+
+```csharp
+string result = await page.DisplayActionSheet("Save Photo to?", "Cancel", "Delete", "Photo Roll", "Email");
+```
+
+Notice that the *destruct* button is rendered differently from the other action sheet buttons.
+
+---
+
+###### Note
+
+The fourth argument to the `DisplayActionSheet` method is of type `params string[]`. Therefore, an action sheet can display any number of responses for the user to select from.
+
+---
+
+## 👍 Try it now!
+
+* Create an alert that contains a cancel button.
+
+* Create an action sheet that contains days of the week as responses.
+
+## Further Reading
+
+For more information about displaying pop-ups, see [Displaying Pop-ups](https://developer.xamarin.com/guides/xamarin-forms/user-interface/navigation/pop-ups/).

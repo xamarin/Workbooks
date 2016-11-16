@@ -1,0 +1,559 @@
+---
+uti: com.xamarin.workbook
+platform: iOS
+packages: []
+---
+
+# Building a Xamarin.Forms RPN Calculator (iOS)
+
+This workbook describes how to use the `Grid` layout in Xamarin.Forms as the foundation for a calculator. The `Grid` arranges visual elements in rows and columns, so it is ideal for arranging the calculator buttons and elements on the page. To keep the operational logic reasonably simple, this calculator uses Reverse Polish notation (RPN).
+
+## What is RPN?
+
+Around the year 1924, Polish mathematician Jan Łukasiewicz (1878 – 1956) developed a type of notation for logic and arithmetic operations that did not require the use of parentheses. For example, the expression
+
+5 × (3 \+ 4) – 2
+
+is written in Łukasiewicz’s notaton like this
+
+– × 5 \+ 3 4 2
+
+This statement is evaluated starting from the end of the expression. It’s convenient to use the last-in-first-out storage mechanism known as the *stack*. The numbers (starting from the end of the expression) are pushed on a stack. Every time one of the operators is encountered, the two numbers at the top of the stack are popped, and the operator is applied to them. The result is pushed back on the stack. In this example, 2, 4, and 3 are pushed on the stack, and then the plus sign causes 4 and 3 to be popped from the stack and 7 to be pushed on the stack. Now 5 is pushed on the stack, but the multiplication causes 5 and 7 to be popped from the stack and the product, 35, is pushed on the stack. Now the minus sign causes 35 and 2 to be popped from the stack, and the result is 33.
+
+This is sometimes known as *prefix notation*, but in honor of its inventor — and because his name can be challenging to spell — it’s often called *Polish notation*.
+
+In the digital computer age, it was realized that it makes more sense to evaluate an expression from the beginning (particularly if the expression can grow as it’s being evaluated), and Reverse Polish notation was born. In RPN (also called postfix notation), the above expression is written as:
+
+5 3 4 \+ × 2 –
+
+Now the numbers from left to write are pushed on a stack, and a binary operation causes the top two numbers on the stack to be popped, and the result to be pushed on the stack. Because multiplication is commutative, the statement can also be written as:
+
+3 4 \+ 5 × 2 –
+
+During the 1970s and 1980s, some popular calculators used RPN, most notably those manufactured by Hewlett-Packard. Many people with a mathematical or computer bent remain fans of RPN to this day. The Calculator program included with recent versions of macOS has an RPN mode.
+
+RPN calculators are characterized by the presence of an **Enter** button rather than an **=** button or parentheses buttons. Pressing the **Enter** key indicates that the number being typed by the user is ready to be pushed on the internal stack.
+
+When programming a calculator, basing it on RPN simplifies the operational logic considerably. Very little state information needs to be maintained other than the stack. In a Xamarin.Forms program, you can use a `Stack<double>` object for this purpose.
+
+## The iOS Prerequisites
+
+As usual, a Xamarin.Forms workbook requires the Xamairn.Forms NuGet package. This packages has already been added to this workbook, but for a new Xamarin.Forms workbook, you can add it by invoking the **File** and **Add Package** menu item and searching for **Xamarin.Forms**.
+
+Now use the **#r** command to reference the following Xamarin.Forms assemblies:
+
+```csharp
+#r "Xamarin.Forms.Core"
+#r "Xamarin.Forms.Xaml"
+#r "Xamarin.Forms.Platform"
+#r "Xamarin.Forms.Platform.iOS"
+```
+
+You’ll also want a few standard `using` directives:
+
+```csharp
+using System;
+using System.Collections.Generic; // for Stack<T>
+using Xamarin.Forms;
+using Xamarin.Forms.Platform.iOS;
+```
+
+A Xamarin.Forms application requies a class that derives from `Application` that instantiates a `Page` object in its constructor. This `App` class instantiates a `ContentPage`:
+
+```csharp
+class App : Application
+{
+    public App()
+    {
+        MainPage = new ContentPage();
+    }
+}
+```
+
+The standard iOS startup code makes a call to the static `Forms.Init` method, and then instantiates the `App` class. An iOS `ViewController` is obtained from the created page:
+
+```csharp
+Forms.Init();
+App app = new App();
+ContentPage page = app.MainPage as ContentPage;
+KeyWindow.RootViewController = page.CreateViewController();
+```
+
+With that code, the Xamarin.Forms `ContentPage` is displayed.
+
+## Grid Rows and Columns
+
+The calculator consists of `Button` elements to enter numbers and operations, and `Label` elements to display intermediate and final results. Each of these elements occupies one or more cells of a `Grid`, which divides the area it occupies into rows and columns. You can create the `Grid` and set it to the `Content` property of the `ContentPage` like this:
+
+```csharp
+var mainGrid = new Grid();
+page.Content = mainGrid;
+```
+
+The `Grid` occupies the entire area of the page, but it’s invisible by default so you can’t see it. You might want to temporarily set the background color of the `Grid` by replacing the `Transparent` identifier below with one of the Xamarin.Forms colors (such as `Yellow`):
+
+```csharp
+mainGrid.BackgroundColor = Color.Transparent;
+```
+
+The calculator buttons will look a little better if you give the entire page some padding that provides a little blank space around the perimeter. Also, for iOS, you’ll want to add 20 units padding on the top to avoid overwriting the iOS status bar:
+
+```csharp
+page.Padding = new Thickness(10, 10 + Device.OnPlatform(20, 0, 0), 10, 10);
+```
+
+Alternatively, you can set the `Margin` property of the `mainGrid` object.
+
+Generally you explicitly specify the number of rows and columns in the `Grid` using objects of type `RowDefinition` and `ColumnDefinition`. You add these objects to the `RowDefinitions` and `ColumnDefinitions` collection properties of the `Grid`.
+
+The following code creates twelve `RowDefinition` objects. `RowDefinition` has a `Height` property that you set to a value of type `GridLength`:
+
+```csharp
+// Remove previous RowDefinition objects on re-execution:
+mainGrid.RowDefinitions.Clear();
+
+mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+for (int row = 0; row < 10; row++)
+{
+    mainGrid.RowDefinitions.Add(new RowDefinition 
+    { 
+        Height = new GridLength(1, GridUnitType.Star) 
+    });
+}
+```
+
+The `GridLength.Auto` constant indicates that the height is based on the height of the elements in that row. As you’ll see, those two rows are used for `Label` element. The `GridUnitType.Star` enumeration member indicates that remaining space is allocated proportionally among rows with that height indication. These ten rows are for `Button` elements, and ensures that they all have the same height. Another option is `GridUnitType.Absolute` for a specific height in device-independent units.
+
+The following code gives the `Grid` four columns of equal width:
+
+```csharp
+// Remove previous ColumnDefinition objects on re-execution:
+mainGrid.ColumnDefinitions.Clear();
+
+for (int col = 0; col < 4; col++)
+{
+    mainGrid.ColumnDefinitions.Add(new ColumnDefinition
+    {
+        Width = new GridLength(1, GridUnitType.Star)
+    });
+}
+```
+
+The `Grid` provides space between adjacent cells based on the `RowSpacing` and `ColumnSpacing` properties. These properties have default values of 6 units.
+
+## Entering Numbers
+
+The calculator needs a `Label` to display the number that the user enters. This `Label` is given a light-gray background color to make it stand out. The `HorizontalTextAlignment` setting causes the text to be right-justified within the `Label`:
+
+```csharp
+Label entryLabel = new Label
+{
+    Text = "0",
+    BackgroundColor = new Color(0.85),
+    HorizontalTextAlignment = TextAlignment.End
+};
+mainGrid.Children.Add(entryLabel, 0, 4, 1, 2);
+```
+
+The final statement adds the `Label` to the `Children` collection of the `Grid`. Notice the four numeric arguments to the `Add` statement. These four parameters are named `left`, `right`, `top`, and `bottom`, and specify the cell or cells that the element occupies. Column and row numbering is zero-based. If the element is in one cell, only the `left` and `top` arguments are required. The `right` and `bottom` arguments indicate the column and row beyond the last column or row that the element occupies. The `left` and `right` values of 0 and 4 indicate that the `Label` occupies columns 0, 1, 2, and 3, which is the full width of the `Grid`. The `top` and `bottom` values of 1 and 2 indicate that the `Label` occupies row 1, which is the second row of the `Grid`.
+
+When you execute that code, you’ll see the `Label` displayed in the `Grid`.
+
+The next step is to create some buttons, but first consider that not every button press is invalid. For example, when entering a number, you can’t press the decimal point twice. The following static `Beeper.Error` method is iOS specific and is intended to notify the user of an invalid button press:
+
+```csharp
+static class Beeper
+{
+    static AudioToolbox.SystemSound systemSound =
+        systemSound = new AudioToolbox.SystemSound(1000);
+
+    public static void Error()
+    {
+        systemSound.PlaySystemSound();
+    }
+}
+```
+
+A calculator number pad has ten `Button` elements for the digits 0 through 9, and another `Button` for the decimal point. One approach to creating several similar elements for a `Grid` is to first define an array of `Tuple` objects. The following tuples indicate the text for each `Button` in the number pad, and the row and column numbers. The `span` value is the number of columns the `Button` occupies:
+
+```csharp
+var numButtonInfos = new[]
+{
+    new { text = "7", row = 7, col = 0, span = 1 },
+    new { text = "8", row = 7, col = 1, span = 1 },
+    new { text = "9", row = 7, col = 2, span = 1 },
+    new { text = "4", row = 8, col = 0, span = 1 },
+    new { text = "5", row = 8, col = 1, span = 1 },
+    new { text = "6", row = 8, col = 2, span = 1 },
+    new { text = "1", row = 9, col = 0, span = 1 },
+    new { text = "2", row = 9, col = 1, span = 1 },
+    new { text = "3", row = 9, col = 2, span = 1 },
+    new { text = "0", row = 10, col = 0, span = 2 },
+    new { text = ".", row = 10, col = 2, span = 1 }
+}
+```
+
+Creating the eleven `Button` elements can now be handled in a loop:
+
+```csharp
+foreach (var numButtonInfo in numButtonInfos)
+{
+    var button = new Button
+    {
+        Text = numButtonInfo.text,
+        Margin = new Thickness(5)
+    };
+    button.Clicked += (sender, args) =>
+    {
+        string text = entryLabel.Text == "0" ? "" : entryLabel.Text;
+        text += (sender as Button).Text;
+
+        if (text == ".")
+        {
+            text = "0.";
+        }
+
+        double number;
+        if (Double.TryParse(text, out number))
+        {
+            entryLabel.Text = text;
+        }
+        else
+        {
+            Beeper.Error();
+        }
+    };
+    mainGrid.Children.Add(button, numButtonInfo.col,
+                                  numButtonInfo.col + numButtonInfo.span,
+                                  numButtonInfo.row,
+                                  numButtonInfo.row + 1);
+}
+```
+
+The `Clicked` handler appends the text of the pressed `Button` to the `Text` property of the `entryLabel` object. It uses the `Double.TryParse` method to determine if the new text string is a valid representation of a number. Only a couple special cases need to be handled: You can’t begin by typing a series of zeroes, and if you begin with a decimal point, a zero is automatically prepended.
+
+At this point, you can type numbers into the calculator but there’s no way to backspace, so the numbers keep getting longer.
+
+A Xamarin.Forms `Button` in an iOS program doesn’t have a border by default, so these number keys don’t look much like actual buttons. Setting the `BorderWidth` property can fix that. It can be done in the code above, or a uniform property setting can be applied to visual elements by defining a `Style` object.
+
+The first step is to instantiate a `ResourceDictionary` for the page:
+
+```csharp
+var resourceDictionary = new ResourceDictionary();
+page.Resources = resourceDictionary;
+```
+
+The following `Style` object has a target type of `Button` (specified in its constructor) and includes a `Setter` object that associates the `ButtonWidthProperty` bindable property with a value of 1:
+
+```csharp
+var buttonStyle = new Style(typeof(Button));
+buttonStyle.Setters.Add(new Setter
+{
+    Property = Button.BorderWidthProperty,
+    Value = 1
+});
+```
+
+The following code adds the `Style` object to the `ResourceDictionary` but without specifying a dictionary key.
+
+```csharp
+resourceDictionary.Add(buttonStyle);
+```
+
+If a `Style` is added to the `ResourceDictionary` without a key, a dictionary key is generated automatically and the `Style` becomes an implicit style: It is applied to every `Button` on the page without being explicitly referenced by the `Button`, as you’ll see when you execute the code.
+
+These `Button` elements for the numeric keypad are a little smaller than they would be normally because they were given a `Margin` setting when they were created. This is to help make the number keys stand out a little from the other keys.
+
+## Managing the Stack
+
+An RPN calculator is based around a stack, and fortunately a generic `Stack` class is included in the `System.Collections.Generic` namespace. This code instantiates it:
+
+```csharp
+var stack = new Stack<double>();
+```
+
+The `Stack` class defines two basic methods: `Push` to add an item to the stack, and `Pop` to remove it. The last item pushed on the stack is the first item popped. `Stack` also defines a `Peek` method that allows examining the most recently pushed item without popping it. The only other member of `Stack<T>` that this program uses is `Count` to obtain the number of items in the stack.
+
+When using an RPN calculator, it’s useful to see the a couple items in this stack. The top two items are often referred to as *x* (the number last pushed onto the stack) and *y* (the previous number pushed on the stack). Because displaying these items requires column widths different from the rest of the `Grid`, a new `Grid` is created named `stackGrid` that is nested in the original `Grid`:
+
+```csharp
+var stackGrid = new Grid();
+stackGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto } );
+stackGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto } );
+stackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto } );
+stackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } );
+mainGrid.Children.Add(stackGrid, 0, 4, 0, 1);
+```
+
+This nested `Grid` occupies the top row of `mainGrid`, and fills its full width.
+
+The following code adds four `Label` elements to this nested `Grid` for displaying the top two items in the stack:
+
+```csharp
+var xLabel = new Label { Text = "x = " };
+stackGrid.Children.Add(xLabel, 0, 1);
+
+var xStackNumber = new Label { HorizontalTextAlignment = TextAlignment.End };
+stackGrid.Children.Add(xStackNumber, 1, 1);
+
+var yLabel = new Label { Text = "y = " };
+stackGrid.Children.Add(yLabel, 0, 0);
+
+var yStackNumber = new Label { HorizontalTextAlignment = TextAlignment.End };
+stackGrid.Children.Add(yStackNumber, 1, 0);
+```
+
+Here is a method that updates this display based on the top two items in the `stack` object:
+
+```csharp
+void UpdateStackDisplay()
+{
+    xStackNumber.Text = stack.Count > 0 ? stack.Peek().ToString() : "";
+
+    if (stack.Count > 1)
+    {
+        double hold = stack.Pop();
+        yStackNumber.Text = stack.Peek().ToString();
+        stack.Push(hold);
+    }
+    else
+    {
+        yStackNumber.Text = "";
+    }
+}
+```
+
+So far, the `stack` object has been empty. The following code adds the all-important **Enter** button, which is positioned at the bottom of the main `Grid`:
+
+```csharp
+var enterButton = new Button
+{
+    Text = "Enter"
+};
+enterButton.Clicked += (args, sender) => 
+{ 
+    stack.Push(Double.Parse(entryLabel.Text));
+    entryLabel.Text = "0";
+    UpdateStackDisplay();
+};
+mainGrid.Children.Add(enterButton, 0, 4, 11, 12);
+```
+
+You can now enter a number, and press the **Enter** key. The number disappears from the `entryLabel` and is moved to the **x** slot in the stack. Entering another number causes the number in the **x** slot to move to **y**, and the new number to move to **x**. With subsequent numbers, the process continues, although you can’t see the earlier entries.
+
+## Clearing and Backspacing
+
+The calculator needs a few buttons for some standard calculator housekeeping. Here is the **Clear** button:
+
+```csharp
+var clearAllButton = new Button { Text = "C" };
+clearAllButton.Clicked += (args, sender) =>
+{
+    stack.Clear();
+    entryLabel.Text = "0";
+    UpdateStackDisplay();
+};
+mainGrid.Children.Add(clearAllButton, 0, 6);
+```
+
+This is the **Clear Entry** button that only clears the number from the `entryLabel`:
+
+```csharp
+var clearEntryButton = new Button { Text = "CE" };
+clearEntryButton.Clicked += (args, sender) =>
+{
+    entryLabel.Text = "0";
+};
+mainGrid.Children.Add(clearEntryButton, 1, 6);
+```
+
+The following button is a **Backspace** that progressively removes characters from the tail end of the `entryLabel`:
+
+```csharp
+var backspaceButton = new Button { Text = "\x21E6" };
+backspaceButton.Clicked += (args, sender) =>
+{
+    entryLabel.Text = entryLabel.Text.Substring(0, entryLabel.Text.Length - 1);
+    if (entryLabel.Text.Length == 0)
+    {
+        entryLabel.Text = "0";
+    }
+};
+mainGrid.Children.Add(backspaceButton, 2, 4, 6, 7);
+```
+
+## Binary Operations
+
+All the other buttons perform operations of sorts on the numbers in the stack. These operations can be divided into *unary* operations and *binary* operations. A unary operation pops the top number off the stack, performs an operation on it (such as *log* or *sin*). and pushes the result back on the stack.
+
+The binary operations include addition and multiplication. A binary operation is performed on the top two numbers on the stack, and then pushes the result back on the stack. The one exception to this rule is a binary operation that swaps the top two numbers on the stack, usually symbolized as X**↔Y**. Here’s that button:
+
+```csharp
+var swapButton = new Button { Text = "x\x21D4y"};
+swapButton.Clicked += (args, sender) =>
+{
+    if (stack.Count < 2)
+    {
+        Beeper.Error();
+    }
+    else
+    {
+        double x = stack.Pop();
+        double y = stack.Pop();
+        stack.Push(x);
+        stack.Push(y);
+        UpdateStackDisplay();
+    }
+};
+mainGrid.Children.Add(swapButton, 1, 5);
+```
+
+The other binary operations are similar enough that they can all be handled with logic that differes only by the operaton itself. These binary operations are of type `Func<double, double, double>`, a method that has two `double` parameters and returns a `double` result. The operaton can be stored right in the `Button` object using a class that derives from `Button` with a property of that type:
+
+```csharp
+class BinaryOperationButton : Button
+{
+    public Func<double, double, double> Operation { set; get; }
+}
+```
+
+The five binary operations are division, multiplication, subtraction, addition, and y-to-the-x power.  The following little structure is used for an array that contains the text of each `Button`, its row and column, and the binary operation:
+
+```csharp
+struct BinaryOpInfo
+{
+    public string Text { set; get; }
+    public int Row { set; get; }
+    public int Col { set; get; }
+    public Func<double, double, double> Operation { set; get; }
+}
+
+BinaryOpInfo[] binaryOpInfos = 
+{
+    new BinaryOpInfo { Text = "\x00F7", Row = 7, Col = 3, Operation = (x, y) => x / y },
+    new BinaryOpInfo { Text = "\x00D7", Row = 8, Col = 3, Operation = (x, y) => x * y },
+    new BinaryOpInfo { Text = "\x2013", Row = 9, Col = 3, Operation = (x, y) => x - y },
+    new BinaryOpInfo { Text = "+", Row = 10, Col = 3, Operation = (x, y) => x + y },
+    new BinaryOpInfo { Text = "y\x1D61", Row = 2, Col = 0, Operation = Math.Pow } 
+}
+```
+
+Notice that the operation is defined as a lambda function for the four basic operations, but the y-to-the-x operation is the static `Math.Pow` method.
+
+The following code uses that array to create the five binary operation `Button` objects and add them to the `Grid`.
+
+```csharp
+foreach (BinaryOpInfo binaryOpInfo in binaryOpInfos)
+{
+    var binaryOpButton = new BinaryOperationButton
+    {
+        Text = binaryOpInfo.Text,
+        Operation = binaryOpInfo.Operation,
+        Style = buttonStyle
+    };
+    binaryOpButton.Clicked += (sender, args) =>
+    {
+        if (entryLabel.Text != "0")
+        {
+            stack.Push(Double.Parse(entryLabel.Text));
+            entryLabel.Text = "0";
+        }
+        if (stack.Count < 2)
+        {
+            Beeper.Error();
+        }
+        else
+        {
+            BinaryOperationButton button = sender as BinaryOperationButton;
+            double x = stack.Pop();
+            double y = stack.Pop();
+            stack.Push(button.Operation(y, x));
+            UpdateStackDisplay();
+        }
+    };
+    mainGrid.Children.Add(binaryOpButton, binaryOpInfo.Col, binaryOpInfo.Row);
+}
+```
+
+The first `if` clause in the event handler isn’t strictly required but makes using the calculator a little easier. For example, suppose you type a number, and press **Enter**, and then a second number, and press the addition key. In theory that shouldn’t work because the second number isn’t on the stack. But the code in the first `if` clause pushes the number on the stack for the operation.
+
+## Unary Operations
+
+The unary operations are handled similarly to the binary operations. A unary operation is of type `Func<double, double>`, and this derived class defines a property of that type:
+
+```csharp
+class UnaryOperationButton : Button
+{
+    public Func<double, double> Operation { set; get; }
+}
+```
+
+Once again, a little structure is defined for the unique characteristics of each unary operation `Button`. Most of these can be handled by static methods in the `Math` class:
+
+```csharp
+struct UnaryOpInfo
+{
+    public string Text { set; get; }
+    public int Row { set; get; }
+    public int Col { set; get; }
+    public Func<double, double> Operation { set; get; }
+}
+
+UnaryOpInfo[] unaryOpInfos = 
+{
+    new UnaryOpInfo { Text = "log", Row = 2, Col = 1, Operation = Math.Log10 },
+    new UnaryOpInfo { Text = "ln", Row = 2, Col = 2, Operation = Math.Log },
+    new UnaryOpInfo { Text = "e\x1D61", Row = 2, Col = 3, Operation = Math.Exp },
+    new UnaryOpInfo { Text = "\x221Ax", Row = 3, Col = 0, Operation = Math.Sqrt },
+    new UnaryOpInfo { Text = "sin", Row = 3, Col = 1, Operation = Math.Sin },
+    new UnaryOpInfo { Text = "cos", Row = 3, Col = 2, Operation = Math.Cos },
+    new UnaryOpInfo { Text = "tan", Row = 3, Col = 3, Operation = Math.Tan },
+    new UnaryOpInfo { Text = "1/x", Row = 4, Col = 0, Operation = x => 1 / x },
+    new UnaryOpInfo { Text = "asin", Row = 4, Col = 1, Operation = Math.Asin },
+    new UnaryOpInfo { Text = "acos", Row = 4, Col = 2, Operation = Math.Acos },
+    new UnaryOpInfo { Text = "atan", Row = 4, Col = 3, Operation = Math.Atan },
+    new UnaryOpInfo { Text = "+/\x2013", Row = 5, Col = 0, Operation = x => -x },
+    new UnaryOpInfo { Text = "rad", Row = 5, Col = 2, Operation = d => Math.PI * d / 180 },
+    new UnaryOpInfo { Text = "deg", Row = 5, Col = 3, Operation = r => 180 * r / Math.PI }
+}
+```
+
+The trigonometric functions work with radians, so the final two unary operations in the array convert from degrees to radians, and from radians to degrees. The numeric keypad has no way to type negative numbers, so the **\+/–** key (third from bottom) changes a positive number on the stack to a negative one.
+
+The following code creates all the `Button` elements for the unary operations:
+
+```csharp
+foreach (UnaryOpInfo unaryOpInfo in unaryOpInfos)
+{
+    var unaryOpButton = new UnaryOperationButton
+    {
+        Text = unaryOpInfo.Text,
+        Operation = unaryOpInfo.Operation,
+        Style = buttonStyle
+    };
+    unaryOpButton.Clicked += (sender, args) =>
+    {
+        if (entryLabel.Text != "0")
+        {
+            stack.Push(Double.Parse(entryLabel.Text));
+            entryLabel.Text = "0";
+        }
+        if (stack.Count < 1)
+        {
+            Beeper.Error();
+        }
+        else
+        {
+            UnaryOperationButton button = sender as UnaryOperationButton;
+            double x = stack.Pop();
+            stack.Push(button.Operation(x));
+            UpdateStackDisplay();
+        }
+    };
+    mainGrid.Children.Add(unaryOpButton, unaryOpInfo.Col, unaryOpInfo.Row);
+}
+```
+
+That completes the RPN calculator.

@@ -1,0 +1,8 @@
+{
+  "order":{
+    "Visualizers-console.workbook":"Visualizers for Console",
+    "Visualizers-ios.workbook":"Visualizers for iOS",
+    "Visualizers-mac.workbook":"Visualizers for Mac",
+    "Visualizers-wpf.workbook":"Visualizers for WPF",
+  }
+}

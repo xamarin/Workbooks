@@ -1,0 +1,113 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Saving and Loading Text Files
+
+In Workbooks, Xamarin.Forms file handling can be performed by using the native filesystem APIs.
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+using System.IO;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Adding Platform-Specific FileSystem Access
+
+Each platform has different filesystem capabilities, and a slightly different directory structure. The following code can be used to save and load text files on iOS:
+
+```csharp
+public void SaveText(string filename, string text)
+{
+  var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+  var filePath = Path.Combine(documentsPath, filename);
+  File.WriteAllText(filePath, text);
+}
+
+public string LoadText(string filename)
+{
+  var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+  var filePath = Path.Combine(documentsPath, filename);
+  return File.ReadAllText(filePath);
+}
+```
+
+The `SaveText` and `LoadText` methods use `System.IO` functionality to save and load text:
+
+* The `File.WriteAllText` method creates a new file, writes the contents to the file, and then closes the file. If the target file already exists, it's overwritten.
+* The `File.ReadAllText` method opens a text file, reads all the lines of the file into a string, and then closes the file.
+
+Text is saved to, or loaded from, the folder represented by the `Environment.SpecialFolder.Personal` enumeration constant. This constant identifies the directory that serves as a common repository for documents.
+
+---
+
+###### Note
+
+In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `SaveText` and `LoadText` methods should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see  [Working with Files](https://developer.xamarin.com/guides/xamarin-forms/working-with/files/).
+
+---
+
+## Invoking the Platform-Specific FileSystem Access Methods
+
+The `SaveText` and `LoadText` methods can be invoked from Xamarin.Forms to save and load text files:
+
+```csharp
+var inputEntry = new Entry
+{
+  Placeholder = "Enter text here"
+};
+var outputEntry = new Entry
+{
+  IsEnabled = false
+};
+
+var loadButton = new Button
+{
+  Text = "Load",
+  IsEnabled = false
+};
+loadButton.Clicked += (sender, e) =>
+{
+  outputEntry.Text = LoadText("temp.txt");
+};
+
+var saveButton = new Button
+{
+  Text = "Save"
+};
+saveButton.Clicked += (sender, e) =>
+{
+  SaveText("temp.txt", inputEntry.Text);
+  loadButton.IsEnabled = true;
+};
+
+stackLayout.Children.Add(inputEntry);
+stackLayout.Children.Add(saveButton);
+stackLayout.Children.Add(loadButton);
+stackLayout.Children.Add(outputEntry);
+```
+
+When the `saveButton` is clicked, the platform-specific `SaveText` method is invoked, and when the `loadButton` is clicked, the platform-specific `LoadText` method is invoked.
+
+## 👍 Try it now!
+
+* Change the Xamarin.Forms code to save to, and load from, a text file name `userinput.txt`.
+
+* Specify a `System.Text.Encoding` on the `File.WriteAllText` method call.
+
+* Specify the same `System.Text.Encoding` on the `File.ReadAllText` method call.
+
+
+## Further Reading
+
+For more information about saving and loading text files, see [Working with Files](https://developer.xamarin.com/guides/xamarin-forms/working-with/files/).

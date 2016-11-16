@@ -1,0 +1,80 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+# UISwitch
+
+## Adjusting the Appearance
+
+### Creating a switch
+
+To create a switch, instantiate a new UISwitch and give it a frame. It can then be added as a subview to the view:
+
+```csharp
+var funSwitch = new UISwitch(new CGRect(50, 50, 100, 100));
+RootViewController.View.AddSubview(funSwitch);
+```
+
+Note that a switch control can also be added to an iOS application through the Xamarin Designer for iOS, which can be found in Visual Studio and Xamarin Studio.
+
+### Adjusting properties\
+
+There are only a small number of properties that can be changed when implementing a UISwitch – the On/Off tint color, and the Thumb tint color. These can be adjusted by accessing the properties shown below:
+
+```csharp
+funSwitch.ThumbTintColor = UIColor.Magenta;
+funSwitch.OnTintColor = UIColor.Blue
+```
+
+In iOS 6 and below, an On or Off image can be added via the **[`OnImage/`](https://developer.xamarin.com/api/property/UIKit.UISwitch.OnImage/)[`OffImage`](https://developer.xamarin.com/api/property/UIKit.UISwitch.OffImage/)**properties. However, these images will not render in iOS 7 and above.
+
+The SetState property can be used when creating a new switch to set its state as on or off by default, where True => On and False => Off:
+
+```csharp
+funSwitch.SetState(false,true);
+```
+
+### Setting the Appearance
+
+Like many  UIKit controls, setting any appearance properties on this instance will affect the appearance of all instances of UISwitch. Adjust the Thumb tint color for all new switches with the following code:
+
+```csharp
+UISwitch.Appearance.ThumbTintColor = UIColor.Orange
+```
+
+Try it now:
+
+* Create a new UISwitch to confirm the appearance.
+
+* Change the tint color to show when the switch is OFF
+
+## Responding to events
+
+Create a label to display the state of the switch:
+
+```csharp
+var label = new UILabel(new CGRect(10, 100, 250, 50)){Text = ""};
+RootViewController.View.AddSubview(label);
+```
+
+The `ValueChanged `event can be handled to determine the change in state between the switch being On and Off. The On property returns a boolean, which can then be evaluated to establish the condition of the switch:
+
+```csharp
+funSwitch.ValueChanged += delegate {
+    if (funSwitch.On)
+        label.Text = "Switch is turned On:" + funSwitch.On.ToString();
+    else
+        label.Text = "Switch is turned On:" + funSwitch.On.ToString();
+}
+```
+
+## Further Reading
+
+For more information on using a UISwitch, refer to the following articles:
+
+* [Using a Switch in the iOS Designer](https://developer.xamarin.com/guides/ios/user_interface/controls/part_6_-_other_controls/#Switch)
+
+* [API Documentation](https://developer.xamarin.com/api/type/UIKit.UISwitch/)
+

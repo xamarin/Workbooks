@@ -1,0 +1,13 @@
+The Mandelbrot.png file is from the Wikipedia article:
+
+https://en.wikipedia.org/wiki/Mandelbrot_set
+
+Here is the page that describes this particular image:
+
+https://en.wikipedia.org/wiki/Mandelbrot_set#/media/File:Mandel.png
+
+It is accompanied by the following:
+
+"This work has been released into the public domain by its author, Elphaba at Catalan Wikipedia. This applies worldwide. In some countries this may not be legally possible; if so: Elphaba grants anyone the right to use this work for any purpose, without any conditions, unless such conditions are required by law."
+
+The image used here has been reduced to 50% of its original size.

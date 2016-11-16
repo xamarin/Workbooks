@@ -1,0 +1,82 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+---
+
+# Async 101
+
+A quick explanation of why `async-await` code is easier to read/follow
+than old-style callbacks. Read more at
+[Xamarin's async support overview](https://developer.xamarin.com/guides/cross-platform/advanced/async_support_overview/).
+
+## The Old Way - Callbacks
+
+1. Get all the config out of the way
+
+```csharp
+var webClient = new System.Net.WebClient();
+webClient.Encoding = System.Text.Encoding.UTF8;
+
+var xmlUri = new Uri("http://api.geonames.org/earthquakesXML?north=44.1&south=-9.9&east=-22.4&west=55.2&username=bertt");
+```
+
+1. We have to set up the 'callback' handler which is called
+   when the network operation completes
+
+```csharp
+var response1 = "";
+webClient.DownloadStringCompleted += (s, e) => {
+    response1 = e.Result; // get the downloaded text
+};
+webClient.DownloadStringAsync(xmlUri);
+```
+
+1. *Then* we call the actual method - confusing huh? The code we just wrote
+   above gets executed *after* this completes!
+
+```csharp
+// this will be blank because the completed even won't have fired in most cases
+// type `response1` in the interactive window to confirm that the XML was downloaded
+response1
+```
+
+\(we'll check on the response later)
+
+## The New Way - Async
+
+1. Get all the config out of the way
+
+```csharp
+#r "System.Net.Http"
+```
+
+```csharp
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.IO;
+
+var jsonUri = "http://api.geonames.org/earthquakesJSON?north=44.1&south=-9.9&east=-22.4&west=55.2&username=bertt";
+```
+
+1. The network call code is in a logical place
+
+```csharp
+var response2 = await new HttpClient().GetStringAsync(jsonUri);
+```
+
+1. *Then* we do something with the result - much easier to follow
+   what's happening in the code!
+
+```csharp
+Console.WriteLine(response2.Substring(0,100) + "...");
+```
+
+## Finally...
+
+Check `response1` from the first example again - the completed callback
+has probably been executed by now...
+
+```csharp
+response1
+```

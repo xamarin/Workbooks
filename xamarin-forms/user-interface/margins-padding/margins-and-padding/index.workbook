@@ -1,0 +1,71 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Controlling Layout Behavior with Margins and Padding
+
+The `Margin` and `Padding` properties control layout behavior when an element is rendered in the user interface.
+
+The `Margin` property represents the distance between an element and its adjacent elements, and is used to control the element's rendering position, and the rendering position of its neighbors. `Margin` values can be specified on [layout](https://developer.xamarin.com/guides/xamarin-forms/controls/layouts/) and [view](https://developer.xamarin.com/guides/xamarin-forms/controls/views/) classes.
+
+The `Padding` property represents the distance between an element and its child elements, and is used to separate the control from its own content. `Padding` values can be specified on [layout](https://developer.xamarin.com/guides/xamarin-forms/controls/layouts/) classes.
+
+The following diagram illustrates the two concepts:
+
+![](margins-and-padding.png)
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Specifying a Thickness
+
+The `Margin` and `Padding` properties are both of type `Thickness`. A `Thickness` structure can be created using three constructor overloads:
+
+```csharp
+stackLayout.Padding = new Thickness(0, 20, 0, 0);
+var label1  = new Label {
+  Text = "Xamarin.Forms",
+  Margin = new Thickness(20)
+};
+var label2  = new Label {
+  Text = "Xamarin.iOS",
+  Margin = new Thickness(10, 25)
+};
+var label3  = new Label {
+  Text = "Xamarin.Android",
+  Margin = new Thickness(0, 20, 15, 5)
+};
+stackLayout.Children.Add(label1);
+stackLayout.Children.Add(label2);
+stackLayout.Children.Add(label3);
+```
+
+---
+
+###### ⚠ Warning
+
+`Thickness` values can be negative, which typically clips or overdraws the content.
+
+---
+
+## 👍 Try it now!
+
+* Change the `label` instances to all use the `Thickness` constructor that specifies a single value.
+
+## Further Reading
+
+For more information about the `Margin` and `Padding` properties, see [Margin and Padding](https://developer.xamarin.com/guides/xamarin-forms/user-interface/layouts/margin-and-padding/).

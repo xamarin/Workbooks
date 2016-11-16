@@ -1,0 +1,81 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# 2D Graphics in Xamarin.Android
+
+In this workbook, you will learn the basics of creating a custom View and 2D drawing using Xamarin.Android.
+
+One technique for drawing 2D graphics in Android is to use the Canvas APIs. This is a powerful API that allows for very fine grained control for how 2D graphics are created. The Canvas API uses a\* painter’s model\* for 2D drawing. Settings such as colour, stroke type, are programatically applied. Methods on the Canvas object are called to perform drawing actions, which are applied in successive order on the underlying bitmap. There are two ways to obtain and draw on a `Canvas` object.
+
+One is to create a bitmap and provide as a parameter to the `Canvas` constructor. The other way is to subclass `Android.Views.View`, and override the `OnDraw` method. Android will invoke this method each time the View needs to be draw, and will pass in a `Canvas` object to be draw on.
+
+For this example, let’s consider the case of drawing a progress bar. Part of the bar will be red, and the other part is green.
+
+To beging, let’s declare all the namespaces that are required for this work through and obtain a reference to the Activity that we will be drawing on:
+
+```csharp
+using System;
+using Android.App;
+using Android.Content;
+using Android.Graphics;
+using Android.Graphics.Drawables;
+using Android.Graphics.Drawables.Shapes;
+using Android.OS;
+using Android.Views;
+
+Activity activity=StartedActivities.First();
+```
+
+## Creating a Custom View for Drawing
+
+The code for drawing the progress bar will be contained in a custom class that extends `Android.Views.View`. This code for this is shown in the following class:
+
+```csharp
+public class MyRedGreenBar : Android.Views.View
+{
+    Paint greenPaint;
+    Paint redPaint;
+
+    public MyRedGreenBar(Context context) : base(context)
+    {
+        greenPaint = new Paint { 
+            AntiAlias=true, 
+            Color = Color.Rgb(0x99,0xCC, 0)
+        };
+        greenPaint.SetStyle(Paint.Style.FillAndStroke);
+
+        redPaint = new Paint {
+            AntiAlias = true,
+            Color = Color.Rgb(0xFF, 0x44, 0x44)
+        };
+        redPaint.SetStyle(Paint.Style.FillAndStroke);
+    }
+
+    protected override void OnDraw(Canvas canvas)
+    {
+        base.OnDraw(canvas);
+
+        // First, fill the canvas with the red paint.
+        canvas.DrawPaint(redPaint);
+
+        // Next, draw a green rectangle that covers the left 25% of the canvaa.
+        float middle = canvas.Width * 0.25f;
+        canvas.DrawRect(0,0, middle, Height, greenPaint);
+    }
+}
+```
+
+## Display the View
+
+To display this view, just set it as the content view for the Activity:
+
+```csharp
+activity.SetContentView(new MyRedGreenBar(activity));
+```
+
+## Further Reading
+
+To learn more, you might want to read the [Graphics & Animation Guide](https://developer.xamarin.com/guides/android/application_fundamentals/graphics_and_animation/) in the Xamarin Developer Portal.

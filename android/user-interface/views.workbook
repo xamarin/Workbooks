@@ -1,0 +1,177 @@
+```json
+{"platform":"Android","uti":"com.xamarin.workbook"}
+```
+
+# Android View Property Animation
+
+In this interactive tutorial, you will learn the basics of `View` property animation in Xamarin.Android.
+
+For a more detailed account of the various Android animation APIs, please checkout out [the documentation](https://developer.xamarin.com/guides/android/application_fundamentals/graphics_and_animation/ "Xamarin.Android animation documentation").
+
+## Getting Started
+
+We’ll start by importing several namespaces that we will need.
+
+```csharp
+using Android.Views;
+using Android.Widget;
+using Android.Util;
+using Android.Graphics;
+using Android.Graphics.Drawables;
+using Android.Graphics.Drawables.Shapes;
+```
+
+There is only one `Activity` in a Xamarin Workbook. Grab the first so that we can adjust its content later (for information on `StartedActivities`, type `help` in a workbook code entry).
+
+```csharp
+var rootActivity = StartedActivities.First ();
+```
+
+`DimToPixels` is a handy utility function we’ll use later on.
+
+```csharp
+int DimToPixels (int dip, ComplexUnitType type = ComplexUnitType.Dip) =>
+	(int)TypedValue.ApplyDimension (type, dip, rootActivity.Resources.DisplayMetrics);
+```
+
+## World Clocks
+
+Our first example demonstrates animating a collection of `TextClock` views. We start with a set of timezones.
+
+Feel free to adjust this list however you like.
+
+```csharp
+var timezones = new[] {
+	"UTC", // The World!
+	"US/Pacific", // San Francisco
+	"US/Eastern", // Boston
+	"America/Buenos_Aires",
+	"Europe/Copenhagen",
+	"Europe/London"
+};
+```
+
+Pick a color to use for the clockface.
+
+```csharp
+var clockColor = Color.Rgb (0x73, 0x81, 0x82)
+```
+
+Creating and styling a `TextClock` is fairly straightforward. We make the background a circle using `OvalShape`.
+
+```csharp
+TextClock CreateClockForZone (string zone)
+{
+	var clock = new TextClock (rootActivity) {
+		TimeZone = zone,
+		Gravity = GravityFlags.Center,
+	};
+
+	var background = new ShapeDrawable (new OvalShape ());
+	background.Paint.Color = clockColor;
+	clock.Background = background;
+
+	var padding = DimToPixels (12);
+	clock.SetPadding (padding, padding, padding, padding);
+
+	var size = DimToPixels (90);
+	clock.SetMinimumWidth  (size);
+	clock.SetMinimumHeight (size);
+
+	clock.SetTextSize (ComplexUnitType.Sp, 15);
+	clock.SetTextColor (Color.White);
+
+	return clock;
+}
+```
+
+### Animation
+
+Android provides a `ViewPropertyAnimator` that drives the `View.Animate` method.
+
+Properties that can be animated using this method include:
+
+* `alpha`
+
+* `rotation(X|Y)`
+
+* `scale(X|Y)`
+
+* `translation(X|Y|Z)`
+
+* `x|y|z`
+
+Let's make an extension method that animates the `TextClock` as it is added to the grid.
+
+```csharp
+static void AnimateEntrance (this TextClock clock, int index)
+{
+	// Set the initial values to animate from
+	clock.ScaleX = clock.ScaleY = 0.3f;
+	clock.Alpha = 0;
+
+	// Animate in the new values
+	clock.Animate ()
+		.Alpha (1)
+		.ScaleX (1)
+		.ScaleY (1)
+		.SetStartDelay (index * 100 + 10)
+		.SetDuration (400)
+		.Start ();
+}
+```
+
+So now we can:
+
+1. Create a `TextClock` for each of our time zones.
+
+2. Add it to the grid.
+
+3. Set up the entrance animation.
+
+```csharp
+void AddClocksToGrid (GridLayout grid, IList<string> zones)
+{
+	var index = 1;
+	foreach (var zone in zones) {
+		var clock = CreateClockForZone (zone);
+		grid.AddView (clock);
+
+		clock.AnimateEntrance (index++);
+	}
+}
+```
+
+### Putting it all together
+
+Finally, we set up our content `GridLayout` and add the clocks.
+
+```csharp
+var rootGrid = new GridLayout (rootActivity) {
+	ColumnCount = 3,
+	UseDefaultMargins = true,
+	AlignmentMode = GridAlign.Bounds,
+};
+var padding = DimToPixels (16, ComplexUnitType.Dip);
+rootGrid.SetPadding (padding, padding, padding, padding);
+rootActivity.SetContentView (rootGrid, new ViewGroup.LayoutParams (-1, -1));
+```
+
+```csharp
+AddClocksToGrid (rootGrid, timezones)
+```
+
+### Exercises
+
+You have now seen the basics of how `View` animation works in Android.
+
+Here are some things you can try, to test your understanding:
+
+* Animate the rotation of the clock. Note that the rotation value is in **degrees**.
+
+* Increase the **size of the clock text**. What happens to the clock’s shape? Can you fix it?
+
+* Combine what you’ve learned in previous lessons about the `Touch` event. Can you make the clock **shrink a bit when tapped**?
+
+* Replace the clock with a **layout** that includes the clock and a **timezone label**.
+

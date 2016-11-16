@@ -1,0 +1,155 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Entering Text
+
+The Xamarin.Forms `Entry` view is used for single-line text input, and can also be used as a password field.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Setting and Reading Text
+
+An `Entry`, like other text-presenting views, exposes the `Text` property, which is used to set and read the text presented by the `Entry`:
+
+```csharp
+var entry = new Entry {
+    Text = "Click here to see the virtual keyboard"
+};
+stackLayout.Children.Add(entry);
+```
+
+To read text, access the `Text` property:
+
+```csharp
+var text = entry.Text;
+```
+
+---
+
+###### ⚠ Warning
+
+The width of an `Entry` is defined by settings its `WidthRequest` property. Do not depend on the width of an `Entry` being defined based on the value of its `Text` property.
+
+---
+
+## Changing the Virtual Keyboard
+
+A virtual keyboard appears when an `Entry` has focus. The `Entry` defines a `Keyboard` property that allows you to specify the virtual keyboard that's displayed:
+
+```csharp
+entry.Keyboard = Keyboard.Numeric;
+```
+
+Click in the `entry` instance and the numeric keyboard will appear.
+
+The `Keyboard` property is of type `Keyboard`, which defines the following readonly-only properties:
+
+* `Default`
+
+* `Text`
+
+* `Chat`
+
+* `Url`
+
+* `Email`
+
+* `Telephone`
+
+* `Numeric`
+
+For more information about changing the virtual keyboard, see [Choose a keyboard for an Entry](https://developer.xamarin.com/recipes/cross-platform/xamarin-forms/controls/choose-keyboard-for-entry/).
+
+## Showing Placeholder Text
+
+An `Entry` can show placeholder text when it's not storing user input. Placeholder text is often shown to clarify the content that's appropriate for an `Entry`:
+
+```csharp
+var passwordEntry = new Entry
+{
+  Placeholder = "Enter password"
+};
+stackLayout.Children.Add(passwordEntry);
+```
+
+## Inputting a Password
+
+An `Entry` has an `IsPassword` property. When this property is set to `true`, the contents of the `Text` property will be masked:
+
+```csharp
+passwordEntry.IsPassword = true;
+```
+
+Click in the `passwordEntry` instance and enter some text. You will notice that the text is masked.
+
+## Setting Colors
+
+The colors of an `Entry` can be changed by setting the `TextColor` and `BackgroundColor` properties:
+
+```csharp
+entry.TextColor = Color.White;
+entry.BackgroundColor = Color.Blue;
+```
+
+---
+
+###### Note
+
+Placeholder text color can't be customized and will be the same regardless of the the `TextColor` setting.
+
+---
+
+## Interacting with an Entry
+
+An `Entry` exposes `Completed` and `TextChanged` events:
+
+* The `Completed` event is raised when the user has ended input by pressing the return key on the keyboard.
+
+* The `TextChanged` event is raised when the text changes in the `Entry`, and provides the text values before and after the change.
+
+```csharp
+var eventsEntry = new Entry { Placeholder = "Enter text to observe events firing" };
+var completedLabel = new Label();
+var oldTextLabel = new Label();
+var newTextLabel = new Label();
+
+eventsEntry.Completed += (sender, e) => { completedLabel.Text = "Completed event has fired"; };
+eventsEntry.TextChanged += (sender, e) =>
+{
+  oldTextLabel.Text = e.OldTextValue;
+  newTextLabel.Text = e.NewTextValue;
+};
+
+stackLayout.Children.Add(eventsEntry);
+stackLayout.Children.Add(oldTextLabel);
+stackLayout.Children.Add(newTextLabel);
+stackLayout.Children.Add(completedLabel);
+```
+
+Enter data in the `eventsEntry` instance, and watch the `Label` instances update as the value of the `eventsEntry.Text` property changes.
+
+## 👍 Try it now!
+
+* Change the `entry` instance to use the `Url` keyboard.
+
+* Change the `entry` instance to use a gray background, with black text.
+
+## Further Reading
+
+For more information about the `Entry` view, see [Entry](https://developer.xamarin.com/guides/xamarin-forms/user-interface/text/entry/).

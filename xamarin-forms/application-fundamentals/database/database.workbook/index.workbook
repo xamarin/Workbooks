@@ -1,0 +1,304 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+- id: sqlite-net-pcl
+  version: 1.1.2
+- id: SQLitePCL.bundle_green
+  version: 0.9.3
+- id: SQLitePCL.raw
+  version: 0.9.3
+---
+
+# Accessing a Local Database
+
+Xamarin.Forms applications can read and write data to a local SQLite database by using the `SQLite.Net` NuGet package.
+
+## Initializing the Workbook
+
+To use SQLite.Net in Xamarin Workbooks, you must:
+
+* Add the `sqlite-net-pcl` NuGet package to the Workbook.
+
+* Use the `#r` command to reference the `SQLite-net`, `SQLitePCL.raw`, and `SQLitePCL.batteries` assemblies.
+
+* Add a `using` directive to reference the `SQLite` assembly.
+
+These steps have been performed in this workbook.
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Xamarin.Forms;
+using SQLite;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Creating the Model
+
+This workbook uses the `TodoItem` class to model the data that's stored in the SQLite database:
+
+```csharp
+[Table("todoitem")]
+public class TodoItem
+{
+  [PrimaryKey, AutoIncrement]
+  public int ID { get; set; }
+  public string Name { get; set; }
+  public string Notes { get; set; }
+  public bool Done { get; set; }
+}
+```
+
+The database schema is defined through attributes that are applied to the class and the `ID` property:
+
+* The `Table` attribute identifies which table the `TodoItem` class is mapped to in SQLite.
+* The `PrimaryKey` attribute uniquely identifies each table row.
+* The `AutoIncrement` attribute causes an integer's value to automatically increment when a new row is inserted into the table.
+
+Therefore, the `ID` property is used to uniquely identify each row in the `todoitem` table, and will be automatically incremented each time a row is inserted into the table.
+
+---
+
+###### Note
+
+Insert, update, and delete operations all require a primary key to be defined.
+
+---
+
+## Creating a Database Connection
+
+To perform database operations, a connection to an SQLite database file must be established. This is accomplished with the `GetConnection` method:
+
+```csharp
+public SQLiteConnection GetConnection()
+{
+  var sqliteFilename = "TodoSQLite.db3";
+  string documentsPath =
+    Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+  string libraryPath = Path.Combine(documentsPath, "..", "Library");
+  var path = Path.Combine(libraryPath, sqliteFilename);
+
+  return new SQLiteConnection(path);
+}
+```
+
+This method places the SQLite database file in the **Library** folder within the application's sandbox.
+
+---
+
+###### Note
+
+In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `GetConnection` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Working with a Local Database](https://developer.xamarin.com/guides/xamarin-forms/working-with/databases/).
+
+---
+
+The `GetConnection` method is invoked as follows:
+
+```csharp
+SQLiteConnection database = GetConnection();
+database.CreateTable<TodoItem>();
+```
+
+Once a database connection is established, the `todoitem` table is created with the `CreateTable<T>` method. This method operates on an `SQLiteConnection` object, and specifies the class which maps to the underlying database table.
+
+---
+
+###### Note
+
+* A table is only created once per entity. If the table already exists, `CreateTable<T>` has no effect.
+
+* Existing tables are automatically updated with new columns when `CreateTable<T>` is called based on the current schema and the attributed class. This auto-upgrade will not change the schema in another other way.
+
+---
+
+## Defining Database Operations
+
+Once the table is created, create-read-update-delete (CRUD) operations can be performed on it by writing methods that use the `SQLiteConnection` instance.
+
+The simplest approach for retrieving records from a table is to use the `Table<T>` method on the `SQLiteConnection` instance, with a LINQ extension method such as `ToList` or `FirstOrDefault`. This will execute the query and return the results.
+
+Alternatively, the `Query<T>` method can be used to execute a raw SQL query. The following code shows both approaches:
+
+```csharp
+static object locker = new object();
+
+public IEnumerable<TodoItem> GetItems()
+{
+  lock (locker)
+  {
+    return (from i in database.Table<TodoItem>() select i).ToList();
+  }
+}
+
+public IEnumerable<TodoItem> GetItemsNotDone()
+{
+  lock (locker)
+  {
+    return database.Query<TodoItem>("SELECT * FROM [TodoItem] WHERE [Done] = 0");
+  }
+}
+
+public TodoItem GetItem(int id)
+{
+  lock (locker)
+  {
+    return database.Table<TodoItem>().FirstOrDefault(x => x.ID == id);
+  }
+}
+```
+
+Insert, update, and delete operations are performed with the `Insert`, `Update`, and `Delete` methods on the `SQLiteConnection` instance:
+
+```csharp
+public int SaveItem(TodoItem item)
+{
+  lock (locker)
+  {
+    if (item.ID != 0)
+    {
+      database.Update(item);
+      return item.ID;
+    }
+    else
+      return database.Insert(item);
+  }
+}
+
+public int DeleteItem(int id)
+{
+  lock (locker)
+  {
+    return database.Delete<TodoItem>(id);
+  }
+}
+```
+
+The `Insert`, `Update`, and `Delete` methods all return the number of rows that were affected by the operation.
+
+---
+
+###### ⚠ Warning
+
+Simultaneously running two database operations will most likely crash an application, and may even corrupt the database file. Therefore, a `lock` is used to guard each database operation, which ensures that only one thread uses the database connection at once.
+
+---
+
+## Adding Data to the Database
+
+Once database operation methods have been defined, some sample data can be created and inserted into the database:
+
+```csharp
+var todoItem1 = new TodoItem
+{
+  Name = "Learn Xamarin Development",
+  Notes = "Attend Xamarin University",
+  Done = true
+};
+var todoItem2 = new TodoItem
+{
+  Name = "Develop Cross-Platform Apps",
+  Notes = "Use XAML",
+  Done = false
+};
+var todoItem3 = new TodoItem
+{
+  Name = "Publish Apps",
+  Notes = "All stores",
+  Done = false
+};
+
+SaveItem(todoItem1);
+SaveItem(todoItem2);
+SaveItem(todoItem3);
+```
+
+This code defines three `TodoItem` instances, which are then inserted into the database using the `SaveItem` method.
+
+## Retrieving Data from the Database
+
+A `ListView` can be populated with data from the database by setting its `ItemsSource` property to the data returned by the `GetItems` method:
+
+```csharp
+var listView = new ListView
+{
+  ItemsSource = GetItems(),
+  ItemTemplate = new DataTemplate(() =>
+  {
+    var nameLabel = new Label
+    {
+      VerticalTextAlignment = TextAlignment.Center
+    };
+    nameLabel.SetBinding(Label.TextProperty, "Name");
+
+    var image = new Image
+    {
+      Source = "check.png"
+    };
+    image.SetBinding(Image.IsVisibleProperty, "Done");
+
+    var templateStackLayout = new StackLayout
+    {
+      Orientation = StackOrientation.Horizontal,
+      Margin = new Thickness(20, 0, 0, 0),
+      HorizontalOptions = LayoutOptions.StartAndExpand,
+      Children = { nameLabel, image }
+    };
+
+    return new ViewCell {
+      View = templateStackLayout
+    };
+  })
+};
+
+stackLayout.Children.Add(listView);
+```
+
+The `ListView` uses a `DataTemplate` to create a custom cell that represents each row of data, displaying the values of the `Name` and `Done` properties for each `TodoItem` instance.
+
+Alternatively, the `GetItemsNotDone` method can be invoked to retrieve all the items in the database that are not marked as having been completed:
+
+```csharp
+listView.ItemsSource = GetItemsNotDone();
+```
+
+## Updating and Deleting Data
+
+The `GetItem` method can be invoked to retrieve a single row from the database. The `TodoItem` instance can then have its data modified, and be updated in the database with the `SaveItem` method:
+
+```csharp
+var todoItem = GetItem(2);
+todoItem.Done = true;
+SaveItem(todoItem);
+listView.ItemsSource = GetItems();
+```
+
+This code marks the second row in the database as having been completed, and so a check mark will appear on that row when the code is executed.
+
+In addition, the `DeleteItem` method can be invoked to remove rows from the database:
+
+```csharp
+DeleteItem(1);
+DeleteItem(2);
+DeleteItem(3);
+listView.ItemsSource = GetItems();
+```
+
+## 👍 Try it now!
+
+* Add a `CompletedDate` property to the `TodoItem` model.
+* Rewrite the `GetItemsNotDone` method to use the `Table<T>` method to return the rows where the `Done` column is `false`.
+* Add a `GetCompletedItems` method that returns rows where the `CompletedDate` row value is greater than a specified parameter.
+
+## Further Reading
+
+For more information about displaying a map, see [Working with a Local Database](https://developer.xamarin.com/guides/xamarin-forms/working-with/databases/).

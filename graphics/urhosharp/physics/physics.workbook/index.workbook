@@ -1,0 +1,126 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- WPF
+- MacNet45
+---
+
+## Physics
+
+UrhoSharp is a powerful 3D game engine for Xamarin and .NET developers. It is similar in spirit to Apple’s SceneKit and SpriteKit and includes physics, navigation, networking, and much more...while still being cross-platform.
+
+```csharp
+#r "Urho.dll"
+```
+
+```csharp
+using Urho; using Urho.Actions; using Urho.Shapes; using Urho.Physics;
+```
+
+```csharp
+var app = await SimpleApplication.RunAsync (
+	new ApplicationOptions ("Data") {
+		Width = 700, 
+		Height = 700 });
+app.Input.SetMouseVisible(true, true);
+var rootNode = app.Scene.CreateChild();
+```
+
+We have created a window containing a `SimpleApplication`. Let’s add the Trash Can model (located in Data directory and was created in Blender):
+
+```csharp
+rootNode.RemoveAllChildren();
+var trashcanNode = rootNode.CreateChild();
+var trashcan = trashcanNode.CreateComponent<StaticModel>();
+trashcan.Model = app.ResourceCache.GetModel("bucket.mdl");
+trashcan.SetMaterial(Material.FromColor(
+	new Color(0.4f, 0.6f, 0.2f)));
+trashcanNode.Position = new Vector3(0, -2, 7);
+trashcanNode.SetScale(0.4f);
+```
+
+Apply RigidBody and CollisionShape to handle physics.
+
+```csharp
+trashcanNode.CreateComponent<RigidBody>();
+var shape = trashcanNode.CreateComponent<CollisionShape>();
+shape.SetTriangleMesh(trashcan.Model, 0, Vector3.One, 
+	Vector3.Zero, Quaternion.Identity);
+```
+
+Add an ambient light.
+
+```csharp
+var zone = rootNode.CreateComponent<Zone>();
+zone.AmbientColor = new Color(0.3f, 0.3f, 0.3f);
+```
+
+Apply FXAA3 (Fast approximate anti-aliasing).
+
+```csharp
+app.Viewport.RenderPath.Append(CoreAssets.PostProcess.FXAA3);
+```
+
+Enable camera movements.
+
+```csharp
+app.MoveCamera = true;
+```
+
+Define ThrowBall method
+
+```csharp
+static void ThrowBall(Node container, Vector3 linearVelocity)
+{
+	var ballNode = container.CreateChild();
+	ballNode.SetScale(0.5f);
+	var ball = ballNode.CreateComponent<Sphere>();
+	ball.Color = new Color(Randoms.Next(), Randoms.Next(), Randoms.Next());
+	var rigidBody = ballNode.CreateComponent<RigidBody>();
+	rigidBody.Mass = 1f;
+	rigidBody.RollingFriction = 0.1f;
+	rigidBody.Friction = 0.1f;
+	var ballShape = ballNode.CreateComponent<CollisionShape>();
+	ballShape.SetSphere(1, Vector3.Zero, Quaternion.Identity);
+	rigidBody.SetLinearVelocity(linearVelocity);
+}
+```
+
+Throw a ball in a random direction with a random velocity
+
+```csharp
+ThrowBall(rootNode, linearVelocity: new Vector3(0, 0.3f, 1f) * 8f);
+```
+
+Define a plane with RigidBody and CollisionShape so balls won't fall into abyss
+
+```csharp
+var planeNode = rootNode.CreateChild();
+planeNode.Scale = new Vector3(100, 1, 100);
+var plane = planeNode.CreateComponent<StaticModel>();
+plane.Model = CoreAssets.Models.Plane;
+plane.SetMaterial(Material.FromColor(
+	new Color(0.95f, 0.95f, 0.95f), true));
+planeNode.Position = new Vector3(0, -2, 0);
+var planeRb = planeNode.CreateComponent<RigidBody>();
+planeRb.RollingFriction = 0.2f;
+var planeShape = planeNode.CreateComponent<CollisionShape>();
+planeShape.SetStaticPlane(
+	new Vector3(0, 0, 0), Quaternion.Identity);
+```
+
+```csharp
+ThrowBall(rootNode, linearVelocity: 
+	new Vector3(0, 0.3f, 1f) * 8f);
+```
+
+```csharp
+/*for (int i = 0; i < 10; i++)
+{
+	ThrowBall(rootNode, linearVelocity: new Vector3(
+		Randoms.Next(-0.05f, 0.05f), 
+		Randoms.Next(0.2f, 0.4f), 
+		Randoms.Next(0.8f, 1.2f)) * Randoms.Next(8, 10));
+	await app.RootNode.RunActionsAsync(new DelayTime(0.5f));
+}*/
+```

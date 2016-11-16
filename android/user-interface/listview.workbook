@@ -1,0 +1,80 @@
+---
+uti: com.xamarin.workbook
+platform: Android
+packages: []
+---
+
+# Using a ListView in Xamarin.Android
+
+This guide will demonstrate how to use a ListView in an Android application. Although it is an older UI widget, it is great for quick lists. The ListView doesn’t work by itself, the data displayed in a ListView by a class that extends `Android.Widget.BaseAdapter`. In this workbook, we won’t create our own class, instead we’ll just use `Android.Widget.ArrayAdapter<String>` class.
+
+Let’s get started by importing the namespaces and initializing a list of string to display in the ListView. We will also get a reference to the Android Activity used by this workbook:
+
+```csharp
+using System;
+using Android.App;
+using Android.Views;
+using Android.Widget;
+
+Activity activity = StartedActivities.First();
+List<String> allTheMonkeys =  new List<String> { "Allen's swamp monkey",
+  "Black capuchin", "Black-headed marmoset", "Black-headed night monkey", "Black-shanked douc", 
+  "Cotton top tamarin",
+  "Drill",
+  "Gee's golden lemur", "Geoffrey's tamarin", "Gelada", "Golden lion Tamarin", "Grivet", 
+  "Japanese macaque", 
+  "Lesula", 
+  "Mandril", 
+  "Yellow baboon"
+};
+```
+
+We will need to create an `ArrayAdapter<String>` and assign it to the ListView widget. In this example, each row in the ListView will use a built-in Android layout, the `Android.Resource.Layout.SimpleListItem1`:
+
+```csharp
+ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, Android.Resource.Layout.SimpleListItem1, allTheMonkeys);
+adapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+
+ListView listview = new ListView(activity);
+listview.Adapter = adapter;
+
+// Set an event handler for when the user makes a selection from the spinner.
+listview.ItemClick += (object sender, AdapterView.ItemClickEventArgs e) => {
+    ListView l = (ListView) sender;
+    string message = String.Format("Your favourite monkey is {0}.", allTheMonkeys[e.Position]);
+    Toast.MakeText(activity, message, ToastLength.Short).Show();
+} ;
+```
+
+In the next snippet, we add the `listview` to the Activity, want to add some padding to the views. Typically, one uses *device-independent pixels (DPs)* for positioning views on an Android layout. However, the `SetPadding` method takes pixels. The `DP2Pixel` method will take a DP value and convert that to pixels appropriate to the device.
+
+```csharp
+int DP2Pixel(int dpValue)
+{
+    float density = activity.Resources.DisplayMetrics.Density;
+    int paddingDP = (int) (dpValue * density);
+    return paddingDP; 
+}
+
+int paddingLeft = DP2Pixel(10);
+int paddingRight = paddingLeft;
+int paddingTop = DP2Pixel(20);
+int paddingBottom = DP2Pixel(9);
+
+listview.SetPadding(paddingLeft, 0, paddingRight, 0);
+
+LinearLayout rootLayout = new LinearLayout(activity);
+TextView label = new TextView(activity);
+label.Text = "Pick a Monkey:";
+label.SetPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+
+rootLayout.Orientation = Orientation.Vertical;
+rootLayout.AddView(label);
+rootLayout.AddView(listview);
+
+activity.SetContentView(rootLayout);
+```
+
+## Further Reading
+
+You may want to check out the Spinner and the AutoCompleteTextView workbooks as they are very similar to the ListView control. To display more complex data, such as a POCO, it is better to create a custom Adapter in C#; you can learn more about this by consulting the [Xamarin ListView & Adapters guide](https://developer.xamarin.com/guides/android/user_interface/working_with_listviews_and_adapters/).

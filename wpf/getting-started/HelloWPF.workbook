@@ -1,0 +1,90 @@
+---
+uti: com.xamarin.workbook
+platform: WPF
+packages: []
+---
+
+# Hello, WPF
+
+The Windows Presentation Foundation (WPF) is a powerful programming framework for creating traditional Windows desktop applications. WPF is ideal for industrial-strength Windows apps, and it has been very influential in the design of the Universal Windows Platform (UWP) and Xamarin.Forms.
+
+In this Workbook you’ll learn how to create a standard WPF `Window`and display a short text string using `TextBlock`.
+
+The first step is specifying several `using` directives for the some of the namespaces common in WPF programming:
+
+```csharp
+using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+```
+
+You can then create a `Window` object and set the `Title` property. Calling the `Show` method of the `Window` object causes the window to appear on the desktop:
+
+```csharp
+Window win = new Window();
+win.Title = "My First WPF App";
+win.Show();
+```
+
+You can now create a `TextBlock` object. In WPF, you use `TextBlock` to display short text strings as well as entire paragraphs:
+
+```csharp
+TextBlock txtblk = new TextBlock();
+txtblk.Text = "Hello, WPF!";
+```
+
+However, the text does not appear in the window until you set the `TextBlock` object to the `Content` property of the `Window`:
+
+```csharp
+win.Content = txtblk;
+```
+
+The text appears in the upper-left corner of the window. You can make the text larger by setting the `FontSize` property:
+
+```csharp
+txtblk.FontSize = 100;
+```
+
+You can choose a different font by setting the `FontFamily` property to an object of type `FontFamily`:
+
+```csharp
+txtblk.FontFamily = new FontFamily("Gabriola");
+```
+
+Try different font families such as “Times New Roman” or “Courier New” or “Comic Sans MS”. If the font family doesn’t exist on your installation of Windows, the default font is used instead.
+
+Until now, the text has appeared in the upper-left corner of the window. You can change that location using the `HorizontalAlignment` and `VerticalAlignment` properties that `TextBlock` inherits from the `FrameworkElement` class. You set these properties to members of the `HorizontalAlignment` and `VerticalAlignment` enumerations:
+
+```csharp
+txtblk.HorizontalAlignment = HorizontalAlignment.Center;
+txtblk.VerticalAlignment = VerticalAlignment.Center;
+```
+
+You can set these properties to different enumeration values to position the text in any one of nine locations relative to the window. Try the `Left` and `Right` members of `HorizontalAlignment`, and the `Top` and `Bottom` members of `VerticalAlignment`.
+
+The `HorizontalAlignment` and `VerticalAlignment` properties play a crucial role in WPF layout. Interestingly, the default values of these two properties are `HorizontalAlignment.Stretch` and `VerticalAlignment.Stretch`, which cause the `TextBlock` to fill its container (the `Window`), but the text itself is positioned at the upper-left corner.
+
+You can also set the color of the text. Visual elements in WPF are often colored with various `Brush` objects that you can use to specify gradients or bitmap images. The simplest type of `Brush` is the `SolidColorBrush`, that you use with a `Color` value.
+
+You can create a `Color` value using various static methods of the `Color` structure, or you can specify one of the 141 static properties of the `Colors` class:
+
+```csharp
+txtblk.Foreground = new SolidColorBrush(Colors.Blue);
+```
+
+Or, even more simply, you can specify one of the 141 static properties of the `Brushes` class:
+
+```csharp
+txtblk.Background = Brushes.Yellow;
+```
+
+You’ll see that the background color appears in the space above and below the text. This background is sufficient to encompass text diacritical marks and descenders. It is interesting to go back and set the `HorizontalAlignment` or `VerticalAlignment` property (or both) to the default `Stretch` enumeration value to see the background color fill the window. This confirms that the `TextBlock` really is stretched to fill the interior of the window.
+
+You can also set the background of the `Window` object:
+
+```csharp
+win.Background = Brushes.Yellow;
+```
+
+Setting the background color of the `Window` is much more common than setting the background color of the `TextBlock`.

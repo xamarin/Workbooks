@@ -1,0 +1,133 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Displaying Text
+
+The Xamarin.Forms `Label` view is used for displaying single and multi-line text.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Setting Text
+
+A `Label`, like other text-presenting views, exposes the `Text` property, which is used to set the text presented by the `Label`:
+
+```csharp
+var label = new Label
+{
+  Text = "Hello from Xamarin.Forms"
+};
+stackLayout.Children.Add(label);
+```
+
+The `Label` instance can be horizontally centered on the page by setting its `HorizontalOptions` property:
+
+```csharp
+label.HorizontalOptions = LayoutOptions.Center;
+```
+
+In addition, the `VerticalOptions` property can be set to center the `Label` vertically.
+
+## Setting Colors
+
+The color of a `Label` can be changed by setting the `TextColor` property:
+
+```csharp
+label.TextColor = Color.Blue;
+```
+
+Another approach is using the static `Color.FromRgb` method:
+
+```csharp
+label.TextColor = Color.FromRgb(32, 64, 128);
+```
+
+In addition, a background color can be set with the `BackgroundColor` property:
+
+```csharp
+label.BackgroundColor = Color.Teal;
+```
+
+## Setting the Font
+
+A `Label`s font can be changed by setting the `FontFamily` property to a string that specifies a font that is available on the phone:
+
+```csharp
+label.FontFamily = "Times New Roman";
+```
+
+The `FontAttributes` enumeration can be used to change the text displayed by a `Label` to bold and/or italic:
+
+```csharp
+label.FontAttributes = FontAttributes.Italic;
+```
+
+The size of the text being displayed by a `Label` can be changed with the `FontSize` property:
+
+```csharp
+label.FontSize = 30;
+```
+
+The text should wrap to two lines because of the increased font size.
+
+## Controlling Truncation and Wrapping
+
+Text wrapping behavior is controlled by the `LineBreakMode` property, which can be set to a member of the `LineBreakMode` enumeration:
+
+```csharp
+label.LineBreakMode = LineBreakMode.WordWrap;
+```
+
+The other values of the `LineBreakMode` enumeration are:
+
+* `NoWrap`
+
+* `CharacterWrap`
+
+* `HeadTruncation`
+
+* `TailTruncation`
+
+* `MiddleTruncation`
+
+## Controlling Text Alignment
+
+Generally, a `Label` represents one paragraph of text. By default, the lines of the paragraph are left-justified:
+
+```csharp
+label.Text = "Xamarin.Forms is a cross-platform natively backed UI " +
+             "toolkit abstraction that allows developers to easily " +
+             "create user interfaces that can be shared across iOS, " +
+             "Android, and Windows Phone.";
+```
+
+However, the `HorizontalTextAlignment` property can be set to right justify or center each line:
+
+```csharp
+label.HorizontalTextAlignment = TextAlignment.Center;
+```
+
+## 👍 Try it now!
+
+* Make the text displayed by the `Label` to be bold and italic. This can be achieved with the bitwise OR operator (|).
+* Make the text displayed by the `Label` use `MiddleTruncation` line truncation.
+* Make the `Label` text right justified by setting the `End` member of the `TextAlignment` enumeration.
+
+## Further Reading
+
+For more information about the `Label` view, see [Label](https://developer.xamarin.com/guides/xamarin-forms/user-interface/text/label/).

@@ -1,0 +1,71 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Presenting Multiple Pages with `TabbedPage`
+
+The Xamarin.Forms `TabbedPage` view descends from `MultiPage<T>` and presents a number of pages in a tabbed layout.
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Adding Pages to A `TabbedPage`
+
+A `TabbedPage` can be assigned to the `Application.MainPage` property to make it the view displays. Though `TabbedPage`s can be initialized when that they are created, the one for this workbook has been created, assigned to the application's main page, and stored in a convenience variable, called `page`. The code below creates an `AlphabetBeginning` class that extends from `ContentPage`, and then creates and adds two of them to the `TabbedPage`.
+
+```csharp
+public class AlphabetBeginning : ContentPage
+{
+    public AlphabetBeginning(String title, String[] letters)
+    {
+        Title = title;
+        Content = new StackLayout
+        {
+            Margin = new Thickness(0, 20, 0, 0)
+        };
+
+        foreach (String letter in letters)
+        {
+            ((StackLayout)Content).Children.Add(new Label { Text = letter});
+        }
+    }
+}
+
+page.Children.Add(new AlphabetBeginning("English", new string[] {"A", "Bee"}));
+page.Children.Add(new AlphabetBeginning("Greek", new string[] {"Alpha", "Beta"}));
+```
+
+## Working with the Selected Page
+
+The `TabbedPage` type inherits the `SelectedItem` property, so you can get or set the selected page:
+
+```csharp
+int nextIndex = page.Children.IndexOf(page.SelectedItem as ContentPage);
+nextIndex = (nextIndex +1) % page.Children.Count;
+page.SelectedItem = page.Children[nextIndex];
+```
+
+## 👍 Try it now!
+
+* Create and add a Hebrew AlphabetBeginning, which begins with Alef and Bet, in the code box below.
+
+```csharp
+// TODO: Create a Hebrew alphabet beginning
+// TODO: Add it to the TabbedPage
+```
+
+* Cycle through the pages to verify that the modulo arithmetic from above still works.

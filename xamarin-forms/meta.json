@@ -1,0 +1,8 @@
+{
+  "order":{
+    "getting-started":"Getting Started",
+    "application-fundamentals":"Application Fundamentals",
+    "user-interface":"User Interface",
+    "advanced":"Advanced",
+  }
+}

@@ -1,0 +1,169 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.3.2.127
+---
+
+# Setting LayoutOptions
+
+Every Xamarin.Forms view has `HorizontalOptions` and `VerticalOptions` properties, of type `LayoutOptions`. This structure is used to control alignment and expansion options for a view, relative to its parent, and consists of the following values:
+
+* `Start`
+
+* `Center`
+
+* `End`
+
+* `Fill`
+
+* `StartAndExpand`
+
+* `CenterAndExpand`
+
+* `EndAndExpand`
+
+* `FillAndExpand`
+
+The `Start`, `Center`, `End`, and `Fill` values are used to define the view's alignment within the parent view, and the `StartAndExpand`, `CenterAndExpand`, `EndAndExpand`, and `FillAndExpand` values are used to define whether the view will occupy more space if available.
+
+---
+
+###### Note
+
+The default value of a view's `HorizontalOptions` and `VerticalOptions` properties is `LayoutOptions.Fill`.
+
+---
+
+## Initializing the Workbook
+
+In order to run a Xamarin.Forms workbook, some initialization code must be executed:
+
+```csharp
+// The Xamarin.Forms initialization code isn't important to understanding this workbook
+#load "FormsInit-iOS.csx"
+using Xamarin.Forms;
+```
+
+For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
+
+## Initializing the User Interface
+
+The following code initializes the UI with a series of `Button` instances that will be used to demonstrate alignment and expansion options:
+
+```csharp
+void AddButton(string text, LayoutOptions options)
+{
+  var button = new Button
+  {
+    Text = text,
+    VerticalOptions = options,
+    HeightRequest = 20,
+    BackgroundColor = Color.White
+  };
+  button.Clicked += (sender, e) => { stackLayout.VerticalOptions = options; };
+
+  stackLayout.Children.Add(button);
+  stackLayout.Children.Add(new BoxView
+  {
+    BackgroundColor = Color.Yellow,
+    HeightRequest = 1
+  });
+}
+
+stackLayout.Spacing = 2;
+stackLayout.Padding = 2;
+stackLayout.BackgroundColor = Color.Gray;
+stackLayout.VerticalOptions = LayoutOptions.Start;
+
+AddButton("Start", LayoutOptions.Start);
+AddButton("Center", LayoutOptions.Center);
+AddButton("End", LayoutOptions.End);
+AddButton("Fill", LayoutOptions.Fill);
+AddButton("StartAndExpand", LayoutOptions.StartAndExpand);
+AddButton("CenterAndExpand", LayoutOptions.CenterAndExpand);
+AddButton("EndAndExpand", LayoutOptions.EndAndExpand);
+AddButton("FillAndExpand", LayoutOptions.FillAndExpand);
+```
+
+## Setting Alignment
+
+Alignment controls how a view is positioned within its parent view when the parent view contains unused space (that is, the parent view is larger than the combined size of all of its children).
+
+---
+
+###### Note
+
+When all the space in a parent view is used, the alignment options have no effect.
+
+---
+
+### Start
+
+`LayoutOptions.Start` is used to define a `View` that will appear at the start of its parent. For horizontal alignment, this positions the `View` on the left hand side of the parent `View`, and for vertical alignment, it positions the `View` at the top of the parent `View`.
+
+Clicking the *Start* `Button` vertically aligns `StackLayout` and `Button` instances using `LayoutOptions.Start`. This layout occurs because the `StackLayout` is vertically aligned to the top of the parent `View`. However, setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### Center
+
+`LayoutOptions.Center` is used to define a `View` that will appear centered in its parent. The `View` is horizontally or vertically centered.
+
+Clicking the *Center* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.Center`. This layout occurs because the `StackLayout` is vertically aligned to the center of the parent `View`. However, setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### End
+
+`LayoutOptions.End` is used to define a `View` that will appear at the end of its parent. For horizontal alignment, this positions the `View` on the right hand side of the parent `View`, and for vertical alignment, it positions the `View` at the bottom of the parent `View`.
+
+Clicking the *End* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.End`. This layout occurs because the `StackLayout` is vertically aligned to the bottom of the parent `View`. However, setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### Fill
+
+`LayoutOptions.Fill` is used to define a `View` that will occupy the full size of its parent. For horizontal alignment, this ensures that the `View` will fill the width of the parent `View`, and for vertical alignment, it ensures that the `View` will fill the height of the parent `View`.
+
+Clicking the *Fill* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.Fill`. This layout occurs because the `StackLayout` is vertically aligned to fill the height of the parent `View`. Setting each `Button.VerticalOptions` property to a different `LayoutOptions` value results in different `Button` alignments, because the `StackLayout` is larger than the combined requested size of its children. Therefore, each `Button` uses its vertically specified `LayoutOptions` behavior.
+
+## Expansion
+
+Expansion controls whether a view will occupy more space if available. If a parent view contains unused space (that is, the parent view is larger than the combined size of all of its children), the unused space is given to any child views that use the `AndExpand` suffix.
+
+---
+
+###### Note
+
+When all the space in a parent view is used, the expansion options have no effect.
+
+---
+
+### StartAndExpand
+
+`LayoutOptions.StartAndExpand` is used to define a `View` that will appear at the start of its parent, and that will expand to occupy more space if available.
+
+Clicking the *StartAndExpand* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.StartAndExpand`. This layout occurs because the `StackLayout` is vertically aligned to the top of the parent `View`, but expansion doesn't occur because the parent view isn't larger than its children. Setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### CenterAndExpand
+
+`LayoutOptions.CenterAndExpand` is used to define a `View` that will appear centered in its parent, and that will expand to occupy more space if available.
+
+Clicking the *CenterAndExpand* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.CenterAndExpand`. This layout occurs because the `StackLayout` is vertically aligned to the center of the parent `View`, but expansion doesn't occur because the parent view isn't larger than its children. Setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### EndAndExpand
+
+`LayoutOptions.EndAndExpand` is used to define a `View` that will appear at the end of its parent, and that will expand to occupy more space if available.
+
+Clicking the *EndAndExpand* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.EndAndExpand`. This layout occurs because the `StackLayout` is vertically aligned to the bottom of the parent `View`, but expansion doesn't occur because the parent view isn't larger than its children. Setting each `Button.VerticalOptions` property to a different `LayoutOptions` value has no additional effect because the `StackLayout` does not contain any unused space.
+
+### FillAndExpand
+
+`LayoutOptions.FillAndExpand` is used to define a `View` that will occupy the full size of its parent, and that will expand to occupy more space if available.
+
+Clicking the *FillAndExpand* `Button` vertically aligns the `StackLayout` and `Button` instances using `LayoutOptions.FillAndExpand`. This layout occurs because the `StackLayout` is vertically aligned to fill the height of the parent `View`. Setting each `Button.VerticalOptions` property to a different `LayoutOptions` value results in different `Button` alignments, because the `StackLayout` is larger than the combined requested size of its children. Therefore, additional space is uniformly given to all the `Button` controls with the `AndExpand` suffix, with the alignment of the `Button` within its space being controlled by its `LayoutOptions` value.
+
+## 👍 Try it now!
+
+* Set alignment and expansion options for a simple layout that sets `HorizontalOptions` properties.
+
+## Further Reading
+
+For more information about the `LayoutOptions` structure see [LayoutOptions](https://developer.xamarin.com/guides/xamarin-forms/user-interface/layouts/layout-options/).
