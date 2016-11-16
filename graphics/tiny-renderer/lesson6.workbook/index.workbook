@@ -521,7 +521,7 @@ class SpecularShader : IShader
     }
 }
 
-var headSpecularMap = Image.Load ("./obj/african_head_spec.tga");
+var headSpecularMap = Image.Load ("obj/african_head_spec.tga");
 var shader = new SpecularShader (headModel, viewPort, projection, modelView, light_dir, headTexture, headNormalMap, headSpecularMap);
 
 var image = Render (headModel, shader).Image;
