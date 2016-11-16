@@ -1,0 +1,412 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+using static Geometry;
+```
+
+# Lesson 2: Triangle rasterization and back face culling
+
+# Old-school method: Line sweeping
+
+Thus, the task is to draw two-dimensional triangles. For motivated students it normally takes a couple of hours, even if they are bad programmers. Last time we saw Bresenham’s line drawing algorithm. Today’s task is to draw a filled triangle. Funny enough, but this task is not trivial. I don’t know why, but I know that it’s true. Most of my students struggle with this simple task. So, the initial stub will look like this:
+
+```csharp
+void Line (Image image, Vec2i p1, Vec2i p2, Color color)
+{
+    Line(image, p1.x, p1.y, p2.x, p2.y, color);
+}
+
+void Line (Image image, Vec3f p1, Vec3f p2, Color color)
+{
+    Line(image, (int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, color);
+}
+
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    Line(image, t[0], t[1], color);
+    Line(image, t[1], t[2], color);
+    Line(image, t[2], t[0], color);
+}
+
+Vec2i[] t0 = {
+    new Vec2i { x = 10, y = 70 },
+    new Vec2i { x = 50, y = 160 },
+    new Vec2i { x = 70, y = 80 }
+};
+Vec2i[] t1 = {
+    new Vec2i { x = 180, y = 50 },
+    new Vec2i { x = 150, y = 1 },
+    new Vec2i { x = 70, y = 180 }
+};
+Vec2i[] t2 = {
+    new Vec2i { x = 180, y = 150 },
+    new Vec2i { x = 120, y = 160 },
+    new Vec2i { x = 130, y = 180 }
+};
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+image.VerticalFlip ();
+image
+```
+
+The code is simple: I provide three triangles for the initial debugging of your code. If we invoke `Line` inside the triangle function, we’ll get the contour of the triangle. How to draw a filled triangle?
+
+A good method of drawing a triangle must have the following features:
+
+* It should be (surprise!) simple and fast.
+
+
+* It should be symmetrical: the picture should not depend on the order of vertices passed to the drawing function.
+
+
+* If two triangles have two common vertices, there should be no holes between them because of rasterization rounding.
+
+We could add more requirements, but let’s do with these ones. Traditionally a line sweeping is used:
+
+1. Sort vertices of the triangle by their y-coordinates
+
+2. Rasterize simultaneously the left and the right sides of the triangle
+
+3. Draw a horizontal line segment between the left and the right boundary points
+
+At this point my students start to lose the firm ground: which segment is the left one, which one is right? Besides, there are three segments in a triangle... Usually, after this introduction I leave my students for about an hour: once again, reading my code is much less valuable than comparing your own code with mine.
+
+`[One hour passes]`
+
+How do I draw a triangle? Once again, if you have a better method, I’d be glad to adopt it. Let us assume that we have three points of the triangle: `t0`, `t1`, `t2`, they are sorted in ascending order by the y-coordinate. Then, the boundary A is between `t0` and `t2`, boundary B is between `t0` and `t1`, and then between `t1` and `t2`.
+
+```csharp
+void OrderByY (Vec2i[] t)
+{
+    if(t[0].y > t[1].y) Swap(t, 0, 1);
+    if(t[1].y > t[2].y) Swap(t, 1, 2);
+    if(t[0].y > t[1].y) Swap(t, 0, 1);   
+}
+
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    OrderByY(t);
+    Line(image, t[0], t[1], Color.Green);
+    Line(image, t[1], t[2], Color.Green);
+    Line(image, t[2], t[0], Color.Red);    
+}
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+// Here boundary A is red, and boundary B is green.
+image.VerticalFlip ();
+image
+```
+
+Unfortunately, boundary B is made of two parts. Let us draw the bottom half of the triangle by cutting it horizontally:
+
+```csharp
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    OrderByY(t);
+    float height_10 = t[1].y - t[0].y;
+    float height_20 = t[2].y - t[0].y;
+    for(int y=t[0].y; y<=t[1].y; y++) {
+        var alpha = (y-t[0].y) / height_20;
+        var beta = (y-t[0].y) / height_10; // be careful with divisions by zero
+        Vec2i A = new Vec2i { x = t[0].x + (int)((t[2].x-t[0].x)*alpha), y = y};
+        Vec2i B = new Vec2i { x = t[0].x + (int)((t[1].x-t[0].x)*beta), y = y};
+        image[A.x, y] = Color.Red; 
+        image[B.x, y] = Color.Green; 
+    }
+}
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+image.VerticalFlip ();
+image
+```
+
+Note that the segments are not continuous. Last time when we drew straight lines we struggled to get continuous segments and here I did not bother with rotating the image (remember the xy swapping?). Why? We fill the triangles aftewards, that’s why. If we connect the corresponding pairs of points by horizontal lines, the gaps disappear:
+
+```csharp
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    OrderByY(t);
+    float height_10 = t[1].y - t[0].y;
+    float height_20 = t[2].y - t[0].y;
+    for(int y=t[0].y; y<=t[1].y; y++) {
+        var alpha = (y-t[0].y) / height_20;
+        var beta = (y-t[0].y) / height_10; // be careful with divisions by zero
+        Vec2i A = new Vec2i { x = t[0].x + (int)((t[2].x-t[0].x)*alpha), y = y};
+        Vec2i B = new Vec2i { x = t[0].x + (int)((t[1].x-t[0].x)*beta), y = y};
+        Line(image, A, B, Color.White);
+        image[B.x, y] = Color.Green; 
+        image[A.x, y] = Color.Red; 
+    }
+}
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+image.VerticalFlip ();
+image
+```
+
+Now, let us draw the second (upper) half of the triangle. We can do this by adding a second loop:
+
+```csharp
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    OrderByY(t);
+    
+    float height_10 = t[1].y - t[0].y;
+    float height_20 = t[2].y - t[0].y;
+    for(int y=t[0].y; y<=t[1].y; y++) {
+        var alpha = (y-t[0].y) / height_20;
+        var beta = (y-t[0].y) / height_10; // be careful with divisions by zero
+        Vec2i A = new Vec2i { x = t[0].x + (int)((t[2].x-t[0].x)*alpha), y = y};
+        Vec2i B = new Vec2i { x = t[0].x + (int)((t[1].x-t[0].x)*beta), y = y};
+        if(A.x > B.x) Swap(ref A, ref B);
+        for (int j=A.x; j<=B.x; j++)
+            image[j, y] = color;
+    }
+    
+    float height_21 = t[2].y - t[1].y;
+    for(int y=t[1].y; y<=t[2].y; y++) {
+        var alpha = (y-t[0].y) / height_20;
+        var beta = (y-t[1].y) / height_21; // be careful with divisions by zero
+        Vec2i A = new Vec2i { x = t[0].x + (int)((t[2].x-t[0].x)*alpha), y = y};
+        Vec2i B = new Vec2i { x = t[1].x + (int)((t[2].x-t[1].x)*beta), y = y};
+        if(A.x > B.x) Swap(ref A, ref B);
+        for (int j=A.x; j<=B.x; j++)
+            image[j, y] = color;
+    }
+}
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+image.VerticalFlip ();
+image
+```
+
+This could be enough, but I dislike to see the same code twice. That is why we will make it a bit less readable, but more handy for modifications/maintaining:
+
+```csharp
+void Triangle (Image image, Vec2i[] t, Color color)
+{
+    // I dont care about degenerate triangles
+    if(t[0].y == t[1].y && t[1].y == t[2].y)
+        return;
+
+    OrderByY(t);
+
+    float height_10 = t[1].y - t[0].y;
+    float total_height = t[2].y - t[0].y;
+    for(int i=0; i<total_height; i++) {
+        bool second_half = i > t[1].y - t[0].y || t[1].y == t[0].y;
+        float segment_height = second_half ? t[2].y-t[1].y : t[1].y-t[0].y;
+        var alpha = i / total_height;
+        // be careful with divisions by zero
+        var beta = (i - (second_half ? t[1].y-t[0].y : 0)) / segment_height;
+        Vec2i A = new Vec2i {
+            x = t[0].x + (int)((t[2].x-t[0].x)*alpha),
+            y = t[0].y + i
+        };
+        Vec2i B = new Vec2i {
+            x = second_half ? t[1].x + (int)((t[2].x-t[1].x)*beta) : t[0].x + (int)((t[1].x-t[0].x)*beta),
+            y = t[0].y + i
+        };
+        if(A.x > B.x) Swap(ref A, ref B);
+        for (int j=A.x; j<=B.x; j++)
+            image[j, t[0].y + i] = color;
+    }
+}
+
+var image = new Image (200, 200, Format.BGR);
+Triangle (image, t0, Color.Red);
+Triangle (image, t1, Color.White);
+Triangle (image, t2, Color.Green);
+
+image.VerticalFlip ();
+image
+```
+
+# The method I adopt for my code
+
+While not being really complicated, the source code for the line sweeping is a bit messy. Moreover, it is really an old-school approach designed for mono-thread CPU programming. Let us take a look at the following pseudo-code:
+
+```csharp
+// triangle(Vec2i[] points) { 
+//     Vec2i bbox[2] = find_bounding_box(points); 
+//     for (each pixel in the bounding box) { 
+//         if (inside(points, pixel)) { 
+//             put_pixel(pixel); 
+//         } 
+//     } 
+// }
+```
+
+Do you like it? I do. It is really easy to find a bounding box. It is certainly no problem to check whether a point belongs a 2D triangle (or any convex polygon).
+
+*Off Topic: if I have to implement some code to check whether a point belongs to a polygon, and this program will run on a plane, I will never get on this plane. Turns out, it is a surprisingly difficult task to solve this problem reliably. But here we just painting pixels. I am okay with that.*
+
+There is another thing I like about this pseudocode: a neophyte in programming accepts it with enthusiasm, more experienced programmers often chuckle: “*What an idiot wrote it?*”. And an expert in computer graphics programming will shrug his shoulders and say: “*Well, that’s how it works in real life*”. Massively parallel computations in thousands of threads (i’m talking about regular consumer computers here) change the way of thinking.
+
+Okay, let us start: first of all we need to know what the [barycentric coordinates](https://en.wikipedia.org/wiki/Barycentric_coordinate_system) are. Given a 2D triangle ABC and a point P, all in old good Cartesian coordinates `(xy)`. Our goal is to find barycentric coordinates of the point P with respect to the triangle ABC. It means that we look for three numbers `(1 − u − v,u,v)` such that we can find the point P as follows:
+
+![ ](./img/lesson2_f1.png)
+
+While being a bit frightening at the first glance, it is really simple: imagine that we put three weights `(1−u−v,u,v)` at the vertices A, B and C, respectively. Then the barycenter of the system is exactly in the point P. We can say the same thing with other words: the point P has coordinates `(u,v)` in the (oblique) basis (A,![](./img/lesson2_ab.png),![](./img/lesson2_ac.png)):
+
+![ ](./img/lesson2_f2.png)
+
+So, we have vectors ![](./img/lesson2_ab.png)￼, ![](./img/lesson2_ac.png)￼ and ![￼](./img/lesson2_ap.png), we need to find two real numbers u and v respecting the following constraint:
+
+![ ](./img/lesson2_f3.png)
+
+It is a simple vector equation, or a linear system of two equations with two variables:
+
+![ ](./img/lesson2_f4.png)
+
+I am lazy and do not want to solve linear systems in a scholar way. Let us write it in matrix form:
+
+![ ](./img/lesson2_f5.png)
+
+It means that we are looking for a vector `(u,v,1)` that is orthogonal to `(￼ABx,AC￼x,￼PAx)` and `(￼ABy,AC￼y,PA￼y)` *at the same time*! I hope you see [where I am heading](https://en.wikipedia.org/wiki/Cross_product). That is a small hint: to find an intersection of two straight lines in a plane (that is exactly what we did here), it is sufficient to compute one cross product. By the way, test yourself: how do we find an equation of a line passing through two given points?
+
+So, let us program our new rasterization routine: we iterate through all pixels of a bounding box for a given triangle. For each pixel we compute its barycentric coordinates. If it has at least one negative component, then the pixel is outside of the triangle. Probably it is more clear to see the program directly:
+
+```csharp
+Vec3f Barycentric (Vec3f a, Vec3f b, Vec3f c, Vec2i p)
+{
+    var pixel = new Vec3f { x = p.x + 0.5f, y = p.y + 0.5f };
+
+    var ab = b - a;
+    var ac = c - a;
+    var pa = a - pixel;
+
+    var r = Cross (new Vec3f { x = ab.x, y = ac.x, z = pa.x },
+                   new Vec3f { x = ab.y, y = ac.y, z = pa.y });
+
+    // triangle is degenerate, in this case return smth with negative coordinates 
+    if (Math.Abs (r.z) < 1)
+        return new Vec3f { x = -1, y = 1, z = 1 };
+
+    return new Vec3f { x = 1 - r.x / r.z - r.y / r.z, y = r.x / r.z, z = r.y / r.z };
+}
+
+void Triangle (Image image, Vec3f [] coordinates, Color color)
+{
+    var t0 = coordinates [0];
+    var t1 = coordinates [1];
+    var t2 = coordinates [2];
+
+    var pMax = new Vec2i {
+        x = (int)Math.Max (0, Math.Max (t0.x, Math.Max (t1.x, t2.x))),
+        y = (int)Math.Max (0, Math.Max (t0.y, Math.Max (t1.y, t2.y)))
+    };
+    var pMin = new Vec2i {
+        x = (int)Math.Min (image.Width, Math.Min (t0.x, Math.Min (t1.x, t2.x))),
+        y = (int)Math.Min (image.Height, Math.Min (t0.y, Math.Min (t1.y, t2.y)))
+    };
+
+    Vec2i p;
+    for (p.x = pMin.x; p.x <= pMax.x; p.x++) {
+        for (p.y = pMin.y; p.y <= pMax.y; p.y++) {
+            var bc = Barycentric (t0, t1, t2, p);
+            if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+                continue;
+            image [p.x, p.y] = color;
+        }
+    }
+}
+```
+
+# Flat shading render
+
+We already know how to draw a model with empty triangles. Let us fill them with a random color. This will help us to see how well we have encoded filling of triangles. Here is the code:
+
+```csharp
+var image = new Image(width, height, Format.BGR);
+
+// Map world coordinates [-1..-1] to screen coordinates [0..width]
+Func<Vec3f, Vec3f> map = v => new Vec3f {
+    x = (int)((v.x+1)*image.Width/2),
+    y = (int)((v.y+1)*image.Height/2)
+};
+
+var rnd = new Random();
+Func<byte> rndByte = () => (byte)rnd.Next(255);
+Func<Color> rndColor = () => new Color(rndByte(), rndByte(), rndByte()); 
+
+var coordinates = new Vec3f[3];
+foreach(var face in headModel.Faces) {
+    for(int i=0; i<3; i++) {
+        var vIndex = face.Vertices[i];
+        var v = headModel.Vertices[vIndex];
+        coordinates[i] = map(v);
+    }    
+    Triangle(image, coordinates, rndColor());
+}
+
+image.VerticalFlip ();
+image
+```
+
+Let us get rid of these clown-colors and put some lighting. Captain Obvious: ”*At the same light intensity, the polygon is illuminated most brightly when it is orthogonal to the light direction.*”
+
+Let us compare:
+
+![ ](./img/lesson2_light1.jpeg)
+
+![](./img/lesson2_light2.jpeg)
+
+We get zero illumination if the polygon is parallel to the vector of light. To paraphrase: the intensity of illumination is equal to the scalar product of the light vector and the normal to the given triangle. The normal to the triangle can be calculated simply as the [cross product](https://en.wikipedia.org/wiki/Cross_product) of its two sides.
+
+As a side note, at this course we will perform linear computations on the colors. However `(128,128,128)` color is not half as bright as `(255, 255, 255)`. We are going to ignore gamma correction and tolerate the incorrectness of the brightness of our colors.
+
+```csharp
+var image = new Image (width, height, Format.BGR);
+var light_dir = new Vec3f { x = 0, y = 0, z = -1 };
+
+var world = new Vec3f [3];
+var screen = new Vec3f [3];
+foreach (var face in headModel.Faces) {
+    for (int i = 0; i < 3; i++) {
+        var vIndex = face.Vertices [i];
+        world [i] = headModel.Vertices [vIndex];
+        screen [i] = map (world [i]);
+    }
+
+    var n = Cross (world [2] - world [0], world [1] - world [0]).Normalize ();
+
+    var intensivity = Dot (n, light_dir);
+    if (intensivity > 0)
+        Triangle (image, screen, Color.White * intensivity);
+}
+
+image.VerticalFlip ();
+image
+```
+

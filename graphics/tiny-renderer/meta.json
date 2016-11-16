@@ -1,0 +1,13 @@
+{
+  "order":{
+    "lesson1.workbook":"Lesson 1: Line Drawing Algorithm",
+    "lesson2.workbook":"Lesson 2: Triangle rasterization",
+    "lesson3.workbook":"Lesson 3: Hidden faces removal",
+    "lesson4.workbook":"Lesson 4: Perspective projection",
+    "lesson5.workbook":"Lesson 5: Moving the camera",
+    "lesson6.workbook":"Lesson 6: Shaders for the software renderer",
+    "lesson6bis.workbook":"Lesson 6: tangent space normal mapping",
+    "lesson7.workbook":"Lesson 7: Shadow mapping",
+    "lesson8.workbook":"Lesson 8: Ambient occlusion"
+  }
+}

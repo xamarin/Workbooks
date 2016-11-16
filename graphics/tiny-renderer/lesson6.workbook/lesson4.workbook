@@ -1,0 +1,390 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Matrix.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+#load "lesson2.csx"
+#load "lesson3.csx"
+using static Geometry;
+using static MatrixHelpers;
+```
+
+# **Lesson 4: Perspective projection**
+
+# The goal
+
+In previous lessons we rendered our model in orthographic projection by simply forgetting the z-coordinate. The goal for today is to learn how to draw in perspective:
+
+![  ](./img/lesson4_the_goal.png)
+
+# 2D geometry: Linear transformations
+
+A linear transformation on a plane can be represented by a corresponding matrix. If we take a point `(x,y)` then its transformation can be written as follows:
+
+![  ](./img/lesson4_formula1.svg)
+
+The simplest (not degenerate) transformation is the identity, it does not move any point:
+
+![  ](./img/lesson4_formula_2d_identity.svg)
+
+Diagonal coefficients of the matrix give scaling along coordinate axes. Let us illustrate it, if we take the following transformation:
+
+![  ](./img/lesson4_formula_2d_scale.svg)
+
+Then the white object (the white square with one corner chopped) will be transformed into the yellow one. Red and green line segments give unit length vectors aligned with `x` and `y`, respectively. All the images for this article were generated using this code:
+
+```csharp
+Matrix4 Viewport (int x, int y, int w, int h)
+{
+    var depth = 255f;
+
+    var m = Matrix4.Identity ();
+    m [0, 3] = x + w / 2f;
+    m [1, 3] = y + h / 2f;
+    m [2, 3] = depth / 2f;
+
+    m [0, 0] = w / 2f;
+    m [1, 1] = h / 2f;
+    m [2, 2] = depth / 2f;
+    return m;
+}
+
+Matrix4 Projection (float coeff)
+{
+    var projection = Matrix4.Identity ();
+    projection [3, 2] = coeff;
+    return projection;
+}
+
+Vec4f Embed4D (Vec3f v, float fill = 1)
+{
+    return new Vec4f { x = v.x, y = v.y, z = v.z, h = fill };
+}
+
+Vec3f Project3D (Vec4f v)
+{
+    return new Vec3f { x = v.x, y = v.y, z = v.z };
+}
+
+Func<Vec4f, Vec3f> map = v => Project3D(v/v.h);
+void RenderAxes (Image image)
+{
+    var w = image.Width;
+    var h = image.Height;
+
+    var vp = Viewport(w/4, w/4, w/2, h/2);
+
+    // draw the axes
+    var x = new Vec3f { x = 1 };
+    var y = new Vec3f { y = 1 };
+    var o = new Vec3f ();
+    o = map(Mult(vp, Embed4D(o)));
+    x = map(Mult(vp, Embed4D(x)));
+    y = map(Mult(vp, Embed4D(y)));
+    Line(image, o, x, Color.Red);
+    Line(image, o, y, Color.Green);
+}
+
+var cube = Model.FromFile("obj/cube.obj");
+void RenderCube(Image image, Matrix4 deformation, Color color)
+{
+    var w = image.Width;
+    var h = image.Height;
+
+    var vp = Viewport(w/4, w/4, w/2, h/2);
+    var face = cube.Faces[0];
+    var faceLen = face.Vertices.Length;
+
+    for(int j=0; j<faceLen; j++) {
+        var wp0 = cube.Vertices[face.Vertices [j]];
+        var wp1 = cube.Vertices[face.Vertices [(j+1) % faceLen]];
+
+        var sp0 = map(Mult(vp*deformation, Embed4D(wp0)));
+        var sp1 = map(Mult(vp*deformation, Embed4D(wp1)));
+        Line(image, sp0, sp1, color);
+    }
+}
+
+var image = new Image(300, 300, Format.BGR);
+RenderAxes(image);
+// draw the original model
+RenderCube(image, deformation: Matrix4.Zoom(1f), color: Color.White);
+// draw the deformed model
+RenderCube(image, deformation: Matrix4.Zoom(1.5f), color: Color.Yellow); 
+
+image.VerticalFlip ();
+image
+```
+
+Why do we bother with matrices? Because it is handy. First of all, in matrix form we can express a transformation of the entire object like this:
+
+![  ](img/lesson4_formula_2d_scale32.svg)
+
+In this expression the transformation matrix is the same as in the previous one, but the 2x5 matrix is nothing else but the vertices of our squarish object. We simply took all the vertices in an array, multiplied it by the transformation matrix and obtained the transformed object. Cool, is not it?
+
+Well, the true reason hides here: very, very often we wish to transform our object with many transformations in a row. Imagine that in your source code you write transformation functions like:
+
+```csharp
+// vec2 foo(vec2 p) return vec2(ax+by, cx+dy);
+// vec2 bar(vec2 p) return vec2(ex+fy, gx+hy);
+// [..]
+// for (each p in object) {
+//     p = foo(bar(p));
+// }
+```
+
+This code performs two linear transformations for each vertex of our object, and often we count those vertices in millions. And tens of transformations in a row is not a rare case, resulting in tens millions of operations, really expensive. In matrix form we can pre-multiply all the transformation matrices and to transform our object one time. For an expression with multiplications only we can put parentheses where we want, can we?
+
+Okay, let us continue. We know that diagonal coefficients of the matrix scale our world along the coordinate axes. What other coefficients are responsible for? Let us consider the following transformation:
+
+![  ](./img/lesson4_formula_2d_tr_example1.svg)
+
+Here is its action on our object:
+
+```csharp
+var image = new Image(300, 300, Format.BGR);
+RenderAxes(image);
+// draw the original model
+RenderCube(image, deformation: Matrix4.Identity(), color: Color.White);
+
+var deformation = Matrix4.Identity ();
+deformation[0, 1] = 1/3f;
+RenderCube(image, deformation, Color.Yellow); // draw the deformed model
+
+image.VerticalFlip();
+image
+```
+
+It is a simple shearing along the x-axis. Another anti-diagonal element shears our space along the y-axis. Thus, there are two base linear transformations on a plane: scaling and shearing. Many readers react: wait, what about rotations?!
+
+It turns out that any rotation (around the origin) can be represented as a composite action of three shears, here the white object is transformed to the red one, then to the green one and finally to the blue:
+
+![](./img/lesson4_formula_rotation.png)
+
+But those are intricate details, to keep the things simple, a rotation matrix can be written directly (do you remember the pre-multiplication trick?):
+
+![  ](img/lesson4_formula_rotation.svg)
+
+We can multiply the matrices in any order, but let us remember that the multiplication for matrices is not commutative:
+
+![  ](img/lesson4_formula_noncomutative.svg)
+
+It makes sense: to shear an object and then to rotate it is not the same as to rotate it and then to shear it!
+
+```csharp
+float DegToRad (float degAngle)
+{
+    return degAngle * (float)Math.PI / 180;
+}
+
+var image = new Image(300, 300, Format.BGR);
+RenderAxes(image);
+RenderCube(image, Matrix4.Identity(), color: Color.White);
+
+var angle = DegToRad(30);
+
+var rotation = Matrix4.RotationZ(angle);
+var shear = Matrix4.Identity ();
+shear[0, 1] = 1/3f;
+
+RenderCube(image, deformation: rotation * shear, color: Color.Green);
+RenderCube(image, deformation: shear * rotation, color: Color.Red);
+
+image.VerticalFlip();
+image
+```
+
+# 2D affine transformations
+
+So, any linear transformation on a plane is a composition of scale and shear transformations. And it means that we can do any linear transformation we want, the origin wont ever move! Those possibilities are great, but if we can not perform simple translations, our life will be miserable. Can we? Okay, translations are not linear, no problem, let us try to append translations after performing the linear part:
+
+![  ](./img/lesson4_formula_translation.svg)
+
+This expression is really cool, we can rotate, we can scale, shear and translate. However. Let us recall that we are interested in composing multiple transformation, here is what a composition of two transformations look like (remember, we need to compose dozes of those?):
+
+![  ](./img/lesson4_formula_composition.svg)
+
+It is starting to look ugly even for a single composition, add more and things get even worse.
+
+# Homogeneous coordinates
+
+Okay, now it is the time for the black magic. Imagine that i add one column and one row to our transformation matrix (thus making it 3x3) and append one coordinate always equal to 1 to our vector to be transformed:
+
+![  ](./img/lesson4_formula_3d.svg)
+
+If we multiply this matrix and the vector augmented by 1 we get another vector with 1 in the last component, but the other two components have exactly the shape we would like! Magic.
+
+In fact, the idea is really simple. Parallel translations are not linear in the 2D space. So we embed our 2D into 3D space (by simply adding 1 for the 3rd component). It means that our 2D space is the plane z=1 in the 3D space. Then we perform a linear 3D transformation and project the result onto our 2D physical plane. Parallel translations have not become linear, but the pipeline is simple.
+
+How do we project 3D back onto the 2D plane? Simply by dividing by the 3d component:
+
+![  ](./img/lesson4_formula_project.svg)
+
+## Wait a second, it is forbidden to divide by zero!
+
+Who said this? \[Shoots\] Let us recall the pipeline:
+
+* We embed 2D into 3D by putting it inside the plane z=3
+
+* We do whatever we want in 3d
+
+* For every point we want to project from 3D into 2D we draw a straight line between the origin and the point to project and then we find its intersection with the plane z=1.
+
+In this image our 2D plane is in magenta, the point `(x,y,z)` is projected onto `(x/z, y/z)`:
+
+![  ](./img/lesson4_sketch1.png)
+
+Let us imagine a vertical rail through the point `(x,y,1)`. Where will be projected the point `(x,y,1)`? Doh, onto `(x,y)`:
+
+![  ](./img/lesson4_sketch1.png)
+
+Now let us descend on the rail, for example, the point `(x,y,1/2)` is projected onto `(2x, 2y)`:
+
+![](./img/lesson4_sketch3.png)
+
+Let us continue, point `(x,y,1/4)` becomes `(4x, 4y)`:
+
+![](./img/lesson4_sketch4.png)
+
+If we continue the process, approaching to `z=0`, then the projection goes farther from the origin in the direction `(x,y)`. In other words, point `(x,y,0)` is projected onto an infinitely far point in the direction `(x,y)`. What is it? Right, it is simply a vector!
+
+Homogeneous coordinates allow to distinguish between a vector and a point. If a programmer writes `vec2(x,y)`, is it a vector or a point? Hard to say. In homogeneous coordinates all things with `z=0` are vectors, all the rest are points. Look: `vector + vector = vector`. `vector - vector = vector`. `point + vector = point`. Great, is not it?
+
+## A composite transformation
+
+As i said before, we should be able to accumulate dozens of transformations. Why? Let us imagine we need to rotate an object (2D) around a point `(x0,y0)`. How to do it? Well, we could look up for formulas somewhere, or we can do it by hand, we have all the tools we need!
+
+We know to rotate around the origin, we know how to translate. It is all we need: translate `(x0,y0)` into the origin, rotate, un-translate, done:
+
+![  ](img/lesson4_formula_rotate_xy.svg)
+
+In 3D sequences of actions will be a bit longer, but the idea is the same: we need to know few basic transformations and with their aid we can represent any composed action.
+
+# Wait a minute, may I touch this magical bottom row of the 3x3 matrix?
+
+Sure thing! Let us apply the following transformation to our standard squarish object:
+
+![  ](./img/lesson4_matrix_third_line.svg)
+
+Recall that the original object is in white, unit axis vectors are in red and green:
+
+```csharp
+var image = new Image(500, 500, Format.BGR);
+RenderAxes(image);
+RenderCube(image, Matrix4.Identity(), color: Color.White);
+
+image.VerticalFlip ();
+image
+```
+
+Here is the transformed object:
+
+```csharp
+var image = new Image(500, 500, Format.BGR);
+RenderAxes(image);
+
+var deformation = Matrix4.Identity ();
+deformation[3, 0] = -1/5f;
+RenderCube(image, deformation, color: Color.Red);
+
+image.VerticalFlip ();
+image
+```
+
+And here another kind of magic (white!) happens. Do you remember our y-buffer exercise? Here we will do the same: we project our 2D object onto the vertical line `x=0`. Let us harden the rules a bit: we have to use a central projection, our camera is in the point `(5,0)` and is pointed onto the origin. To find the projection we need to trace straight lines between the camera and the points to be projected (yellow) and to find the intersection with the screen line (white vertical).
+
+![  ](./img/lesson4_sketch5.png)
+
+Now i replace the original object with the transformed one, but i do not touch the yellow lines we drew before:
+
+![  ](./img/lesson4_sketch6.png)
+
+If we project the red object onto the screen using **standard orthogonal projection**, then we find exactly the same points! Let us look closely how the transformation works: all vertical segments are transformed into vertical segments, but those close to the camera are stretched and those far from the camera are shrunk. If we choose the coefficient correctly (in our transformation matrix it is the -1/5 coefficient), we obtain an image in perspective (central) projection!
+
+# Time to work in full 3D
+
+Let us explain the magic. As for 2D affine transformations, for 3D affine transformations we will use homogeneous coordinates: a point `(x,y,z)` is augmented with 1`(x,y,z,1)`, then we transform it in 4D and project back to 3D. For example, if we take the following transformation:
+
+![  ](./img/lesson4_formula_4d_1.svg)
+
+The retro-projection gives us the following 3D coordinages:
+
+![  ](./img/lesson4_formula_central_project.svg)
+
+Let us remember this result, but put it aside for a while. Let us return to the standard definition of the central projection, without any fancy stuff as 4D transformations. Given a point `P=(x,y,z)` we want to project it onto the plane z=0, the camera is on the z-axis in the point `(0,0,c)`:
+
+![](./img/lesson4_sketch7.png)
+
+Triangles ABC and ODC are similar. It means that we can write the following: |AB|/|AC|=|OD|/|OC| => x/(c-z) = x'/c. In other words:
+
+![ ](./img/lesson4_formula_x.svg)
+
+By doing the same reasoning for triangles CPB and CP'D, it is easy to find the following expression:
+
+![](./img/lesson4_formula_y.svg)
+
+It is really similar to the result we put aside few moments ago, but there we got the result by a single matrix multiplication. We got the law for the coefficient: `r = -1/c`
+
+# Let us sum up: the main formula for today
+
+*If you simply copy-paste this formula without understanding the above material, I hate you.*
+
+So, if we want to compute a central projection with a camera **(important!) camera located on the z-axis with distance c from the origin**, then we embed the point into 4D by augmenting it with 1, then we multiply it with the following matrix, and retro-project it into 3D.
+
+![  ](./img/lesson4_formula_last.svg)
+
+We deformed our object in a way, that simply forgetting its z-coordinate we will get a drawing in a perspective. If we want to use the z-buffer, then, naturally, do not forget the z:
+
+```csharp
+var image = new Image(width, height, Format.BGR);
+
+var camera = new Vec3f { z = 3 };
+var projection = Projection(-1/camera.z);
+var viewPort   = Viewport(width/8, height/8, width*3/4, height*3/4);
+
+Func<Vec3f, Vec3f> map = v => {
+    var r4 = Mult (viewPort * projection, Embed4D (v));
+    var r = Project3D (r4 / r4.h);
+    r.x = (int)(r.x + 0.5f);
+    r.y = (int)(r.y + 0.5f);
+    return r;
+};
+
+Func<Image, Vec3f, Vec2f> uvMap = (texture, v) => new Vec2f {
+    x = v.x * (texture.Width - 1),
+    y = v.y * (texture.Height - 1)
+};
+
+var model = headModel;
+var zbuffer = InitZBuffer(image);
+Vec2f[] uv = new Vec2f [3];
+
+foreach(var face in model.Faces) {
+    for(int i=0; i<3; i++) {
+        var vIndex = face.Vertices[i];
+        world[i] = model.Vertices[vIndex];
+        screen[i] = map(world[i]);
+        
+        var tIndex = face.Textures[i];
+        uv[i] = uvMap(headTexture, model.Textures[tIndex]);
+    }    
+
+    Vec3f n = Cross(world[2] - world[0], world[1] - world[0]).Normalize ();
+
+    var intensivity = Dot(n, light_dir);
+    if(intensivity > 0)
+        Triangle(image, screen, headTexture, uv, intensivity, zbuffer);     
+}
+
+image.VerticalFlip ();
+image
+```

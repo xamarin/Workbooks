@@ -1,0 +1,203 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Matrix.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+#load "lesson2.csx"
+#load "lesson3.csx"
+#load "lesson4.csx"
+#load "lesson5.csx"
+#load "lesson6.csx"
+#load "lesson6bis.csx"
+using static Geometry;
+using static MatrixHelpers;
+using static ShaderUtils;
+```
+
+# Lesson 7: Shadow mapping
+
+# **The goal**
+
+Well, we are approaching the end of your short course of CG lectures. The goal for today is to compute shadows. **Attention, we are talking about hard shadows here, soft shadows computation is another story.**
+
+# **Problem statement**
+
+Up to this moment convex objects were shaded correctly by our simple local shading. Local means computation with light direction and the normal vector. Unfortunately, it does not produce correct results for non-convex objects. Here is the image we can got during previous lesson:
+
+```csharp
+var shader = new TangentShader (diabloModel, viewPort, projection, modelView, light_dir, diabloTexture, diabloTangentMap);
+
+var image = Render (diabloModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+Why do not we see a shadow from his horns? Not good.
+
+The idea is really simple: we will do a two-pass rendering. First time we will render the image placing the camera at the light source position. It will allow to determine what parts are lit and what parts are hidden from the light. Then in the second pass we do a render taking in account the visibility information. Almost no difficulties here. Let us use this shader:
+
+```csharp
+class DepthShader : IShader
+{
+    const float depth = 255f;
+
+    Matrix3 varyingTri;
+
+    readonly Model model;
+    readonly Matrix4 transformation;
+
+    public DepthShader (Model model, Matrix4 transformation)
+    {
+        this.model = model;
+        this.transformation = transformation;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        var glVertex = TransformFace (model, face, nthvert, transformation);
+        varyingTri.SetColumn (nthvert, Project3D (glVertex / glVertex.h));
+        return glVertex;
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var p = Mult (varyingTri, bar);
+        color = Color.White * (p.z / depth);
+        return false;
+    }
+}
+```
+
+This shader simply copies the z-buffer into the framebuffer. Here is how it I call it:
+
+```csharp
+var model = diabloModel;
+
+var modelView = LookAt (eye, center, up);
+var viewPort = Viewport (width / 8, height / 8, width * 3 / 4, height * 3 / 4);
+var projection = Projection (-1f / (eye - center).Norm ());
+
+var M = viewPort * Projection (0) * LookAt (light_dir, center, up);
+var depthShader = new DepthShader (model, M);
+var step1 = Render (model, depthShader);
+step1.Image.VerticalFlip ();
+step1.Image
+```
+
+I put the camera at the light source position LookAt (light_dir, center, up) and then perform the render. Note that I keep the z-buffer, it is pointed by the **step1.ZBuffer** reference. Also it is useful to note line where I keep the object-to-screen transformation matrix.
+
+The second pass is naturally made with another shader:
+
+```csharp
+class ShadowShader : IShader
+{
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+    Matrix3 varyingTri;
+
+    readonly Model model;
+    readonly Vec3f lightDir;
+    readonly Matrix4 uniformM;
+    readonly Matrix4 uniformMIT;
+    // transform framebuffer screen coordinates to shadowbuffer screen coordinates
+    readonly Matrix4 uniformShadow;
+    readonly Matrix4 transformation;
+
+    readonly Image texture;
+    readonly Image normalMap;
+    readonly Image specularMap;
+
+    readonly float[] shadowbuffer;
+    readonly int width;
+
+    public ShadowShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView, Matrix4 uniformShadow, Vec3f lightDir, Image texture, Image normalMap, Image specularMap, float[] shadowbuffer, int width)
+    {
+        this.model = model;
+        this.lightDir = lightDir.Normalize ();
+        this.texture = texture;
+        this.normalMap = normalMap;
+        this.specularMap = specularMap;
+        this.shadowbuffer = shadowbuffer;
+        this.width = width;
+
+        uniformM = projection * modelView;
+        uniformMIT = TransposeInverse (uniformM);
+        transformation = viewport * uniformM;
+        this.uniformShadow = uniformShadow;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+
+        var glVertex = TransformFace (model, face, nthvert, transformation);
+        varyingTri.SetColumn (nthvert, Project3D (glVertex / glVertex.h));
+
+        return glVertex; 
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        // corresponding point in the shadow buffer
+        var sb_p = Mult (uniformShadow, Embed4D (Mult (varyingTri, bar)));
+        sb_p = sb_p / sb_p.h;
+        int idx = (int)sb_p.x + (int)sb_p.y * width; // index in the shadowbuffer array
+        float shadow = 0.3f + 0.7f * (shadowbuffer [idx] < sb_p.z + 3.5f ? 1f : 0f);
+
+        var uv = CalcUV (varyingU, varyingV, bar);
+        var n = Transform (uniformMIT, Normal (normalMap, uv)).Normalize ();
+        var l = Transform (uniformM, lightDir).Normalize ();
+        var r = (n * (2 * Dot (n, l)) - l).Normalize ();
+        var diff = Math.Max (0f, Dot (n, l));
+
+        var specular = Math.Pow (Math.Max (0f, r.z), Specular (specularMap, uv) + 15);
+        color = GetColor (texture, uv);
+
+        int v = 0;
+        for (int i = 0; i < 4; i++)
+            v = (v <<= 8) | (byte)Math.Min (255, (int)(5 + color [i] * shadow * (diff + 1.3f * specular)));
+        color = new Color (v, color.format);
+
+        return false;
+    }
+}
+```
+
+It is a copy of the final shader from the previous lesson with one exception: I declared a constant matrix `Matrix4 uniformShadow`, it allows me to transform screen coordinates of current fragment into screen coordinates inside the shadowbuffer! I'll explain how it is computed a bit later, let us see how I use it:
+
+```csharp
+/*
+var sb_p = Mult (uniformShadow, Embed4D (Mult (varyingTri, bar)));
+sb_p = sb_p / sb_p.h;
+int idx = (int)sb_p.x + (int)sb_p.y * width; // index in the shadowbuffer array
+var depth = 255 * shadowbuffer [idx];
+float shadow = 0.3f + 0.7f * ((depth < sb_p.z ? 1f : 0f));
+*/
+```
+
+`Mult (varyingTri, bar)` provides me screen coordinates of the pixel we currently draw; we augment it with 1 (recall the homogeneous coordinates stuff), then transform it with the magic matrix `uniformShadow` and ta-da! We know xyz coordinates in the shadow buffer space. Now to determine whether the current pixel is lit or no it suffices to compare its z-coordinate with the value we stored in the shadow buffer.
+
+Let me show you how I call the shader:
+
+```csharp
+var shadowM = M * Inverse (viewPort * projection * modelView);
+var shader = new ShadowShader (model, viewPort, projection, modelView, shadowM, light_dir,
+                                diabloTexture, diabloNormalMap, diabloSpecularMap,
+                                step1.ZBuffer, width);
+var step2 = Render (model, shader);
+step2.Image.VerticalFlip ();
+step2.Image
+```
+
+Notice the `sb_p.z + 3.5`  in fragment shader? This magic coefficient needed to get rig of artifact is known as the [z-fighting](http://en.wikipedia.org/wiki/Z-fighting). Resolution of our buffers is insufficient to obtain precise results. Try to delete `+ 3.5f`  and you will notice ugly shadow rendering.
+
+I simply move a bit one z-buffer with respect to another, it is sufficient to remove the artifact. Yes, it creates other problems (can you tell which ones?), but those are generally less visible. The final render is visible in the teaser image.

@@ -1,0 +1,318 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+#load "lesson2.csx"
+using static Geometry;
+```
+
+# **Lesson 3: Hidden faces removal (z buffer)**
+
+# Introduction
+
+Hello, let me introduce you my friend z-buffer of a black guy. He will help us get rid of the visual artifacts of the hidden faces removal we had during the last lesson.
+
+![](./img/lesson3_face1.png)
+
+By the way, i'd like to mention that this model i use heavily in the course is created by [Vidar Rapp](https://se.linkedin.com/in/vidarrapp). He kindely granted me a permission to use it for teaching rendering basics and i vandalized it, but i promise you to give back the eyes to the guy.
+
+Well, back to the topic, in theory we could just draw all the triangles without discarding any. If we do it properly starting rear-to-front, the front facets will erase the back ones. It is called the [painter's algorithm](http://en.wikipedia.org/wiki/Painter%27s_algorithm). Unfortunately, it comes along with a high computational cost: for each camera movement we need to re-sort all the scene. And then there are dynamic scenes... And this is not even the main problem. The main problem is it is not always possible to determine the correct order.
+
+# **Let us try to render a simple scene**
+
+Imagine a simple scene made of three triangles: the camera looks up-to-down, we project the colored triangles onto the white screen:
+
+![ ](./img/lesson3_scene1.png)
+
+The render should look like this:
+
+![ ](./img/lesson3_scene2.png)
+
+Blue facet - is it behind or in front of the red one? The painter's algorithm does not work here. It is possible to split blue facet in two (one in front of the red facet and one behind). And then the one in front of the red one is to be split in two - one in front of the green triangle and one behind... I think you get the problem: in scenes with millions of triangles it is really expensive to compute. It is possible to use [BSP trees](https://en.wikipedia.org/wiki/Binary_space_partitioning) to get it done. By the way, this data structure is constant for moving camera, but it is really messy. And the life is too short to get it messy.
+
+# **Even simpler: let us lose a dimension. Y-buffer!**
+
+Let us lose a dimension for a while and to cut the above scene along the yellow plane:
+
+![ ](./img/lesson3_scene3.png)
+
+I mean, now our scene is made of three line segments (intersection of the yellow plane and each of the triangles), and the final render has a normal width but 1 pixel height:
+
+![ ](./img/lesson3_scene4.png)
+
+Our scene is two-dimensional, so it is easy to draw it using the line() function we programmed in the very first lesson.
+
+```csharp
+var scene = new Image (800, 500, Format.BGR);
+
+// scene "2d mesh"
+Line(scene, new Vec2i {x=20, y=34}, new Vec2i {x=744, y=400}, Color.Red);
+Line(scene, new Vec2i {x=120, y=434}, new Vec2i {x=444, y=400}, Color.Green);
+Line(scene, new Vec2i {x=330, y=463}, new Vec2i {x=594, y=200}, Color.Blue);
+
+// screen line
+Line(scene, new Vec2i {x=10, y=10}, new Vec2i{x=790, y=10}, Color.White);
+
+scene.VerticalFlip(); // I want to have the origin at the left bottom corner of the image
+scene // This is how our 2D scene looks like if we look at it sideways:
+```
+
+Let us render it. Recall that the render is 1 pixel height. In my source code I create images 16 pixels height for the ease of reading on high resolution screens. `Rasterize()` function writes only in the first line of the image `render`
+
+```csharp
+void Rasterize(Image image, Vec2i p0, Vec2i p1, int[] ybuffer, Color color)
+{
+    if (p0.x>p1.x)
+        Swap(ref p0, ref p1);
+    
+    for (int x=p0.x; x<=p1.x; x++) {
+        float t = (x-p0.x)/(float)(p1.x-p0.x);
+        var y = (int)(p0.y*(1-t) + p1.y*t);
+        if (ybuffer[x] < y) {
+            ybuffer[x] = y;
+            image[x, 0] = color;
+        }
+    }
+}
+
+var ybuffer = new int [width];
+for (int i = 0; i < width; i++)
+    ybuffer[i] = int.MinValue;
+
+var render = new Image (width, 16, Format.BGR);
+Rasterize(render, new Vec2i{x=20,y=34}, new Vec2i{x=744, y=400}, ybuffer, Color.Red);
+Rasterize(render, new Vec2i{x=120, y=434}, new Vec2i{x=444,y=400}, ybuffer, Color.Green);
+Rasterize(render, new Vec2i{x=330, y=463}, new Vec2i{x=594,y=200}, ybuffer, Color.Blue);
+
+render
+```
+
+It is really-really simple: I iterate through all x-coordinates between `p0.x` and `p1.x` and compute the corresponding y-coordinate of the segment. Then I check what we got in our array `ybuffer` with current `x` index. If the current `y`-value is closer to the camera than the value in the `ybuffer`, then I draw it on the screen and update the `ybuffer`.
+
+Let us see it step-by-step. After calling `Rasterize()` on the first (red) segment this is our memory:
+
+screen:![](./img/lesson3_rasterize1.png)
+
+ybuffer: ![ ](./img/lesson3_rasterize2.png)
+
+Here the magenta color indicates the minus infinity, those are places corresponding to the screen we did not touch. All the rest is shown in the shades of gray: clear colors are close to the camera, dark colors far from the camera.
+
+Then we draw the green segment.
+
+screen:![ ](./img/lesson3_rasterize3.png)
+
+ybuffer:![ ](./img/lesson3_rasterize4.png)
+
+And finally the blue one.
+
+screen:![ ](./img/lesson3_rasterize5.png)
+
+ybuffer:![ ](./img/lesson3_rasterize6.png)
+
+Congratulations, we just drew a 2D scene on a 1D screen! Let us admire once again the render: ![ ](./img/lesson3_rasterize7.png)
+
+# Back to 3D
+
+So, for drawing on a 2D screen the z-buffer must be two-dimensional:
+
+`var zbuffer = new int[width * height];`
+
+Personally I pack a two-dimensional buffer into a one-dimensional, the conversion is trivial:
+
+`var idx = x + y* width;`
+
+and the back one:
+
+`var x = idx % width;`\
+`var y = idx % width;`
+
+Then in the code I simply iterate through all the triangles and call the rasterizer function with current triangle and a reference to the z-buffer.
+
+The only difficulty is how to compute the z-value of a pixel we want to draw. Let us recall how we computed the y-value in the y-buffer example:
+
+`int y = p0.y*(1-t) + p1.y*t;`
+
+What is the nature of the `t` variable? It turns out that `(1-t, t)` are barycentric coordinates of the point `(x,y)` with respect to the segment `p0, p1: (x,y) = p0*(1-t) + p1*t`. So the idea is to take the barycentric coordinates version of triangle rasterization, and for every pixel we want to draw simply to multiply its barycentric coordinates by the z-values of the vertices of the triangle we rasterize:
+
+```csharp
+Vec3f Barycentric (Vec2f a, Vec2f b, Vec2f c, Vec2f p)
+{
+    var ab = b - a;
+    var ac = c - a;
+    var pa = a - p;
+
+    var r = Cross (new Vec3f {
+        x = ab.x,
+        y = ac.x,
+        z = pa.x
+    }, new Vec3f {
+        x = ab.y,
+        y = ac.y,
+        z = pa.y
+    });
+
+    // triangle is degenerate, in this case return smth with negative coordinates
+    // dont forget that r.z is integer. If it is zero then triangle ABC is degenerate 
+    if ((int)r.z == 0)
+        return new Vec3f { x = -1, y = 1, z = 1 };
+    return new Vec3f { x = 1 - (r.x + r.y) / r.z, y = r.x / r.z, z = r.y / r.z };
+}
+
+void Triangle (Image image, Vec3f [] coordinates, Color color, float [] zbuffer)
+{
+    Vec3f t0 = coordinates [0];
+    Vec3f t1 = coordinates [1];
+    Vec3f t2 = coordinates [2];
+
+    var pMax = new Vec2i {
+        x = (int)Math.Max (0, Math.Max (t0.x, Math.Max (t1.x, t2.x))),
+        y = (int)Math.Max (0, Math.Max (t0.y, Math.Max (t1.y, t2.y)))
+    };
+    var pMin = new Vec2i {
+        x = (int)Math.Min (image.Width, Math.Min (t0.x, Math.Min (t1.x, t2.x))),
+        y = (int)Math.Min (image.Height, Math.Min (t0.y, Math.Min (t1.y, t2.y)))
+    };
+
+    for (int x = pMin.x; x <= pMax.x; x++) {
+        for (int y = pMin.y; y <= pMax.y; y++) {
+            var pixelCenter = new Vec2f {
+                x = x + 0.5f,
+                y = y + 0.5f
+            };
+            var bc = Barycentric (Project2D (t0), Project2D (t1), Project2D (t2), pixelCenter);
+            if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+                continue;
+
+            var z = t0.z * bc.x + t1.z * bc.y + t2.z * bc.z;
+            var idx = x + y * image.Width;
+            if (zbuffer [idx] < z) {
+                zbuffer [idx] = z;
+                image [x, y] = color;
+            }
+        }
+    }
+}
+
+float [] InitZBuffer (Image image)
+{
+    var zbuffer = new float [image.Width * image.Height];
+    for (int idx = 0; idx < zbuffer.Length; idx++)
+        zbuffer [idx] = float.NegativeInfinity;
+    return zbuffer;
+}
+
+var image = new Image(width, height, Format.BGR);
+Func<Vec3f, Vec3f> map = v => new Vec3f {
+    x = (int)((v.x+1)*(image.Width-1)/2 + 0.5f),
+    y = (int)((v.y+1)*(image.Height-1)/2 + 0.5f),
+    z = v.z
+};
+
+var zbuffer = InitZBuffer(image);
+foreach(var face in headModel.Faces) {
+    for(int i=0; i<3; i++) {
+        var vIndex = face.Vertices[i];
+        world[i] = headModel.Vertices[vIndex];
+        screen[i] = map(world[i]);
+    }    
+
+    Vec3f n = Cross(world[2] - world[0], world[1] - world[0]).Normalize ();
+
+    var intensivity = Dot(n, light_dir);
+    if(intensivity > 0)
+        Triangle(image, screen, Color.White * intensivity, zbuffer);     
+}
+
+image.VerticalFlip ();
+image
+```
+
+# Okay, we just interpolated the z-values. What else can we do?
+
+Texture!
+
+In the `.obj` file we have lines starting with `vt u v`, they give an array of texture coordinates. The number in the middle (between the slashes) in the facet lines\
+`f x/x/x x/x/x x/x/x` are the texture coordinates of this vertex of this triangle. Interpolate it inside the triangle, multiply by the width-height of the texture image and you will get the color to put in your render.
+
+```csharp
+void Triangle (Image image, Vec3f [] coordinates, Image texture, Vec2f [] uv, float intensivity, float [] zbuffer)
+{
+    Vec3f t0 = coordinates [0];
+    Vec3f t1 = coordinates [1];
+    Vec3f t2 = coordinates [2];
+
+    var pMax = new Vec2i {
+        x = (int)Math.Max (0, Math.Max (t0.x, Math.Max (t1.x, t2.x))),
+        y = (int)Math.Max (0, Math.Max (t0.y, Math.Max (t1.y, t2.y)))
+    };
+    var pMin = new Vec2i {
+        x = (int)Math.Min (image.Width, Math.Min (t0.x, Math.Min (t1.x, t2.x))),
+        y = (int)Math.Min (image.Height, Math.Min (t0.y, Math.Min (t1.y, t2.y)))
+    };
+
+    for (int x = pMin.x; x <= pMax.x; x++) {
+        for (int y = pMin.y; y <= pMax.y; y++) {
+            var pixelCenter = new Vec2f {
+                x = x + 0.5f,
+                y = y + 0.5f
+            };
+            var bc = Barycentric (Project2D(t0), Project2D(t1), Project2D(t2), pixelCenter);
+            if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+                continue;
+
+            var z = t0.z * bc.x + t1.z * bc.y + t2.z * bc.z;
+            var u = (int)(uv [0].x * bc.x + uv [1].x * bc.y + uv [2].x * bc.z);
+            var v = (int)(uv [0].y * bc.x + uv [1].y * bc.y + uv [2].y * bc.z);
+            var idx = x + y * image.Width;
+            if (zbuffer [idx] < z) {
+                zbuffer [idx] = z;
+
+                var color = texture [u, v];
+                image [x, y] = color * intensivity;
+            }
+        }
+    }
+}
+
+var image = new Image(width, height, Format.BGR);
+var headTexture = Image.Load ("obj/african_head_diffuse.tga");
+headTexture.VerticalFlip ();
+
+Func<Vec3f, Vec2f> uvMap = v => new Vec2f {
+    x = v.x * (headTexture.Width - 1),
+    y = v.y * (headTexture.Height - 1)
+}; 
+
+var zbuffer = InitZBuffer(image);
+var uv = new Vec2f[3];
+var model = headModel;
+foreach(var face in model.Faces) {
+    for(int i=0; i<3; i++) {
+        var vIndex = face.Vertices[i];
+        world[i] = model.Vertices[vIndex];
+        screen[i] = map(world[i]);
+        
+        var tIndex = face.Textures[i];
+        uv[i] = uvMap(model.Textures[tIndex]);
+    }    
+
+    Vec3f n = Cross(world[2] - world[0], world[1] - world[0]).Normalize ();
+
+    var intensivity = Dot(n, light_dir);
+    if(intensivity > 0)
+        Triangle(image, screen, headTexture, uv, intensivity, zbuffer);     
+}
+
+image.VerticalFlip ();
+image
+```
+

@@ -1,0 +1,388 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Matrix.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+#load "lesson2.csx"
+#load "lesson3.csx"
+#load "lesson4.csx"
+#load "lesson5.csx"
+#load "lesson6.csx"
+#load "lesson6bis.csx"
+using static Geometry;
+using static MatrixHelpers;
+using static ShaderUtils;
+```
+
+# Lesson 8: Ambient occlusion
+
+In previous lectures we used local illumination model. In other words, for computing illumination of a current pixel we did not take into account its neighbors. [Phong reflection model](https://en.wikipedia.org/wiki/Phong_reflection_model) is a famous example of such approach:
+
+![  ](./img/lesson6_phong.png)
+
+In this model final illumination intensity for a point is a sum of three components: ambient intensity, constant for all points in the scene, diffuse and specular highlights depending on normal vectors. Wait a minute, why did he choose **constant** ambient component?
+
+# **Second attempt in the global illumination: ambient occlusion**
+
+Well, I was not 100% right: we did use a bit global illumination when we computed shadow mapping. Let us check another possibility to improve our renders (note that one does not exclude another!). Here is an example where I used only ambient component of the Phong reflection model:
+
+![  ](./img/lesson8_goal.png)
+
+**No diffuse component, no specular. Ambient only, however it is easy to see that I did not choose it to be constant.** Okay, the problem is stated as follows: let us ambient intensity for each point of our scene. When we previously supposed constant ambient illumination, it means that we supposed our scene so nice that all light was reflected everywhere equally. A bit strong hypothesis that is. Of course, it was made back in the old days where computing power was severely limited. Nowadays, we can spend a bit more to get more realistic images. Global illumination is more expensive than the local is. Recall that for shadow mapping we were forced to do two-passes rendering, thus roughly dividing our FPS by 2.
+
+# **Brute force attempt**
+
+Let us suppose that our object is surrounded by a hemisphere, emitting light uniformly (cloudy sky). Then let us choose randomly, say, a thousand points at the hemisphere, render the object thousand times and to compute what parts of the model were visible.
+
+**Question:** Do you know how to pick **uniformly** a thousand points on a (hemi-)sphere? Something like this:
+
+![  ](./img/lesson8_sphere.png)
+
+If we simply pick randomly a longitude and a latitude, we will obtain an accumulation of points near the poles, thus breaking our assumption on uniform lighting of the sky. [Check the answer](http://mathworld.wolfram.com/SpherePointPicking.html).
+
+**Question:** where do we store the visibility information?
+
+```csharp
+Vec3f RandPointOnUnitSphere ()
+{
+    var rnd = new Random ();
+    var u = rnd.NextDouble ();
+    var v = rnd.NextDouble ();
+    var theta = 2 * Math.PI * u;
+    var phi = Math.Acos(2 * v - 1);
+
+    return new Vec3f {
+        x = (float)(Math.Sin (phi) * Math.Cos (theta)),
+        y = (float)(Math.Sin (phi) * Math.Sin (theta)),
+        z = (float)Math.Cos (phi)
+    };
+}
+```
+
+Since we are in the brute force section, then the answer is obvious: in a texture!
+
+Thus, we do a two-pass rendering for each point we picked on the sphere, here is the first shader and the resulting image:
+
+```csharp
+class ZShader : IShader
+{
+    const float depth = 255f;
+
+    readonly Model model;
+    readonly Matrix4 transformation;
+
+    public ZShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView)
+    {
+        this.model = model;
+        transformation = viewport * projection * modelView;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        color = Color.White * (fragment.z / depth);
+        return false;
+    }
+}
+var zshader = new ZShader (diabloModel, viewPort, projection, modelView);
+var step1 = Render (diabloModel, zshader).Image;
+step1.VerticalFlip();
+step1
+```
+
+This image is not very interesting for us, we are more interested in its z-buffer, exactly as in the previous lesson. Then we do another pass:
+
+```csharp
+class OcclusionShader : IShader
+{
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+
+    readonly Model model;
+    readonly Matrix4 transformation;
+    readonly Image occlusion;
+    readonly float [] shadowbuffer;
+    readonly int width;
+
+    public OcclusionShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView, Image occlusion, float [] shadowbuffer, int width)
+    {
+        this.model = model;
+        this.occlusion = occlusion;
+        this.shadowbuffer = shadowbuffer;
+        this.width = width;
+
+        transformation = viewport * projection * modelView;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var uvf = CalcUV (varyingU, varyingV, bar);
+        var uvi = CalcXY (occlusion, uvf);
+
+        var index = (int)(fragment.x + fragment.y * width);
+        if (Math.Abs(shadowbuffer [index] - (byte)fragment.z) <= 1e-2)
+            occlusion [uvi.x, uvi.y] = Color.White;
+
+        color = Color.White;
+        return false;
+    }
+}
+```
+
+The resulting image is not interesting either, it will simply draw a white image. However, this line I like:
+
+`occlusion [uvi.x, uvi.y] = Color.White;`
+
+occlusion - is initially clear image; this line tells us that if the fragment is visible, then we put a white point in this image using fragment's texture coordinates. Here is the resulting occlusion image for one point we choose on the hemisphere:
+
+![](./img/occlusion.png)
+
+**Question:** Why are there holes in obviously visible triangles?
+
+**Question:** Why are there triangles more densely covered than others?
+
+Well, we repeat above procedure a thousand times, compute average of all occl images.
+
+```csharp
+var rnd = new Random ();
+var screen_coords = new Vec4f [3];
+
+var frame = new Image (width, height, Format.BGR);
+var shadowbuffer = InitZBuffer (frame);
+var zbuffer = InitZBuffer (frame);
+
+var total = new Image (1024, 1024, Format.BGR);
+var occl = new Image (1024, 1024, Format.BGR);
+
+const int nrenders = 1;
+for (int iter = 1; iter <= nrenders; iter++) {
+    for (int i = 0; i < shadowbuffer.Length; i++) {
+        shadowbuffer [i] = 0;
+        zbuffer [i] = 0;
+    }
+
+    var vUp = new Vec3f {
+        x = (float)rnd.NextDouble (),
+        y = (float)rnd.NextDouble (),
+        z = (float)rnd.NextDouble ()
+    };
+    var spLocation = RandPointOnUnitSphere ();
+    spLocation.y = Math.Abs (spLocation.y);
+
+    frame.Clear ();
+    var mvM = LookAt (spLocation, center, vUp);
+    var pM = Projection (0);
+    var zshader = new ZShader (diabloModel, viewPort, pM, mvM);
+    foreach (var face in diabloModel.Faces) {
+        for (int i = 0; i < 3; i++)
+            screen_coords [i] = zshader.Vertex (face, i);
+        Triangle (frame, screen_coords, zshader, shadowbuffer);
+    }
+    //frame.VerticalFlip ();
+    //frame.WriteToFile ("framebuffer.tga");
+
+    occl.Clear ();
+    var shader = new OcclusionShader (diabloModel, viewPort, pM, mvM, occl, shadowbuffer, frame.Width);
+    foreach (var face in diabloModel.Faces) {
+        for (int i = 0; i < 3; i++)
+            screen_coords [i] = shader.Vertex (face, i);
+        Triangle (frame, screen_coords, shader, zbuffer);
+    }
+
+    for (int i = 0; i < total.Width; i++) {
+        for (int j = 0; j < total.Height; j++) {
+            float prev = total [i, j] [0];
+            float curr = occl [i, j] [0];
+            var val = (byte)((prev * (iter - 1) + curr) / iter + 0.5f);
+            total [i, j] = new Color (val, val, val);
+        }
+    }
+}
+
+// total.VerticalFlip ();
+// total.WriteToFile ("total-occlusion.tga");
+```
+
+Here is the average visible texture:
+
+![](./img/total-occlusion.png)
+
+Cool, looks like something we could want. Let us draw our Diable without any lighting computation, simply by putting above texture:
+
+```csharp
+var aoTexture = Image.Load ("obj/diablo3-total-occlusion.tga");
+aoTexture.VerticalFlip ();
+
+class AOShader : IShader
+{
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+
+    readonly Model model;
+    readonly Matrix4 transformation;
+    readonly Image aoImage;
+
+    public AOShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView, Image aoImage)
+    {
+        this.model = model;
+        this.aoImage = aoImage;
+
+        transformation = viewport * projection * modelView;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var uvf = CalcUV (varyingU, varyingV, bar);
+        var uvi = CalcXY (aoImage, uvf);
+
+        var t = aoImage [uvi.x, uvi.y] [0];
+        color = new Color (t, t, t);
+
+        return false;
+    }
+}
+
+var shader = new AOShader (diabloModel, viewPort, projection, modelView, aoTexture);
+var image = Render (diabloModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+**Question:** Wow, he is in a bad mood... Why?
+
+This question is linked to the previous one. Did you notice that in Diablo's texture there is one arm only? The artist (in this case [Samuel Sharit](https://www.linkedin.com/in/samuelsharit)) is practical and did not want to waste precious resources. He simply said that the arms are textured in the same way and both arms can have same texture coordinates. Roughly it means that our lighting computing will count arms twice, thus quadrupling the light energy in the final render.
+
+## **Let us sum up**
+
+This method allows to precompute ambient occlusion for scenes with static geometry. Computation time depends on the number of samples you choose, but in practice it does not matter since we compute it once and use as a texture afterwards. Advantage of this method is its flexibility and ability to compute much more complex lighting than a simple uniform hemisphere. Disadvantage - for doubled texture coordinates the computation is not correct, we need to put some scotch tape to repair it (see the teaser image for this lesson).
+
+# **Screen space ambient occlusion**
+
+Well, we see that global illumination is still an expensive thing, it requires visibility computations for many points. Let us try to find a compromise between computing time and rendering quality. Here is an image I want to compute (recall that in this lesson I do not use other lighting besides the ambient one):
+
+![  ](./img/lesson8_goal2.png)
+
+Here is the shader to compute the image:
+
+```csharp
+class ZShader : IShader
+{
+    readonly Model model;
+    readonly Matrix4 transformation;
+
+    public ZShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView)
+    {
+        this.model = model;
+        transformation = viewport * projection * modelView;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        color = Color.Black;
+        return false;
+    }
+};
+```
+
+What-what-what?! `color = Color.Black;` ?!
+
+Yes, that is right. At the moment I am only interested in the z-buffer, the image will appear after a post-processing step. Here is the complete code with our "empty" shader call and the post-processing routine (takes a few mins to render):
+
+```csharp
+float MaxElevationAngle (float [] zbuffer, Vec2f p, Vec2f dir, int width, int height)
+{
+    float maxangle = 0;
+    for (float t = 0; t < 1000; t += 1) {
+        Vec2f cur = p + dir * t;
+        if (cur.x >= width || cur.y >= height || cur.x < 0 || cur.y < 0)
+            return maxangle;
+
+        var distance = (p - cur).Norm ();
+        if (distance < 1)
+            continue;
+
+        float elevation = zbuffer [(int)cur.x + (int)cur.y * width] - zbuffer [(int)p.x + (int)p.y * width];
+        maxangle = (float)Math.Max (maxangle, Math.Atan (elevation / distance));
+    }
+
+    return maxangle;
+}
+
+Image RenderAO(Model model)
+{
+    var shader = new ZShader (model, viewPort, projection, modelView);
+    var result = Render (model, shader);
+    var image = result.Image;
+    var zbuffer = result.ZBuffer;
+
+    for (int x = 0; x < image.Width; x++) {
+        for (int y = 0; y < image.Height; y++) {
+            if (zbuffer [x + y * image.Width] < -1e5)
+                continue;
+
+            double total = 0;
+            for (var a = 0.0; a < 2 * Math.PI - 0.001; a += Math.PI / 4) {
+                total += Math.PI / 2 - MaxElevationAngle (zbuffer,
+                                                            new Vec2f { x = x, y = y },
+                                                            new Vec2f { x = (float)Math.Cos (a), y = (float)Math.Sin (a) },
+                                                            image.Width, image.Height);
+            }
+            total /= (Math.PI / 2) * 8;
+            var v = (byte)(Math.Min (255, total * 255));
+            image [x, y] = new Color (v, v, v);
+        }
+    }
+    return image;
+}
+
+var image = RenderAO(diabloModel); 
+image.VerticalFlip ();
+image
+```
+
+The empty shader call gives us the z-buffer. As for the post-processing: for each pixel of our image I emit a number of rays (eight here) in all directions around the pixel. The z-buffer is a height map, you can imagine it as a landscape. What i want to compute is the slope in each of our 8 directions. The function `MaxElevationAngle` gives the maximum slope we encounter for each ray we cast.
+
+If all eight rays have zero elevation, then the current pixel is well visible, the terrain around is flat. If the angle is near 90°, then current pixel is well-hidden in a kind of a valley, and receives little ambient light.
+
+In theory we need to compute the [solid angle](https://en.wikipedia.org/wiki/Solid_angle) for each point of the z-buffer, but we approximate it as a sum of (90°-max_elevation_angle) / 8. 
+
+Here is an ambient-occlusion-only render of our friend:
+
+```csharp
+var image = RenderAO(headModel); 
+image.VerticalFlip ();
+image
+```
+
+Enjoy!
+

@@ -1,0 +1,554 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#load "Geometry.csx"
+#load "Matrix.csx"
+#load "Image.csx"
+#load "Model.csx"
+#load "ImageResultHandler.csx"
+#load "lesson1.csx"
+#load "lesson2.csx"
+#load "lesson3.csx"
+#load "lesson4.csx"
+#load "lesson5.csx"
+using static Geometry;
+using static MatrixHelpers;
+```
+
+# **Lesson 6: Shaders for the software renderer**
+
+Refactoring the source code. IShader.
+
+```csharp
+interface IShader
+{
+    Vec4f Vertex (Face face, int nthvert);
+    bool Fragment (Vec3f fragment, Vec3f bar, out Color color);
+};
+
+class RenderResult
+{
+    public Image Image { get; set; }
+    public float [] ZBuffer { get; set; }
+}
+
+RenderResult Render (Model model, IShader shader)
+{
+    var image = new Image (width, height, Format.BGR);
+    var zbuffer = InitZBuffer (image);
+    var screen_coords = new Vec4f [3];
+
+    foreach (var face in model.Faces) {
+        for (int i = 0; i < 3; i++)
+            screen_coords [i] = shader.Vertex (face, i);
+        Triangle (image, screen_coords, shader, zbuffer);
+    }
+
+    return new RenderResult {
+        Image = image,
+        ZBuffer = zbuffer
+    };
+}
+
+void Box (Vec4f [] pts, out Vec2i pMin, out Vec2i pMax)
+{
+    pMax = new Vec2i { x = int.MinValue, y = int.MinValue };
+    pMin = new Vec2i { x = int.MaxValue, y = int.MaxValue };
+
+    for (int i = 0; i < 3; i++) {
+        pMax.x = (int)Math.Max (pMax.x, pts [i].x / pts [i].h);
+        pMax.y = (int)Math.Max (pMax.y, pts [i].y / pts [i].h);
+        pMin.x = (int)Math.Min (pMin.x, pts [i].x / pts [i].h);
+        pMin.y = (int)Math.Min (pMin.y, pts [i].y / pts [i].h);
+    }
+}
+
+void Triangle (Image image, Vec4f [] pts, IShader shader, float [] zbuffer)
+{
+    Vec2i pMin, pMax;
+    Box (pts, out pMin, out pMax);
+
+    Color color;
+    for (int x = pMin.x; x <= pMax.x; x++) {
+        for (int y = pMin.y; y <= pMax.y; y++) {
+            var pixelCenter = new Vec2f { x = x + 0.5f, y = y + 0.5f };
+            var bc = Barycentric (Project2D (pts [0] / pts [0].h),
+                                    Project2D (pts [1] / pts [1].h),
+                                    Project2D (pts [2] / pts [2].h),
+                                    pixelCenter);
+
+            var z = pts [0].z * bc.x + pts [1].z * bc.y + pts [2].z * bc.z; // z [0..255]
+            var w = pts [0].h * bc.x + pts [1].h * bc.y + pts [2].h * bc.z;
+            var frag_depth = z / w;
+
+            var idx = x + y * image.Width;
+            if (bc.x < 0 || bc.y < 0 || bc.z < 0 || zbuffer[idx] > frag_depth)
+                continue;
+
+
+            var fragment = new Vec3f { x = x, y = y, z = frag_depth };
+            var discard = shader.Fragment (fragment, bc, out color);
+            if (!discard) {
+                zbuffer [idx] = frag_depth;
+                image [x, y] = color;
+            }
+        }
+    }
+}
+```
+
+Let us see how it works. The actual render code:
+
+* Parsing the .obj file
+
+* Iteration through all triangles of the model and rasterization of each triangle.
+
+The last step is the most interesting. Outer loop iterates through all the triangles. Inner loop iterates through all the vertices of the current triangle and calls a vertex shader for each vertex.
+
+**The main goal of the vertex shader is to transform the coordinates of the vertices. The secondary goal is to prepare data for the fragment shader.**
+
+What happens after that? We call the rasterization routine. What happens inside the rasterizer we do not know (well, okay, we do know since we programmed it!) with one exception. We know that the rasterizer calls **our** routine for each pixel, namely, the fragment shader. Again, for each pixel inside the triangle the rasterizer calls our own callback, the fragment shader.
+
+**The main goal of the fragment shader - is to determine the color of the current pixel. Secondary goal - we can discard current pixel by returning true.**
+
+The rendering pipeline for the OpenGL 2 can be represented as follows (in fact, it is more or less the same for newer versions too):
+
+![  ](./img/lesson6_opengl2_pipeline.png)
+
+Because of the time limits I have for my course, I restrict myself to the OpenGL 2 pipeline and therefore to fragment and vertex shaders only. In newer versions of OpenGL there are other shaders, allowing, for example, to generate geometry on the fly.
+
+Okay, in the above image all the stages we can not touch are shown in blue, whereas our callbacks are shown in orange. In fact, our render code - is the \*\*primitive processing \*\*routine. It calls the vertex shader. We do not have primitive assembly here, since we are drawing dumb triangles only (in our code it is merged with the primitive processing). `Triangle` function - is the **rasterizer**, for each point inside the triangle it calls the **fragment shader**, then performs depth checks (z-buffer) and such.
+
+That is all. You know what the shaders are and now you can create your own shaders.
+
+# **My implementation of shaders shown on Gouraud shading**
+
+According to its name, it is a Gouraud shader. Here is the code:
+
+```csharp
+using static ShaderUtils;
+
+class GouraudShader : IShader
+{
+    readonly Model model;
+    readonly Vec3f lightDir;
+
+    // written by vertex shader, read by fragment shader
+    protected Vec3f varyingIntensity = new Vec3f ();
+
+    readonly Matrix4 transformation;
+
+    public GouraudShader (Model model, Matrix4 viewPort, Matrix4 projection, Matrix4 modelView, Vec3f lightDir)
+    {
+        this.model = model;
+        transformation = viewPort * projection * modelView;
+        this.lightDir = lightDir.Normalize ();
+    }
+
+    public virtual Vec4f Vertex (Face face, int nthvert)
+    {
+        var n = model.Normal (face, nthvert).Normalize ();
+        // get diffuse lighting intensity
+        varyingIntensity [nthvert] = Math.Max (0, Dot (n, lightDir));
+        var d = Dot(n, lightDir);
+
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public virtual bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        // interpolate intensity for the current pixel
+        var intensity = Dot (varyingIntensity, bar);
+        color = Color.White * intensity; // well duh
+        return false;
+    }
+}
+
+// set of utils which will be used in our shaders
+static class ShaderUtils
+{
+    public static Vec4f TransformFace (Model model, Face face, int nthvert, Matrix4 t)
+    {
+        var v = model.Vertex (face, nthvert); // read the vertex from model
+        var glVertex = Embed4D (v);
+        return Mult (t, glVertex); // transform it to screen coordinates
+    }
+
+    public static void UpdateVarayingUV (Model model, Face face, int nthvert,
+                                         ref Vec3f varyingU, ref Vec3f varyingV)
+    {
+        var vt = model.GetUV (face, nthvert);
+        varyingU [nthvert] = vt.x;
+        varyingV [nthvert] = vt.y;
+    }
+
+    public static Vec2f CalcUV (Vec3f varU, Vec3f varV, Vec3f bar)
+    {
+        return new Vec2f {
+            x = Dot (varU, bar),
+            y = Dot (varV, bar)
+        };
+    }
+
+    public static Color GetColor (Image texture, Vec2f uvf)
+    {
+        var uvi = CalcXY(texture, uvf);
+        return texture [uvi.x, uvi.y];
+    }
+
+    public static Vec3f Transform (Matrix4 t, Vec3f v)
+    {
+        var v4d = Mult (t, Embed4D (v));
+        return Project3D (v4d);
+    }
+
+    public static Vec3f Normal (Image normalMap, Vec2f uvf)
+    {
+        // RGB values as xyz. But Color stores data as BGR (zyx)
+        var c = GetColor (normalMap, uvf);
+
+        return new Vec3f {
+            x = (c [2] / 255f) * 2 - 1,
+            y = (c [1] / 255f) * 2 - 1,
+            z = (c [0] / 255f) * 2 - 1
+        };
+    }
+
+    public static float Specular (Image specularMap, Vec2f uvf)
+    {
+        var uvi = CalcXY (specularMap, uvf);
+        var color = specularMap [uvi.x, uvi.y];
+        return color[0];
+    }
+
+    public static Vec2i CalcXY (Image texture, Vec2f uvf)
+    {
+        return new Vec2i {
+            x = (int)(uvf.x * texture.Width),
+            y = (int)(uvf.y * texture.Height)
+        };
+    }
+}
+
+var light_dir = new Vec3f { x = 1, y = 1, z = 1 };
+var eye = new Vec3f { x = 1, y = 1, z = 3 };
+var center = new Vec3f { x = 0, y = 0, z = 0 };
+var up = new Vec3f { x = 0, y = 1, z = 0 };
+
+var modelView = LookAt(eye, center, up);
+var viewPort = Viewport(width/8, height/8, width*3/4, height*3/4);
+var projection = Projection(-1f/(eye-center).Norm());
+
+var shader = new GouraudShader (headModel, viewPort, projection, modelView, light_dir);
+var image = Render (headModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+**vayring** is a reserved keyword in GLSL language, I have used VaryingIntensity as a name in order to show the correspondence. In varying variables we store data to be interpolated inside the triangle, and the fragment shaders get the interpolated value (for the current pixel).
+
+Fragment routine is called for each pixel inside the triangle we draw; as an input it receives [barycentric coordinates](https://en.wikipedia.org/wiki/Barycentric_coordinate_system) for interpolation of VaryingXXX data. Thus, interpolated intensity can be computed as:
+
+VaryingIntensity\[0\]\*bar\[0\] \+ VaryingIntensity\[1\]\*bar\[1\] \+ VaryingIntensity\[2\]\*bar\[2\]
+
+or simply as a dot product between two vectors: `Dot(VaryingIntensity,bar)`. In true GLSL, of course, fragment shaders receive ready interpolated values.
+
+Notice that the shader returns a bool value. It is easy to understand what it does if we look inside the updated rasterizer:
+
+```csharp
+/*
+...
+var discard = shader.Fragment (fragment, bc, out color);
+if (!discard) {
+    zbuffer [idx] = frag_depth;
+    image [x, y] = color;
+}
+*/
+```
+
+Fragment shader can discard drawing of the current pixel, then the rasterizer simply skips it. It is handy if we want to create binary masks or whatever you want.
+
+Of course, the rasterizer can not imagine all the weird stuff you could program, therefore it can not be pre-compiled with your shader. Here we use IShader interface as an intermediate between the two.
+
+# **First modification of the shaders**
+
+Simple modification of the Gourad shading, where the intensities are allowed to have 6 values only:
+
+```csharp
+class GouraudShader6 : GouraudShader
+{
+    public GouraudShader6 (Model model, Matrix4 viewPort, Matrix4 projection, Matrix4 modelView, Vec3f lightDir)
+        : base (model, viewPort, projection, modelView, lightDir)
+    {
+    }
+
+    public override bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var intensity = Dot (varyingIntensity, bar);
+        if (intensity > 0.85f) intensity = 1;
+        else if (intensity > 0.60f) intensity = 0.80f;
+        else if (intensity > 0.45f) intensity = 0.60f;
+        else if (intensity > 0.30f) intensity = 0.45f;
+        else if (intensity > 0.15f) intensity = 0.30f;
+        else intensity = 0;
+        color = new Color (255, 155, 0) * intensity;
+        return false;
+    }
+}
+
+var shader = new GouraudShader6 (headModel, viewPort, projection, modelView, light_dir);
+var image = Render (headModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+# **Textures**
+
+I'll skip the [Phong shading](https://en.wikipedia.org/wiki/Phong_shading), but take a look at the article. Remember the homework assignment I gave you for texturing? We had to interpolate uv-coordinates.
+
+```csharp
+using static ShaderUtils;
+
+class TextureShader : IShader
+{
+    readonly Model model;
+    readonly Vec3f lightDir;
+    readonly Matrix4 transformation;
+    readonly Image texture;
+
+    // written by vertex shader, read by fragment shader
+    Vec3f varyingIntensity = new Vec3f ();
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+
+    public TextureShader (Model model, Matrix4 viewPort, Matrix4 projection, Matrix4 modelView, Vec3f lightDir, Image texture)
+    {
+        this.model = model;
+        transformation = viewPort * projection * modelView;
+        this.lightDir = lightDir.Normalize ();
+        this.texture = texture;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+
+        var n = model.Normal (face, nthvert).Normalize ();
+        varyingIntensity [nthvert] = Math.Max (0, Dot (n, lightDir)); // get diffuse lighting intensity
+
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        // interpolate intensity for the current pixel
+        var intensity = Dot (varyingIntensity, bar);
+
+        // interpolate uv for the current pixel
+        var uvf = CalcUV (varyingU, varyingV, bar);
+
+        color = GetColor (texture, uvf) * intensity;
+        return false;
+    }
+}
+
+var shader = new TextureShader (headModel, viewPort, projection, modelView, light_dir, headTexture);
+var image = Render (headModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+# **Normalmapping**
+
+Okay, now we have texture coordinates. What can we store in texture images? In fact, almost anything. It can be color, directions, temperature and so on. Let us load this texture:
+
+![  ](./img/lesson6_african_head_nm.png)
+
+If we interpret RGB values as xyz directions, this image gives us normal vectors **for each pixel** of our render and not only per vertex as before.
+
+By the way, compare this image to another one, it gives exactly the same information, but in another frame:
+
+![  ](./img/lesson6_african_head_nm_tangent.png)
+
+One of the images gives normal vectors in global (Cartesian) coordinate system, another one in [Darboux frame](https://en.wikipedia.org/wiki/Darboux_frame) (so-called tangent space). In Darboux frame the z-vector is normal to the object, x - principal curvature direction and y - their cross product.
+
+**Exercise 1:** Can you tell which image is represented in Darboux frame and which one is in the global coordinate frame?
+
+**Exercise 2:** Can you tell which representation is better and if yes, why is that?
+
+**Uniform** is a reserved keyword in GLSL, it allows to pass constants to the shaders. Here I pass the matrix Projection\*ModelView and its inverse transpose to transform the normal vectors (refer to the end of the lesson5). So, computation of the lighting intensity is the same as before with one exception: instead of interpolating normal vectors we retrieve the information from the normal mapping texture (do not forget to transform light vector and normal vectors).
+
+```csharp
+class NormalMapShader : IShader
+{
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+
+    readonly Model model;
+    readonly Vec3f lightDir;
+    readonly Matrix4 uniformM;
+    readonly Matrix4 uniformMIT;
+    readonly Matrix4 transformation;
+
+    readonly Image texture;
+    readonly Image normalMap;
+
+    public NormalMapShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView, Vec3f lightDir, Image texture, Image normalMap)
+    {
+        this.model = model;
+        this.lightDir = lightDir.Normalize ();
+        this.texture = texture;
+        this.normalMap = normalMap;
+
+        uniformM = projection * modelView;
+        uniformMIT = TransposeInverse (uniformM);
+        transformation = viewport * uniformM;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var uv = CalcUV (varyingU, varyingV, bar);
+        var n = Transform (uniformMIT, Normal (normalMap, uv)).Normalize ();
+        var l = Transform (uniformM, lightDir).Normalize ();
+
+        var intensity = Math.Max (0f, Dot (n, l));
+        color = GetColor (texture, uv) * intensity;
+        return false;
+    }
+}
+
+var headNormalMap = Image.Load ("obj/african_head_nm.tga");
+headNormalMap.VerticalFlip ();
+
+var shader = new NormalMapShader (headModel, viewPort, projection, modelView, light_dir, headTexture, headNormalMap);
+
+var image = Render (headModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+# **Specular mapping**
+
+Okay, let us continue the fun. All the computer graphics science is the art to cheat. To (cheaply) trick the eye we use the [Phong's approximation](https://en.wikipedia.org/wiki/Phong_reflection_model) of the lighting model. Phong proposed to consider the final lighting as a (weighted) sum of three light intensities: ambient lighting (constant per scene), diffuse lighting (the one we computed up to this moment) and specular lighting.
+
+Take a look at the following image, it speaks for itself:
+
+![  ](./img/lesson6_phong.png)
+
+We compute diffuse lighting as a cosine of the angle between the normal vector and the light direction vector. I mean, this supposes that the light is reflected in all directions uniformly. What happens to glossy surfaces? In the limit case (mirror) the pixel is illuminated if and only if we can see the light source reflected by this pixel:
+
+![  ](./img/lesson6_reflection.png)
+
+For diffuse lighting we computed the (cosine of) angle between vectors **n** and **l**, and now we are interested in the (cosine of) angle between vectors **r** (reflected light direction) and **v**(view direction).
+
+**Exercise 3:** Given vectors **n** and **l**, find vector **r**.
+
+*Answer:* If **n** and **l** are normalized, then **r** = 2**n**<**n**,**l**> - **l**
+
+For diffused lighting we computed the light intensity as the cosine. But a glossy surface reflects in one direction much more than in others! Okay then, what happens if we take tenth power of the cosine? Recall that all numbers inferior to 1 will decrease when we apply the power. It means that tenth power of the cosine will give smaller radius of the reflected beam. And hundredth power **much** smaller beam radius. This power is stored in a special texture (specular mapping texture) that tells for each point if it is glossy or not.\
+\
+I think that i do not need to comment anything in the below code at the exception of coefficients: `5 + color [i] * (diff + 1.3f * specular)`
+
+I took 5 for the ambient component, 1 for the diffuse component and 1.3 for the specular component. What coefficients to choose - is your choice. Different choices give different appearances for the object. Normally it is for the artist to decide.
+
+*Please note that normally the sum of the coefficents must be equal to 1, but you know. I like to create light.*
+
+```csharp
+class SpecularShader : IShader
+{
+    Vec3f varyingU = new Vec3f ();
+    Vec3f varyingV = new Vec3f ();
+
+    readonly Model model;
+    readonly Vec3f lightDir;
+    readonly Matrix4 uniformM;
+    readonly Matrix4 uniformMIT;
+    readonly Matrix4 transformation;
+
+    readonly Image texture;
+    readonly Image normalMap;
+    readonly Image specularMap;
+
+    public SpecularShader (Model model, Matrix4 viewport, Matrix4 projection, Matrix4 modelView, Vec3f lightDir, Image texture, Image normalMap, Image specularMap)
+    {
+        this.model = model;
+        this.lightDir = lightDir.Normalize ();
+        this.texture = texture;
+        this.normalMap = normalMap;
+        this.specularMap = specularMap;
+
+        uniformM = projection * modelView;
+        uniformMIT = TransposeInverse (uniformM);
+        transformation = viewport * uniformM;
+    }
+
+    public Vec4f Vertex (Face face, int nthvert)
+    {
+        UpdateVarayingUV (model, face, nthvert, ref varyingU, ref varyingV);
+        return TransformFace (model, face, nthvert, transformation);
+    }
+
+    public bool Fragment (Vec3f fragment, Vec3f bar, out Color color)
+    {
+        var uv = CalcUV (varyingU, varyingV, bar);
+        var n = Transform (uniformMIT, Normal (normalMap, uv)).Normalize ();
+        var l = Transform (uniformM, lightDir).Normalize ();
+
+        var r = (n * (2 * Dot (n, l)) - l).Normalize ();
+
+        var diff = Math.Max (0f, Dot (n, l));
+        var specular = Math.Pow (Math.Max (0f, r.z), Specular (specularMap, uv) + 15);
+
+        color = GetColor (texture, uv);
+
+        int v = 0;
+        for (int i = 0; i < 4; i++)
+            v = (v << 8) | (byte)Math.Min (255, (int)(5 + color [i] * (diff + 1.3f * specular)));
+        color = new Color (v, color.format);
+
+        return false;
+    }
+}
+
+var headSpecularMap = Image.Load ("./obj/african_head_spec.tga");
+var shader = new SpecularShader (headModel, viewPort, projection, modelView, light_dir, headTexture, headNormalMap, headSpecularMap);
+
+var image = Render (headModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+```csharp
+var diabloModel = Model.FromFile ("obj/diablo3_pose.obj");
+var diabloTexture = Image.Load ("obj/diablo3_pose_diffuse.tga");
+var diabloNormalMap = Image.Load ("obj/diablo3_pose_nm.tga");
+var diabloTangentMap = Image.Load ("obj/diablo3_pose_nm_tangent.tga");
+var diabloSpecularMap = Image.Load ("obj/diablo3_pose_spec.tga");
+diabloTexture.VerticalFlip ();
+diabloNormalMap.VerticalFlip ();
+diabloTangentMap.VerticalFlip ();
+diabloSpecularMap.VerticalFlip ();
+
+var shader = new SpecularShader (diabloModel, viewPort, projection, modelView, light_dir, diabloTexture, diabloNormalMap, diabloSpecularMap);
+
+var image = Render (diabloModel, shader).Image;
+image.VerticalFlip();
+image
+```
+
+# **Conclusion**
+
+We know how to render quite nice scenes, but our lighting is far from being real. In the next articles I will talk about shadows.
+
+Enjoy!
