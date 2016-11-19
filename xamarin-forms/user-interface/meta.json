@@ -1,6 +1,6 @@
 {
   "order":{
-    "alerts/alert.workbook":"Alert",
+    "alerts/alerts.workbook":"Alert",
     "button/button.workbook":"Button",
     "editor/editor.workbook":"Editor",
     "entry/entry.workbook":"Entry",
