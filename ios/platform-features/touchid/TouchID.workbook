@@ -1,8 +1,12 @@
 ---
 uti: com.xamarin.workbook
-platform: iOS
-packages: []
+platforms:
+- iOS
 ---
+
+## ❗️Note❗️
+
+To determine Touch ID in the simulator, you must select **Touch ID Enrolled** in the simulator’s **Hardware **menu. You can then simulate finger touches by browsing to **Hardware > Simulate Finger Touch** and selecting either **Matching **or **Non-matching**.
 
 # Adding Touch ID to your Xamarin.iOS app
 
@@ -10,7 +14,7 @@ iOS 8 introduced the functionality for developers to use Apple’s biometric fin
 
 All authentication data held on an iOS device, is stored within the Secure Enclave, a co-processor  within the chip that is responsible for determining successful matches for authentication. When Touch ID is enabled on a users device, the Secure Enclave will check if there is a suitable match, and if there is will decrypt the requested keychain item.
 
-In this example, we {>> apparently we are discouraging the use of ‘we’ in our Workbooks <<} are going to explore how to add Touch ID to a Xamarin iOS app.
+This example explores how to add Touch ID to a Xamarin iOS app.
 
 First, add the required using statements to import the APIs that we will be using.
 
@@ -20,17 +24,13 @@ using CoreGraphics;
 using LocalAuthentication;
 ```
 
-Next, we need to create the Window, and add a RootViewController to it to allow our user to interact with the interface. We have set the background of the View Controller’s view to yellow. {>> Workbooks now exposes \`RootViewController\` as a global, so this step is not strictly necessary <<}
+We have set the background of the View Controller’s view to yellow.
 
 ```csharp
-var window = new UIWindow(UIScreen.MainScreen.Bounds);
-window.MakeKeyAndVisible();
-var vc = new UIViewController();
-window.RootViewController = vc;
-vc.View.BackgroundColor = UIColor.Yellow
+RootViewController.View.BackgroundColor = UIColor.Yellow
 ```
 
-Let’s create a button. When the user clicks this button, they will be asked to provide their finger print to authenticate themselves:
+Let’s create a button. When the user clicks this button, they will be asked to provide their fingerprint to authenticate themselves:
 
 ```csharp
 var button = UIButton.FromType (UIButtonType.System);
@@ -38,10 +38,10 @@ button.Frame = new CGRect(20, 200, 280, 40);
 button.SetTitle("Locally Authenticate Me!", UIControlState.Normal)
 ```
 
-We’ll then add this button to the view hierarchy:
+Add this button to the view hierarchy:
 
 ```csharp
-vc.View.AddSubview(button)
+RootViewController.View.AddSubview(button)
 ```
 
 When the user authenticates successfully, we want to **do** something. For the sake of this example, we will simply just send them to a new View Controller, with a label that tells them they have been successfully authenticated. Let’s create this View Controller now:
@@ -62,7 +62,7 @@ NSError AuthError;
 var myReason = new NSString("To gain secret access");
 ```
 
-Finally, add the code to handle TouchID inside the button’s event handler. First we’ll use `CanEvaluatePolicy`  with the policy `DeviceOwnerAuthenticationWithBiometrics`to determine if the device has TouchID enabled. If it does then we can display the Touch ID UI by using `EvaluatePolicy`. There are three pieces of information we have to pass into `EvaluatePolicy` – the policy itself, a string explaining why authentication is necessary, and a reply handler. The reply handler tells the application what it should do in the case of a successful, or unsuccessful, authentication. {>> Could you add a message if touch id is _not_ enabled? i.e., if the simulator doesn’t have the enrolled thing set. That threw me the first time I ran this workbook. <<}
+Finally, add the code to handle TouchID inside the button’s event handler. First we’ll use `CanEvaluatePolicy`  with the policy `DeviceOwnerAuthenticationWithBiometrics`to determine if the device has TouchID enabled. If it does then we can display the Touch ID UI by using `EvaluatePolicy`. There are three pieces of information we have to pass into `EvaluatePolicy` – the policy itself, a string explaining why authentication is necessary, and a reply handler. The reply handler tells the application what it should do in the case of a successful, or unsuccessful, authentication.
 
 One of the caveats of Local Authentication is that it must be run on the foreground, so make sure to use `InvokeOnMainThread`:
 
@@ -70,9 +70,9 @@ One of the caveats of Local Authentication is that it must be run on the foregro
 button.TouchUpInside += (sender, e) => {
                 if (context.CanEvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, out AuthError)){
 					var replyHandler = new LAContextReplyHandler((success, error) => {
-						vc.InvokeOnMainThread(()=>{
+						RootViewController.InvokeOnMainThread(()=>{
 							if(success){
-								vc.PresentViewController(vcAuthenticated, true, null);
+								RootViewController.PresentViewController(vcAuthenticated, true, null);
 							}
 							else{
 								//Show fallback mechanism here
@@ -82,9 +82,11 @@ button.TouchUpInside += (sender, e) => {
 					 });
 					context.EvaluatePolicy(LAPolicy.DeviceOwnerAuthenticationWithBiometrics, myReason, replyHandler);
 				}
+                else
+                {
+                    var noTouchID = UIAlertController.Create ("OK Alert", "TouchID is not enabled. See note at top of workbook.", UIAlertControllerStyle.Alert);
+                    noTouchID.AddAction (UIAlertAction.Create ("Ok", UIAlertActionStyle.Default, null));
+                   RootViewController.PresentViewController (noTouchID, true, null);
+                }
             };
 ```
-
-## Note
-
-To determine Touch ID in the simulator, you must select **Touch ID Enrolled** in the simulator’s \*\*Hardware \*\*menu. You can then simulate finger touches by browsing to **Hardware > Simulate Finger Touch** and selecting either \*\*Matching \*\*or **Non-matching. {>> This threw me the first time through. Maybe move to top? (I dunno’, just a thought) <<}**
