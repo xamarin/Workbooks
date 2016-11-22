@@ -1,0 +1,392 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+packages:
+- id: System.Text.Encoding.CodePages
+  version: 4.3.0
+- id: System.Security.Cryptography.Algorithms
+  version: 4.3.0
+- id: System.IO.FileSystem
+  version: 4.3.0
+- id: System.Collections.Concurrent
+  version: 4.3.0
+- id: System.Linq.Expressions
+  version: 4.3.0
+- id: System.Runtime
+  version: 4.3.0
+- id: System.Diagnostics.FileVersionInfo
+  version: 4.3.0
+- id: System.Diagnostics.Debug
+  version: 4.3.0
+- id: System.Collections.Immutable
+  version: 1.3.0
+- id: System.Diagnostics.StackTrace
+  version: 4.3.0
+- id: System.Resources.ResourceManager
+  version: 4.3.0
+- id: System.Xml.XmlDocument
+  version: 4.3.0
+- id: System.Diagnostics.Tools
+  version: 4.3.0
+- id: System.Console
+  version: 4.3.0
+- id: System.Security.Cryptography.X509Certificates
+  version: 4.3.0
+- id: System.Reflection.Primitives
+  version: 4.3.0
+- id: System.Runtime.Extensions
+  version: 4.3.0
+- id: System.Security.Cryptography.Primitives
+  version: 4.3.0
+- id: System.Runtime.InteropServices
+  version: 4.3.0
+- id: System.Reflection.Metadata
+  version: 1.4.1
+- id: System.Text.Encoding
+  version: 4.3.0
+- id: System.Text.Encoding.Extensions
+  version: 4.3.0
+- id: System.Xml.ReaderWriter
+  version: 4.3.0
+- id: System.IO.FileSystem.Primitives
+  version: 4.3.0
+- id: System.Globalization
+  version: 4.3.0
+- id: System.Threading.Tasks.Parallel
+  version: 4.3.0
+- id: System.Collections
+  version: 4.3.0
+- id: Microsoft.CodeAnalysis.Common
+  version: 1.3.2
+- id: System.AppContext
+  version: 4.3.0
+- id: System.Runtime.Numerics
+  version: 4.3.0
+- id: System.Runtime.Handles
+  version: 4.3.0
+- id: System.Threading.Tasks
+  version: 4.3.0
+- id: System.Threading
+  version: 4.3.0
+- id: System.Threading.Thread
+  version: 4.3.0
+- id: System.Reflection
+  version: 4.3.0
+- id: System.Xml.XPath.XDocument
+  version: 4.3.0
+- id: System.Xml.XDocument
+  version: 4.3.0
+- id: System.Security.Cryptography.Encoding
+  version: 4.3.0
+- id: System.Xml.XPath
+  version: 4.3.0
+- id: Microsoft.CodeAnalysis.CSharp
+  version: 1.3.2
+- id: System.Linq
+  version: 4.3.0
+- id: System.Dynamic.Runtime
+  version: 4.3.0
+---
+
+# Exploring Roslyn Syntax Trees
+
+A compiler is often visualized as a “black box”: Source code goes in, and machine code comes out.
+
+Today’s compilers, however, need to be much more sophisticated. Programming environments such as Visual Studio make use of the intermediate results of parsing and compilation to display possible errors, to adjust formatting, and to provide suggestions to the programmer. Modern compilers are actually services with a vast infrastructure of APIs.
+
+The .NET Compiler Platform is Microsoft’s open-source C# and Visual Basic compiler that does indeed expose a rich collection of APIs for source-code analysis and other tasks. Although the official name of the .NET Compiler Platform is descriptive and not too wordy, it is still generally referred to by its original codename, Roslyn, named after the city in Washington state.
+
+The Roslyn information hub is the Github repository where it resides:
+
+[https://github.com/dotnet/roslyn](https://github.com/dotnet/roslyn "Roslyn repository on Github")
+
+The ReadMe file in the root directory contains links to other resources, including an alternative source-code browser for Roslyn that supports searching and hyperlinks:
+
+[http://source.roslyn.io/](http://source.roslyn.io/ "Roslyn source code")
+
+This workbook explores a few basic concepts of Roslyn. You’ll see how Roslyn translates a C# or Visual Basic source code file or code snippet into a syntax tree, which is a tree of nodes of type `SyntaxNode`. Every syntax node object corresponds to a code element and generally a span of text in the source-code file.
+
+If you wish to create your own workbooks to use Roslyn to analyze C# code, you’ll need to invoke the **File | Add Package** menu command to add the **Microsoft.CodeAnalysis.CSharp** Nuget package. That’s already been done for this workbook. Adding this package creates the following assembly reference:
+
+```csharp
+#r "Microsoft.CodeAnalysis.CSharp"
+```
+
+The **Microsoft.CodeAnalysis.Common** assembly is automatically included as well.
+
+You’ll need a few `using` directives:
+
+```csharp
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+```
+
+Here is a string containing a tiny but complete C# program that performs a little calculation and displays the words “Hello, Roslyn!”:
+
+```csharp
+string helloRoslyn = 
+@"using System;
+
+namespace HelloRoslyn
+{
+    class MyProgram
+    {
+        static void Main(string[] args)
+        {
+            double twoPi = 2 * Math.PI;
+            Console.WriteLine(""Hello, Roslyn!"");
+        }
+    }
+}"
+```
+
+What you will *not* see in this workbook is this program actually running! The program won’t even be compiled. Instead, this workbook demonstrates how you can use Roslyn tools to parse the code and analyze the program.
+
+## The Tree and its Root
+
+The static `CSharpSyntaxTree.ParseText` method breaks the code down into a tree of `SyntaxNode` objects:
+
+```csharp
+SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(helloRoslyn);
+```
+
+The `ParseText` method is defined as returning an object of type `SyntaxTree`. By default, the workbook displays the `ToString` representation of the `SyntaxTree` object, which is the entire text of the little program. If you choose **Object Members** rather than **ToString()** from the dropdown menu, you’ll see that the object is actually of type `ParsedSyntaxTree`, a private class embedded in (and deriving from) the `CSharpSyntaxTree` class, which derives from `SyntaxTree`.
+
+The `SyntaxTree` class defines a `GetRoot` method that returns a `SyntaxNode` object that represents the entire code document:
+
+```csharp
+SyntaxNode rootSyntaxNode = syntaxTree.GetRoot();
+```
+
+Again, the `ToString` representation is the entire program. But as you can see by selecting **Object Members** from the dropdown, the object returned from `GetRoot` is actually of type `CompilationUnitSyntax`, which is a type of `SyntaxNode` that refers to a chunk of code that can be compiled.
+
+There are 218 classes in the `Microsoft.CodeAnalysis.CSharp.Syntax` namespace that derive from `SyntaxNode` and `CSharpSyntaxNode`, and they all have a `Syntax` suffix. A few of the other classes that derive from `SyntaxNode` are:
+
+* `ClassDeclarationSyntax`
+
+* `StructDeclarationSyntax`
+
+* `MethodDeclarationSyntax`
+
+* `PropertyDeclarationSyntax`
+
+* `LocalDeclarationStatementSyntax`
+
+* `ExpressionStatementSyntax`
+
+In the **Object Members** listing of `CompilationUnitSyntax`, you can see several properties with the word `Trivia` in their names. This term refers to elements of the source code that are not generally important to the compilation, such as whitespace and comments. These are not syntax nodes in themselves but they are part of syntax nodes. The trivia occurs either at the beginning of the node (referred to as `Leading`) or at the end of the node (`Trailing`). Any embedded whitespace or comments are part of child nodes.
+
+The `Span` property indicates the starting offset of the text for this node, and the length of the text encompassed by the node. Notice how the `Span` property is displayed with the syntax **\[num1..num2)**. The square bracket at the beginning and a parenthesis at the end means that the span of text begins at offset **num1** and goes up to but *not* including offset **num2**. The `FullSpan` property includes trivia.
+
+The `ToString` method of `SyntaxNode` returns the text associated with the syntax node, which is the text encompassed by the `Span` property. `SyntaxNode` also defines a `ToFullString` method that returns the text encompassed by the `FullSpan` property and which includes trivia.
+
+Some of the most important characteristics of a `SyntaxNode` object are not exposed as properties but instead must be accessed through methods. One of these methods is `Kind`:
+
+```csharp
+SyntaxKind kind = rootSyntaxNode.Kind();
+```
+
+This method returns a member of the `SyntaxKind` enumeration, which has about 480 members. ([Take a look](http://source.roslyn.io/#Microsoft.CodeAnalysis.CSharp/Syntax/SyntaxKind.cs "SyntaxKind.cs").) Many of these members correspond to classes that derive from `SyntaxNode`. For example, if the `Kind` method of a `SyntaxNode` object returns `NullableType`, then the `SyntaxNode` object is actually of type `NullableTypeSyntax`. But there are more members of the `SyntaxKind` enumeration than types of `SyntaxNode` derivatives. You’ll see many with the suffix of `Token` and others with a suffix of `Keyword`. You’ll see some of those later in this workbook.
+
+## Child Nodes
+
+`SyntaxNode` also defines a `ChildNodes` method:
+
+```csharp
+IEnumerable<SyntaxNode> rootChildren = rootSyntaxNode.ChildNodes();
+```
+
+When you run this code cell you can easily identify the two items in this collection by their `ToString` representations: The first is a collection of `using` directives and the second is the remainder of the program beginning with the `namespace` declaration. By selecting **Object Members** from the dropdown menus for these items, you’ll see that the first is a `SyntaxNode` of type `UsingDirectiveSyntax`, and the second is a `SyntaxNode` of type `NamspaceDeclarationSyntax`, which encompasses the `namespace` declaration and everything in it.
+
+It’s posible to write a small method that calls the `ChildNodes` method recursively to obtain a full list of all the syntax nodes that make up the compilation unit. The following method first displays the result of the `Kind()` method and the `Span` start and length values. If the node has no children, then the text associated with the node is displayed. Otherwise the method is called recursively for the node’s children:
+
+```csharp
+void DisplayNodes(SyntaxNode syntaxNode, int indent = 0)
+{
+    Console.Write("{0}{1} {2}", new string('\u00A0', 4 * indent), 
+                                syntaxNode.Kind(), 
+                                syntaxNode.Span);
+
+    IEnumerable<SyntaxNode> childNodes = syntaxNode.ChildNodes();
+
+    if (childNodes.Count() == 0)
+    {
+        Console.WriteLine(" {0}", syntaxNode);
+    }
+    else
+    {
+        Console.WriteLine();   // end the line displayed with Write
+        foreach (SyntaxNode childNode in childNodes)
+        {
+            DisplayNodes(childNode, indent + 1);
+        }
+    }
+}
+```
+
+The `indent` parameter to `DisplayNodes` causes each line to be indented based on the nesting level. You can run this function for the entire little program by passing the root node as an argument:
+
+```csharp
+DisplayNodes(rootSyntaxNode);
+```
+
+Keep in mind that the text that begins each line is a member of the `SyntaxKind` enumeration returned from the `Kind` method, and the type of the `SyntaxNode` is that same name with the word `Syntax` appended. When discussing these nodes you can use either name.
+
+Notice how these nodes correspond to the overall structure of the program. The `NamespaceDeclaration` node includes a `ClassDeclaration`, which includes a `MethodDeclaration`, which includes a method `ParameterList` and a `Block`, which is the method body delimited by curly braces. The `Block` contains two statements: a `LocalDeclarationStatement` for the `twoPi` variable, and an `ExpressionStatement` for the `Console.WriteLine` call.\
+\
+The `DisplayNode` function that creates this listing only displays the text associated with a node if the node has no children. Otherwise, many nodes would encompass multiple lines of text and the display would look like a mess. You’ll see in this list several recognizable portions of the little program, but certainly not all of them. For example, where is the class name of `MyProgram` and the method name of `Main`?
+
+## Syntax Nodes in Detail
+
+The class name and method name are not themselves `SyntaxNode` objects. They are part of other syntax nodes, and to see them you’ll need to examine the `ClassDeclarationSyntax` and `MethodDeclarationSyntax` objects in more detail.
+
+Here is a little function that recursively enumerates the entire syntax tree and returns a particular `SyntaxNode` corresponding to a criterion that you can set as a parameter to the function:
+
+```csharp
+SyntaxNode FindNode(SyntaxNode syntaxNode, Func<SyntaxNode, bool> criterion)
+{
+    if (criterion(syntaxNode))
+        return syntaxNode;
+
+    foreach (SyntaxNode childNode in syntaxNode.ChildNodes())
+    {
+        SyntaxNode foundNode = FindNode(childNode, criterion);
+
+        if (foundNode != null)
+        {
+            return foundNode;
+        }
+    }
+    return null;        
+}
+```
+
+The following call returns the first `SyntaxNode` in the tree whose `Kind` method returns `SyntaxKind.ClassDeclaration`:
+
+```csharp
+SyntaxNode classDeclarationSyntax = FindNode(rootSyntaxNode, (syntaxNode) => syntaxNode.Kind() == SyntaxKind.ClassDeclaration);
+```
+
+A `SyntaxNode` of type `ClassDeclarationSyntax` contains information about an entire class. The `Identifier` property is the name of the class. The `Modifiers` property contains information about the class modifiers (such as `public` and `static`), the `BaseList` is a list of the classes this class derives from and the interfaces it implements, and the `Members`property provides information about all the class’s members. The information is similar to what you can obtain from .NET reflection but very differently organized.
+
+Similarly, you can find the `Main` method like this:
+
+```csharp
+SyntaxNode methodDeclarationSyntax = FindNode(rootSyntaxNode, (syntaxNode) => syntaxNode.Kind() == SyntaxKind.MethodDeclaration);
+```
+
+The method name is available in the `Identifier` property, and the `Parameters` property contains information about all the parameters to the method.
+
+## Syntax Nodes \+ Tokens \+ Keywords
+
+It’s also possible to display a tree containing the text of the entire program (without trivia) by enumerating not only syntax nodes, but also tokens. Tokens include punctuation characters, string literals, numeric literals, identifiers, and keywords. 
+
+You can rewrite the `DisplayNodes` function to be `DisplayNodesAndTokens` by replacing occurrences of the `SyntaxNode` type with `SyntaxNodeOrToken`, and replacing the `ChildNodes` method call with `ChildNodesAndTokens`:
+
+```csharp
+void DisplayNodesAndTokens(SyntaxNodeOrToken syntaxNodeOrToken, int indent = 0)
+{
+    Console.Write("{0}{1} [{2}..{3})", new string('\u00A0', 4 * indent), 
+                                       syntaxNodeOrToken.Kind(),
+                                       syntaxNodeOrToken.Span.Start,
+                                       syntaxNodeOrToken.Span.End);
+
+    IEnumerable<SyntaxNodeOrToken> childNodesOrTokens = syntaxNodeOrToken.ChildNodesAndTokens();
+
+    if (childNodesOrTokens.Count() == 0)
+    {
+        Console.WriteLine(" {0}", syntaxNodeOrToken);
+    }
+    else
+    {
+        Console.WriteLine();
+        foreach (SyntaxNodeOrToken childNodeOrToken in childNodesOrTokens)
+        {
+            DisplayNodesAndTokens(childNodeOrToken, indent + 1);
+        }
+    }
+}
+```
+
+Now run this method starting at the root node:
+
+```csharp
+DisplayNodesAndTokens(rootSyntaxNode);
+```
+
+Now you can see every little character that makes up this little program, all identified with members of the `SyntaxKind` enumeration, including members with suffixes of `Token` and `Keyword`.
+
+## Experiment!
+
+Of course, you’ll want to go back to the original string that contains this little program to make changes and see what happens. You’ll also want to introduce errors into the code and see how that is handled.
+
+Keep in mind that this little program has only been parsed for syntax. It has not been compiled. The parser is not trying to resolve the `Math.PI` field or the `Console.WriteLine` methods. The parser clearly recognizes the `void` return value of `Main` as a `VoidKeyword` token, but if you change that return type to something else (for example, `xoid`), it merely becomes an `IdentifierToken` whose meaning is not yet known.
+
+Compilation adds semantics to syntax. But that’s a step for another workbook.
+
+## Bonus Addendum
+
+The 219 classes that derive from `SyntaxNode` correspond to all the structural elements that potentially comprise a C# program. Wouldn’t it be interesting to see a class hierarchy of these `SyntaxNode` derivatives?
+
+You could use Roslyn to do that, but you would need to load in the Roslyn source code files. Since this workbook has access to some Roslyn assemblies, it makes more sense to use standard .NET reflection for this job.
+
+The first step is to define a class to store all the names of the classes that derive from `SyntaxNode` and the base class name of each of those classes:
+
+```csharp
+class ClassAndBase 
+{
+    public ClassAndBase(string name, string baseClass = null)
+    {
+        Name = name;
+        BaseClass = baseClass;
+    }
+    public string Name { private set; get; }
+    public string BaseClass { private set; get; }
+}
+```
+
+The following code loops through all the types in the **Microsoft.CodeAnalysis.CSharp** assembly, which contains all the classes for C# that derive from `SyntaxNode` but not `Syntax Node` itself. These are accumulated in a `List` object and then sorted:
+
+```csharp
+var assembly = System.Reflection.Assembly.GetAssembly(typeof(ClassDeclarationSyntax));
+List<ClassAndBase> classList = new List<ClassAndBase>(); 
+
+foreach (Type type in assembly.GetExportedTypes())
+{
+    if (type.IsSubclassOf(typeof(SyntaxNode)))
+    {
+        classList.Add(new ClassAndBase(type.Name, type.BaseType.Name));
+    }
+}
+
+classList.Sort((arg1, arg2) => arg1.Name.CompareTo(arg2.Name));
+```
+
+The following recursive function displays a class and all of its subclasses:
+
+```csharp
+void DisplayClassAndSubclasses(ClassAndBase baseClass, int indent = 0)
+{
+    Console.WriteLine("{0}{1}", new string('\u00A0', 4 * indent), baseClass.Name);
+
+    foreach (ClassAndBase subclass in classList)
+    {
+        if (subclass.BaseClass == baseClass.Name)
+        {
+            DisplayClassAndSubclasses(subclass, indent + 1);
+        }        
+    }                                
+}
+```
+
+To kick off the display, simply call the function starting with `SyntaxNode`:
+
+```csharp
+DisplayClassAndSubclasses(new ClassAndBase("SyntaxNode"));
+```
+
+At first glance, you might think it impossible that you’re familiar with all these many types of syntax structures possible in a C# program. But take a closer look. Probably the most familiar will be the classes that derive from `ExpressionSyntax`, `StatementSyntax` and `MemberDeclarationSyntax`, which also includes the various types supported by C#.  
+
+You might conclude you know C# better than you thought, but exploring Roslyn is a great way to learn the language in even more depth.
