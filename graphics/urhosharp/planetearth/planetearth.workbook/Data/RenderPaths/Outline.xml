@@ -1,0 +1,27 @@
+<renderpath>
+  <rendertarget name="outlineMask" sizedivisor="1 1" format="rgba" filter="true" />
+  <rendertarget name="outlineBlurredMaskH" sizedivisor="2 2" format="rgba" filter="true" />
+  <rendertarget name="outlineBlurredMaskV" sizedivisor="2 2" format="rgba" filter="true" />
+  <command type="clear" color="fog" depth="1.0" stencil="0" />
+  <command type="clear" color="0 0 0 0" output="outlineMask" />
+  <command type="scenepass" pass="base" vertexlights="true" metadata="base" />
+  <command type="forwardlights" pass="light" />
+  <command type="scenepass" pass="postopaque" />
+  <command type="scenepass" pass="refract">
+    <texture unit="environment" name="viewport" />
+  </command>
+  <command type="scenepass" pass="alpha" vertexlights="true" sort="backtofront" metadata="alpha" />
+  <command type="scenepass" pass="postalpha" sort="backtofront" />
+  <command type="scenepass" pass="outline" output="outlineMask" sort="backtofront" />
+  <command type="quad" vs="Outline" ps="Outline" psdefines="BLURH" output="outlineBlurredMaskH">
+    <texture unit="diffuse" name="outlineMask" />
+  </command>
+  <command type="quad" vs="Outline" ps="Outline" psdefines="BLURV" output="outlineBlurredMaskV">
+    <texture unit="diffuse" name="outlineBlurredMaskH" />
+  </command>
+  <command type="quad" vs="Outline" ps="Outline" psdefines="OUTPUT" output="viewport">
+    <texture unit="diffuse" name="outlineBlurredMaskV" />
+    <texture unit="normal" name="outlineMask" />
+    <texture unit="specular" name="viewport" />
+  </command>
+</renderpath>
