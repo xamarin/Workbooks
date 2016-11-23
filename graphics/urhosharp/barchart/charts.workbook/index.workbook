@@ -1,0 +1,67 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacNet45
+- WPF
+---
+
+```csharp
+#r "Urho.dll"
+```
+
+We are going to bring the Urho namespaces:
+
+```csharp
+using Urho;
+using Urho.Repl;
+using Urho.Actions;
+using Urho.Shapes;
+```
+
+We create our main window to display our data:
+
+```csharp
+var app = await Simple3DScene.RunAsync();
+```
+
+We are going to add nodes that have a visual component (the bar) and add a plane to it:
+
+```csharp
+app.RootNode.RemoveAllChildren();
+//1
+var bar1 = app.RootNode.CreateChild();
+bar1.AddComponent(new Bar("Cats", Color.Red));
+bar1.Position = new Vector3(0, 0, 0);
+//2
+var bar2 = app.RootNode.CreateChild();
+bar2.AddComponent(new Bar("Dogs", Color.Yellow));
+bar2.Position = new Vector3(1.5f, 0, 0);
+//3
+var bar3 = app.RootNode.CreateChild();
+bar3.AddComponent(new Bar("Mice", Color.Blue));
+bar3.Position = new Vector3(3f, 0, 0);
+//4
+var bar4 = app.RootNode.CreateChild();
+bar4.AddComponent(new Bar("Birds", Color.Green));
+bar4.Position = new Vector3(4.5f, 0, 0);
+
+//plane
+app.RootNode.RunActions(new Parallel(new RotateTo(1f, -15, -20, 0), new MoveTo(1f, new Vector3(-2, -2, 8))));
+var planeNode = app.RootNode.CreateChild();
+planeNode.Position = new Vector3(4, -2, 4);
+planeNode.Scale = new Vector3(10, 1, 4);
+var plane = planeNode.CreateComponent<Urho.Shapes.Plane>();
+plane.Color = Color.White;
+app.SetBackgroundColor(Color.Gray);
+```
+
+We are now going to set their sizes:
+
+```csharp
+Random rand = new Random();
+app.RootNode.GetChildrenWithComponent<Bar>().ToList().ForEach(i => i.GetComponent<Bar>().Value = (float)rand.NextDouble() * 3 + 1);
+```
+
+```csharp
+app.MoveCamera = true
+```

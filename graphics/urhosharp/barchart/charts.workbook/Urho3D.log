@@ -1,0 +1,10 @@
+[Wed Nov 23 16:55:39 2016] INFO: Opened log file Urho3D.log
+[Wed Nov 23 16:55:39 2016] INFO: Created 5 worker threads
+[Wed Nov 23 16:55:39 2016] INFO: Added resource package C:/Projects/Workbooks/graphics/urhosharp/barchart/charts.workbook/CoreData.pak
+[Wed Nov 23 16:55:39 2016] INFO: Added resource path C:/Projects/Workbooks/graphics/urhosharp/barchart/charts.workbook/Data/
+[Wed Nov 23 16:55:39 2016] INFO: Set screen mode 600x500 windowed resizable
+[Wed Nov 23 16:55:39 2016] INFO: Initialized input
+[Wed Nov 23 16:55:39 2016] INFO: Initialized user interface
+[Wed Nov 23 16:55:39 2016] INFO: Initialized renderer
+[Wed Nov 23 16:55:39 2016] INFO: Set audio mode 44100 Hz stereo interpolated
+[Wed Nov 23 16:55:39 2016] INFO: Initialized engine

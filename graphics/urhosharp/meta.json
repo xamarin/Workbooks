@@ -1,10 +1,9 @@
 {
   "order":{
     "animated-model/animated-model.workbook":"Animated Model",
-    "barchart/charts-mac.workbook":"Charts for Mac",
+    "barchart/charts.workbook":"Charts",
     "coordinates/ExploringUrhoCoordinates.workbook":"Exploring Urho Coordinates",
     "physics/physics.workbook":"Physics",
-    "planetearth/planetearth-mac.workbook":"Planet Earth for Mac",
-    "planetearth/planetearth-wpf.workbook":"Planet Earth for WPF"
+    "planetearth/planetearth.workbook":"Planet Earth",
   }
 }
