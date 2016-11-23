@@ -13,7 +13,6 @@ We are going to bring the Urho namespaces:
 
 ```csharp
 using Urho;
-using Urho.Repl;
 using Urho.Actions;
 using Urho.Shapes;
 ```
@@ -21,7 +20,9 @@ using Urho.Shapes;
 We create our main window to display our data:
 
 ```csharp
-var app = await Simple3DScene.RunAsync();
+var app = await SimpleApplication.RunAsync();
+app.Input.SetMouseVisible(true, true);
+app.Viewport.RenderPath.Append(CoreAssets.PostProcess.FXAA3);
 ```
 
 We are going to add nodes that have a visual component (the bar) and add a plane to it:
@@ -52,7 +53,6 @@ planeNode.Position = new Vector3(4, -2, 4);
 planeNode.Scale = new Vector3(10, 1, 4);
 var plane = planeNode.CreateComponent<Urho.Shapes.Plane>();
 plane.Color = Color.White;
-app.SetBackgroundColor(Color.Gray);
 ```
 
 We are now going to set their sizes:
@@ -65,3 +65,4 @@ app.RootNode.GetChildrenWithComponent<Bar>().ToList().ForEach(i => i.GetComponen
 ```csharp
 app.MoveCamera = true
 ```
+
