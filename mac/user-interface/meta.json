@@ -4,6 +4,7 @@
     "tableview/NSTableView.workbook":"Table View",
     "toolbars/toolbars.workbook":"Toolbar",
     "ui-in-code/codebasedui.workbook":"Creating UI in Code",
+    "segues/Segues.workbook":"Storyboard Segues",
     "webbrowser/webbrowser.workbook":"Web Browser"
   }
 }

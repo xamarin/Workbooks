@@ -44,39 +44,19 @@ Workbooks don’t natively support macOS Storyboards, so the first thing that wi
 #load "StoryboardResources.csx"
 ```
 
-Using this library, there are a few differences that will need to be taken into account when designing UI in Xcode’s Interface Builder.
+Using this library, there are a few differences that will need to be taken into account when designing UI in Xcode’s Interface Builder:
 
-First, Outlets cannot be defined by Control-Dragging as normal (because there is no `.h` header file to attach to), so a few different techniques will need to be used to define Outlets in Interface Builder for workbooks:
+* Outlets cannot be defined by Control-Dragging as normal because there is no `.h` header file to attach to. Instead, use the **Identifier** field in the **Identity Inspector** for **Windows, Views** and **View based Controls**. **Menu Items** will automatically bind to any Outlet that match their `Title` \+ “*MenuItem*” (for example, `NewMenuItem`). **Toolbar Items** will automatically bind to any Outlet that match their `Label` \+ “*ToolbarItem*” (for example, `ColorToolbarItem`).
 
-* **Windows, Views and View based Controls** - Select the element in the design surface, switch to the **Identity Inspector** and enter the name of the Outlet in the **Identifier** field.
+* Actions need to manually be added to the **First Responder** in the **Scene** where they will be used by clicking the **\+** button in the **Attribute Inspector** and defining the new Action. Next, select the element to attach to, Control-Click, dragging a line to the **First Responder** in the same **Scene** and selecting the defined Action.
 
-* **Menu Items** - Menu Items will automatically bind to any Outlet that match their **Title** \+ “*MenuItem*”. For example, the “*New*” Menu Item will bind to the “*NewMenuItem*” Outlet.
+* Only the built-in Segue types are currently supported by the library and **Views** and **View based Controls** *must* have a custom **Identifier** set in the **Identity Inspector**. For Custom Segues, the developer will have to manually load and display the child Window or View Controller.
 
-* **Toolbar Items** - Toolbar Items will automatically bind to any Outlet that match their **Label** \+ “*ToolbarItem*”. For example, the “*Color*” Toolbar Item will bind to the “*ColorToolbarItem*” Outlet.
+* Because of the way workbooks function, loading and instantiating Window and View Controllers  is done using methods of the `StoryboardInflator` helper class as opposed to using the typical `NSStoryboard` methods. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
 
-Actions also require a slightly different technique to create (again, because there is no `.h` header file to attach to):
+* The `StoryboardBinder` helper class will need to be used to "bind" (map) classes defined in the workbook to UI elements inflated from a Storyboard.
 
-1. Select the **First Responder** in the **Scene** to create an **Action** for.
-
-2. In the **Attribute Inspector**, click the **\+** button to add a new User Defined **Action**. For example, `GoButtonClicked:`.
-
-3. Select the element to attach to the new **Action**, Control-Click and drag a line to the **First Responder** in the same **Scene**. For example, from a `NSButton`.
-
-4. From the dialog box select the new **Action** just created. For example, to the `GoButtonClicked:` **Action**.
-
-Several standard macOS controls have built-in Actions already attached to them, such as the `newDocument:` Action for the New Menu Item. These will automatically bind to like named Actions in the workbook classes.
-
-Because of the way workbooks function, loading and instantiating Window and View Controllers  is done using methods of the `StoryboardInflator` helper class as opposed to using the typical `NSStoryboard` methods. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
-
-Only Containment Segues are currently supported by the library. For all other types of Segues, the developer will have to manually load and display the child Window or View Controller.
-
-With these differences aside, after the Windows and View Controllers are loaded and the Outlets and Actions are bound, they are used same way as Windows, View Controllers, Outlets and Actions created and loaded the typical way in a normal macOS app. So the knowledge gained here can be used when building a regular Xamarin.Mac app project.
-
----
-
-⚠️ NOTE: To edit the Storyboard that is part of this workbook, select the `webbrowser.workbook` file in Finder and right-click on **Show Package Contents**. 
-
----
+With these differences aside, Storyboards are used same way they typically would be in a normal macOS app, so the knowledge gained here can be used when building a regular Xamarin.Mac app project. For more information, please see our [Introduction to Storyboards](https://developer.xamarin.com/guides/mac/platform-features/storyboards/) documentation.
 
 ### Compiling the Storyboard
 
@@ -86,6 +66,8 @@ Every time the developer edits the Storyboard, those changes will need to be com
 var usingStoryboard = "Main";
 StoryboardCompiler.Compile(usingStoryboard);
 ```
+
+> ⚠️ To edit the Storyboard that is part of this workbook, select the `.workbook` file in Finder, right-click it and select **Show Package Contents**.
 
 ## Defining the Supporting Classes
 
@@ -263,21 +245,17 @@ The `WebBrowser.ReceivedTitle` event is called when the Web Browser control rece
 
 The `ShowURL` method will display the given URL in the web browser and the `ShowFavoriteWebsite` method is used to show URLs from the built-in favorite web pages that will be defined as both Menu Items and Toolbar Items below.
 
----
-
-###### 👍 Try it now!
-
-* Change the default URL that is displayed when a new Window is opened.
-
-* Set a new `BackgroundColor` and `TextColor` for the `GoButton` by editing the Storyboard in Xcode's Interface Builder.
-
-* Adjust the appearance of the `StatusLabel` and set a new default value by editing the Storyboard in Xcode's Interface Builder.
-
-* Make hitting the Enter key in the `URLField` cause the URL to load the same as clicking the Go button. ***Hint:** Use the `ShouldEndEditing` event of the `NSTextField` class.*
-
-***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Change the default URL that is displayed when a new Window is opened.
+>
+> 2. Set a new `BackgroundColor` and `TextColor` for the `GoButton` by editing the Storyboard in Xcode's Interface Builder.
+>
+> 3. Adjust the appearance of the `StatusLabel` and set a new default value by editing the Storyboard in Xcode's Interface Builder.
+>
+> 4. Make hitting the Enter key in the `URLField` cause the URL to load the same as clicking the Go button. ***Hint:** Use the `ShouldEndEditing` event of the `NSTextField` class.*
+>
+> ⚠️ These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.
 
 ### The Main Window Controller
 
@@ -327,15 +305,11 @@ Let’s take a look at what this code is doing in detail. A custom `showFavorite
 
 The `WindowDidLoad` event will be called after the Window and WindowController have been loaded and instantiated from the Storyboard. The default Window Title is being set here.
 
----
-
-###### 👍 Try it now!
-
-* Add more available Favorite URL items to the Toolbar in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add the new URLs to the `ShowFavoriteWebsite` method of the `MainViewController`. ***Hint:** Use a **Image Toolbar Item** in Interface Builder to add more items.* Please see our [Creating and Maintaining Toolbars in Xcode](https://developer.xamarin.com/guides/mac/user-interface/working-with-toolbars/#Creating_and_Maintaining_Toolbars_in_Xcode) documentation for more details.
-
-***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Add more available Favorite URL items to the Toolbar in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add the new URLs to the `ShowFavoriteWebsite` method of the `MainViewController`. ***Hint:** Use a **Image Toolbar Item** in Interface Builder to add more items.* Please see our [Creating and Maintaining Toolbars in Xcode](https://developer.xamarin.com/guides/mac/user-interface/working-with-toolbars/#Creating_and_Maintaining_Toolbars_in_Xcode) documentation for more details.
+>
+> ⚠️ These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.
 
 ### The Main Window Delegate
 
@@ -474,25 +448,15 @@ Next, the app’s Menu Bar is loaded and displayed using the `InstantiateMainMen
 
 The WindowController is bound to the ViewController using the `StoryboardBinder`’s `Bind` method and the `DidFinishLaunching` method is called to simulate the normal launch sequence of a macOS app.
 
----
-
-⚠️ NOTE: None of the code in the `AppDelegate` constructor would be required in an actual Xamarin.Mac app project, it is here simply to load and launch a Storyboard for a workbook using the support library included at the start of this workbook. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
-
----
-
 The `DidFinishLaunching` method is called after the app has been started to configure the app. By adding the `newDocument:` Action, the New Menu Item will be enabled in the File Menu. When the user selects it, the `StoryboardInflator` helper class is used to open a new Window from the Storyboard (normally this would be done from a `NSStoryboard` class instance).
 
----
-
-###### 👍 Try it now!
-
-* Add more Favorite URL items to the Favorites Menu in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add their URLs to the `ShowFavoriteWebsite` method of the `MainViewController` class. Please see our [Menus](https://developer.xamarin.com/guides/mac/user-interface/working-with-menus/) documentation for more details.
-
-* Add Forward and Backward Menu Items to the View Menu in Xcode's Interface Builder and Add new Actions to support them. ***Hint:** Create new public `GoForward` and `GoBackward` methods in the `MainViewController` class, create `goForward:` and `goBackward:` Actions in `AppDelegate` and attach the new Menu Items to these Actions.*
-
-***Note**: These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Add more Favorite URL items to the Favorites Menu in Xcode's Interface Builder, attach them to the `showFavoriteWebsite:` Action and add their URLs to the `ShowFavoriteWebsite` method of the `MainViewController` class. Please see our [Menus](https://developer.xamarin.com/guides/mac/user-interface/working-with-menus/) documentation for more details.
+>
+> 2. Add Forward and Backward Menu Items to the View Menu in Xcode's Interface Builder and Add new Actions to support them. ***Hint:** Create new public `GoForward` and `GoBackward` methods in the `MainViewController` class, create `goForward:` and `goBackward:` Actions in `AppDelegate` and attach the new Menu Items to these Actions.*
+>
+> ⚠️ These changes won't take effect until a new instance of the Window is instantiated in the **Starting the App and Displaying the Default Menu Bar and Window** section below.
 
 ## Starting the App and Displaying the Default Menu Bar and Window
 

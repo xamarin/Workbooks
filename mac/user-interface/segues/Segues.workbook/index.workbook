@@ -1,0 +1,465 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- MacMobile
+---
+
+# Working with Segues in macOS Storyboard
+
+### Building a Xamarin.Mac app's UI in a Storyboard
+
+Storyboards allow the developer to create a User Interface for a Xamarin.Mac app that not only includes the Window definitions and controls, but also contains the links between different Windows and how those Windows will be presented using Segues.
+
+This workbook will cover the typical uses of Segues within a Storyboard, and how they can be used to limit the amount of code a developer is required to write to present a Xamarin.Mac app’s UI.
+
+It is suggested to read our [Hello, Mac](https://developer.xamarin.com/guides/mac/getting_started/hello,_mac/) and [Introduction to Storyboards](https://developer.xamarin.com/guides/mac/platform-features/storyboards/) documentation before starting this workbook, as they provide a basis for the topics covered here.
+
+## An Introduction to Storyboards
+
+Before getting started, let’s take a quick refresher in what a [Storyboard](https://developer.xamarin.com/guides/mac/platform-features/storyboards/#What_are_Storyboards) is and how it is used to define the User Interface for a macOS app.  Take the following example:
+
+![](Images/Intro01.png)
+
+A Storyboard defines all of the UI for a given app broken down into a functional overview of its View Controllers. Window Controllers contain and control the different Window types that a macOS app can create and contain these View Controllers. In Xcode's Interface Builder, each of these controllers lives in its own Scene:
+
+![](Images/Intro02.png)
+
+Each Scene represents a given View and View Controller Pair with a set of lines (called Segues) that connect each Scene in the UI, thus showing their relationships. Some Segues define how one View Controller contains one or more child Views or View Controllers. Other Segues, define transitions between View Controller (such as displaying a popover or dialog box).
+
+After the UI has been designed, the developer exposes the elements and controls to C# code using *Outlets* and *Actions*. Please see our [Outlets and Actions](https://developer.xamarin.com/guides/mac/getting_started/hello,_mac/#Outlets_and_Actions) documentation for more information.
+
+## Storyboards and Workbooks
+
+Workbooks don’t natively support macOS Storyboards, so the first thing that will need to be done is to load a library that provides support:
+
+```csharp
+#load "StoryboardResources.csx"
+```
+
+Using this library, there are a few differences that will need to be taken into account when designing UI in Xcode’s Interface Builder:
+
+* Outlets cannot be defined by Control-Dragging as normal because there is no `.h` header file to attach to. Instead, use the **Identifier** field in the **Identity Inspector** for **Windows, Views** and **View based Controls**. **Menu Items** will automatically bind to any Outlet that match their `Title` \+ “*MenuItem*” (for example, `NewMenuItem`). **Toolbar Items** will automatically bind to any Outlet that match their `Label` \+ “*ToolbarItem*” (for example, `ColorToolbarItem`).
+
+* Actions need to manually be added to the **First Responder** in the **Scene** where they will be used by clicking the **\+** button in the **Attribute Inspector** and defining the new Action. Next, select the element to attach to, Control-Click, dragging a line to the **First Responder** in the same **Scene** and selecting the defined Action.
+
+* Only the built-in Segue types are currently supported by the library and **Views** and **View based Controls** *must* have a custom **Identifier** set in the **Identity Inspector**. For Custom Segues, the developer will have to manually load and display the child Window or View Controller.
+
+* Because of the way workbooks function, loading and instantiating Window and View Controllers  is done using methods of the `StoryboardInflator` helper class as opposed to using the typical `NSStoryboard` methods. For more information, please see our [Loading a Storyboard from Code](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Loading_from_Code) documentation.
+
+* The `StoryboardBinder` helper class will need to be used to "bind" (map) classes defined in the workbook to UI elements inflated from a Storyboard.
+
+With these differences aside, Storyboards are used same way they typically would be in a normal macOS app, so the knowledge gained here can be used when building a regular Xamarin.Mac app project. For more information, please see our [Introduction to Storyboards](https://developer.xamarin.com/guides/mac/platform-features/storyboards/) documentation.
+
+### Compiling the Storyboard
+
+Every time the developer edits the Storyboard, those changes will need to be compiled before they can be loaded in the workbook. Do this using the following command:
+
+```csharp
+var usingStoryboard = "Walkthrough";
+StoryboardCompiler.Compile(usingStoryboard);
+```
+
+This workbook includes two Storyboards. Set the `usingStoryboard` variable above to `Walkthrough` to follow through the exercises yourself or set it to `Main` to see the completed User Interface.
+
+> ⚠️ To edit the Storyboard that is part of this workbook, select the `.workbook` file in Finder, right-click it and select **Show Package Contents**.
+
+## Defining the Supporting Classes
+
+There are several supporting classes that will be required when working with a Xamarin.Mac app’s UI that has been loaded from a Storyboard. These include at least an `AppDelegate`, a `NSWindowController` (for each Window type that the app creates) and a `NSViewController` for every `NSView` that belongs to a Window.
+
+The following sections will go over each of these required classes in detail.
+
+### The InputFormViewController Class
+
+In this workbook we'll be creating a simple Input Form that will have a definable Title and allow the user to enter a value which will be sent back to the caller:
+
+![](Images/UI01.png)
+
+The `InputFormViewController` class will act as this Input Form's *Content Controller* and will be responsible for the life cycle of the form's content:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class InputFormViewController : NSViewController {
+
+    #region Private Variables
+    private string title = "";
+    #endregion
+
+	#region Outlets
+    [Outlet]
+    public NSButton OKButton {get;set;}
+
+    [Outlet]
+    public NSButton CancelButton {get;set;}
+
+    [Outlet]
+    public NSTextField TitleLabel {get;set;}
+
+    [Outlet]
+    public NSTextField InputField {get;set;}
+    #endregion
+
+    #region Computed Properties
+    // Because of the way workbooks handle Storyboards, this
+    // reference is required to point back to the "real"
+    // View Controller as inflated from the .storyboardc file.
+    public NSObject StoryboardController {get;set;}
+    #endregion
+
+    #region Constructors
+    public InputFormViewController (string title) : base() {
+        // Initialize
+        this.title = title;
+    }
+    #endregion
+
+    #region Override Methods
+    public override void ViewWillAppear ()
+    {
+        base.ViewWillAppear ();
+
+        // Initialize
+        TitleLabel.StringValue = title;
+    }
+    #endregion
+
+    #region Public Methods
+    public void CloseDialog() {
+
+        // Ask the controller that presented the form to
+        // close it
+        var controller = StoryboardController as NSViewController;
+        controller.DismissController(this);
+    }
+    #endregion
+
+     #region Custom Actions
+    [Action ("acceptForm:")]
+    public void AcceptForm (Foundation.NSObject sender) {
+
+        // Inform caller that a new value has been entered
+        // and close the form
+        RaiseValueEntered(InputField.StringValue);
+        CloseDialog();
+    }
+
+    [Action ("cancelForm:")]
+    public void CancelForm (Foundation.NSObject sender) {
+
+        // Close the dialog 
+        CloseDialog();
+    }
+    #endregion
+
+    #region Events
+    public delegate void ValueEnteredDelegate(string text);
+    public event ValueEnteredDelegate ValueEntered;
+
+    private void RaiseValueEntered(string text) {
+        if (this.ValueEntered != null) this.ValueEntered(text);
+    }
+    #endregion
+}
+```
+
+Let’s take a look at what this code is doing in detail. First, the private variable `title` is defined and used to hold a title that will be presented to the user when the View attached to this View Controller is shown. This title will be passed in when an instance of this class is created.
+
+Why didn't we just set the title directly from the public `TitleLabel` property? Because of the way Storyboards are loaded and displayed, the `InputFormViewController` can be created *before* the `TitleLabel` field is built and populated. If we set it directly, `TitleLabel` could be `null`, which would result in an error.
+
+Next, several Outlets are defined that will be attached to the various UI elements from the View this View Controller is managing. These allow the C# code to access the UI Elements that were defined in Xcode's Interface Builder.
+
+The `ViewWillAppear` method is called when the View has been fully loaded into memory so it can be configured before presenting it to the user. Here we are taking the `title` that was passed in and setting it as the value of the `TitleLabel`.
+
+The `CloseDialog` method will close the Window (or Sheet) that the View Controller is presented in, removing it from the screen. It will be called from the OK and Cancel buttons.
+
+A custom `ValueEntered` event is defined that will be raised when the user clicks the OK button. The caller can subscribe to the event to get the result from the dialog.
+
+Finally, two custom Actions are defined: `AcceptForm` and `CancelForm`. These will be wired-up to the OK and Cancel buttons in Interface Builder and called when the user clicks the buttons.
+
+> 💡**Try It Now**
+>
+> 1. Disable the `OKButton` if the `InputField.StringValue` is empty. ***Hint**: Use the `NSTextField.Changed` event in the `ViewWillAppear` method.*
+> 2. Create a `Canceled` event to inform the caller when the user cancels the form and call it when the Cancel button is clicked.
+>
+> ⚠️ These changes won't take effect until a new instance of the Window is instantiated.
+
+For more information on working with View Controllers, please see our [View Controllers](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#View_Controllers) documentation.
+
+### The Main View Controller
+
+The Main Window of this app has two buttons that will be used to display other Windows and View by creating Segues in Interface Builder:
+
+![](Images/UI02.png)
+
+The `MainViewController` class will act as this app’s Window *Content Controller* and will be responsible for the life cycle of the main Window’s content:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainViewController : NSViewController {
+
+	#region Outlets
+    [Outlet]
+    public NSButton ShowButton {get;set;}
+
+    [Outlet]
+    public NSButton QuestionButton {get;set;}
+
+    [Outlet]
+    public NSTextField QuestionLabel {get;set;}
+    #endregion
+
+    #region Constructors
+    public MainViewController () : base() {
+
+    }
+    #endregion
+
+    #region Override Methods
+    public override void ViewWillAppear ()
+    {
+        base.ViewWillAppear ();
+
+    }
+    #endregion
+
+}
+```
+
+Let’s take a look at what this code is doing in detail. Like the `InputFormViewController` above, Outlets have been created to allow C# to access the UI Elements defined in Interface builder and the `ViewWillAppear` method will be called before the View is presented to the user so it can be configured.
+
+### The Main Window Controller
+
+The Main Window contains a Toolbar that has items that will be used to display other Windows and Views using Segues. It also contains the `MainViewController` created above:
+
+![](Images/UI03.png)
+
+The right facing arrow defines this Window as the *Initial View* that will be displayed when this Storyboard in opened. The downward facing arrow is a *Containment Segue* stating that this controller *contains* the View Controller it is pointing to:
+
+![](Images/UI04.png)
+
+The `MainWindowController` class will act as the app’s Window Controller and will be responsible for the life cycle of the app’s main Window:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainWindowController : NSWindowController {
+
+    #region Computed Properties
+    public MainViewController ViewController {get; set;}
+    #endregion
+
+    #region Constructors
+    public MainWindowController() : base() {
+        
+    }
+    #endregion
+
+    #region Override Methods
+    public override void WindowDidLoad () {
+        // Initialize the window after it has loaded
+        Window.Title = "Untitled";
+
+    }
+
+    public override void PrepareForSegue (NSStoryboardSegue segue, NSObject sender) {
+        // Take action based on the segue id
+        switch(segue.Identifier){
+        case "InputFormSegue":
+            // Create a new form controller and bind it to the segue's
+            // destination
+            var formContoller = new InputFormViewController("Enter Something:"){
+                StoryboardController = segue.DestinationController,
+            };
+            StoryboardBinder.Bind(segue.DestinationController, formContoller);
+
+            // Watch for the user entering a value
+            formContoller.ValueEntered += (value) => {
+                // Display the user's input
+                ViewController.QuestionLabel.StringValue = value;
+            };
+            break;
+        }
+    }
+    #endregion
+
+}
+```
+
+Let’s take a look at what this code is doing in detail. The `ViewController` property is used to gain access to the `MainViewController` attached to the Window. The `WindowDidLoad` method will be called before the Window is shown to the user so it can be configured. In our example, we are just setting the `Title` of the Window.
+
+The `PrepareForSegue` method is called before a Segue is run so that the developer can configure it. Here, if the segue `Identifier` is `InputFormSegue`, a new instance of the `InputFormViewController` class is created with the Title for the Input Form and bound to the `DestinationController` from the `NSStoryboardSegue`. The `ValueEntered` event of the `InputFormViewController` class is used to display the user's input if they click the OK button.
+
+The `Identifier` is set by selecting a Segue in Interface Builder and entering it in the **Attribute Inspector**:
+
+![](Images/UI05.png)
+
+The `PrepareForSegue` method is a very important part of working with Segues in a Storyboard and a Xamarin.Mac app as it allows the developer to configure the Window or View that will be displayed as a result of the Segue. For example, like setting the title and retrieving the user's input above.
+
+> 💡**Try It Now**
+>
+> 1. **Create a Simple Segue** - Edit the Storyboard, select the **Show** button, hold the **Control** key, drag a line to the "Hello There" View and select `Show` from the popup window. Run the workbook and click the Show button to open a new Hello There Window.
+>
+> 2. **Create a Segue from a Toolbar Item** - Edit the Storyboard, select the **Show** Toolbar item, hold the **Control** key, drag a line to the "Hello There" View and select `Show` from the popup window. Run the workbook and click the Show Toolbar button to open a new Hello There Window.
+>
+> 3. **Create a Complex Segue** - Edit the Storyboard, select the **Question** button, hold the **Control** key, drag a line to the Input Form View and select `Sheet` from the popup window. Select the new Segue and enter `InputFormSegue` for the Identifier in the **Attribute Inspector**. Run the workbook and click the Question button to open a new Input Form Sheet. If you enter a value and click the OK button, it will be displayed on the Window because of the `PrepareForSegue` method created above.
+>
+> 4. **Create a Popover Segue** - Edit the Storyboard, select the **Computer** Toolbar item, hold the **Control** key, drag a line to the "Computer Info..." View and select `Popover` from the popup window. Select the Segue and use the **Attribute Inspector** to configure it (such as setting the Preferred Edge the Popover will be displayed from). Run the workbook and click the Computer Toolbar button to open a new Computer Info Popover.
+>
+> 5. **Respond to the User Canceling the Input Form** - Use the `Canceled` event you created above to display a message when the user clicks the Cancel button in the Input Form.
+>
+> 6. **Bonus** - Edit the Storyboard, select the different Segues created above and use the **Attribute Inspector** to try the effect of changing the properties (such as the Segue Kind or Preferred Edge for the Popover).
+>
+> ⚠️ These changes won't take effect until the workbook has been re-run from the beginning.
+
+For more information on working with Window Controllers, please see our [Window Controller](https://developer.xamarin.com/guides/mac/platform-features/storyboards/indepth/#Window_Controllers) documentation.
+
+### The Main Window Delegate
+
+The `MainWindowDelegate` will be attached to each of the Main Windows created by the app to monitor and respond to events such as the Window becoming Key (being set as the active, front-most Window), the Window closing, etc.:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class MainWindowDelegate : NSWindowDelegate {
+
+    #region Computed Properties
+    public NSWindow Window { get; set;}
+    public MainWindowController WindowController {get; set;}
+    public MainViewController ViewController {get;set;}
+    #endregion
+
+    #region constructors
+    public MainWindowDelegate (NSWindow window, MainWindowController windowController, MainViewController viewController)
+    {
+        // Initialize
+        this.Window = window;
+        this.WindowController = windowController;
+        this.ViewController = viewController;
+    }
+    #endregion
+
+    #region Override Methods
+    public override void DidBecomeKey (NSNotification notification) {
+
+    }
+    #endregion
+}
+```
+
+For now, `MainWindowDelegate` is just keeping track of the other Supporting Classes for each Window created. This will be required later when tracking which of the app’s Windows is currently Key.
+
+### The App Delegate
+
+The [AppDelegate](https://developer.xamarin.com/guides/mac/getting_started/hello%2C_mac/#AppDelegate.cs) is responsible for starting the app, loading its initial Menu Bar and Window and listening to OS events:
+
+```csharp
+using System;
+using Foundation;
+using AppKit;
+using WebKit;
+
+public class AppDelegate : NSApplicationDelegate {
+
+    #region Computed Properties
+    public StoryboardInflator Inflator {get; set;}
+    public NSMenu MainMenu {get; set;}
+    public MainWindowController WindowController {get; set;} = new MainWindowController();
+    public MainViewController ViewController {get; set;} = new MainViewController();
+    #endregion
+
+    #region Outlets
+    [Outlet]
+    public NSMenuItem NewMenuItem {get;set;}
+    #endregion
+
+    #region Constructors
+    public AppDelegate() : base() {
+
+    }
+
+    public AppDelegate(string bundleName) : base() {
+
+        // Load the storyboard bundle into an inflator
+        Inflator = new StoryboardInflator($"{bundleName}.storyboardc");
+
+        // Initialize main menu
+        MainMenu = Inflator.InstantiateMainMenu(this);
+
+        // Load the initial window from the Storyboard
+        Inflator.InstantiateInitialController(WindowController);
+        WindowController.Window.Delegate = new MainWindowDelegate(WindowController.Window, WindowController, ViewController);
+
+        // Bind the main view controller
+        StoryboardBinder.Bind(WindowController, ViewController);
+        WindowController.ViewController = ViewController;
+
+        // Simulate the app launching
+        DidFinishLaunching(NSNotification.FromName("AppDelegate",this));
+    }
+    #endregion
+
+    #region Override Methods
+    public override void DidFinishLaunching (NSNotification notification)
+    {
+        // Initialize app here
+    }
+    #endregion
+
+    #region Public Methods
+    public void PrepareForSegue (NSStoryboardSegue segue, NSObject sender) {
+        // Take action based on the segue id
+        switch(segue.Identifier){
+        case "NewDocumentSegue":
+            var windowController = new MainWindowController();
+            var viewContoller = new MainViewController();
+
+            StoryboardBinder.Bind(segue.DestinationController, windowController);
+            StoryboardBinder.Bind(windowController, viewContoller);
+            break;
+        }
+    }
+    #endregion
+
+}
+```
+
+Let’s take a look at what this code is doing in detail. First, it creates and exposes several Computed Properties to keep track of the main elements of the app.
+
+When a new instance of the `AppDelegate` is created, it creates a `StoryboardInflator` to load the specified Storyboard’s bundle into memory. Next, the app’s Menu Bar is loaded and displayed using the `InstantiateMainMenu` method. The `InstantiateInitialController` method loads and displays the app’s main, default Window which gets a `MainWindowDelegate` attached to it.
+
+The WindowController is bound to the ViewController using the `StoryboardBinder`’s `Bind` method and the `DidFinishLaunching` method is called to simulate the normal launch sequence of a macOS app.
+
+Just like the `MainWindowController` created above, the `PrepareForSegue` method is used to bind instances of the `MainWindowController` and `MainViewController` to a new instance of the Main Window built from a Segue with the Identifier of `NewDocumentSegue`.
+
+> 💡**Try It Now**
+>
+> 1. **Create a New Main Window with a Segue** - Edit the Storyboard, select the **New** menu item, hold the **Control** key, drag a line to the Main Window Controller and select `Show` from the popup window. Select the Segue and enter `NewDocumentSegue` for the Identifier in the **Attribute Inspector**. Run the workbook and click the New Menu Item button to open a new Main Window.
+>
+> 2. **Create a Secondary Window with a Segue** - Edit the Storyboard, select the **New Splitview** menu item, hold the **Control** key, drag a line to the Split View Window Controller and select `Show` from the popup window. Select the Segue and enter `NewSplitviewSegue` for the Identifier in the **Attribute Inspector**. Run the workbook and click the New Splitview Menu Item button to open a new Splitview Window.
+>
+> 3. **Bonus** - Edit the Storyboard, select the different Segues created above and use the **Attribute Inspector** to try the effect of changing the properties
+>
+> ⚠️ These changes won't take effect until the workbook is re-run from the beginning.
+
+## Starting the App and Displaying the Default Menu Bar and Window
+
+With this code in place, an instance of the `AppDelegate` can be created which will display the Main Menu and the Initial View (as defined in the Storyboard):
+
+```csharp
+// Initialize and display the app
+var appDelegate = new AppDelegate(usingStoryboard);
+```

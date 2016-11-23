@@ -119,21 +119,14 @@ The `AwakeFromNib` method is overridden and any configuration is done that requi
 
 Why was the `Activated` event set in the `AwakeFromNib` method and not when the `NSButton` was created in the Window’s constructor? Because the Window hasn’t been fully inflated at this point and `Activated` property is `null`, so attempting to set it would result in an error.
 
----
-
-###### 👍 Try it now!
-
-* Change the default `Title` for the new Window.
-
-* Set a new `BackgroundColor` and `TextColor` for the `ClickMeButton` when it is created.
-
-* Adjust the appearance of the `ClickMeLabel` when it is created and set a new default value.
-
-* Add another `NSButton` and `NSTextField` to the Window.
-
-***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Change the default `Title` for the new Window.
+> 2. Set a new `BackgroundColor` and `TextColor` for the `ClickMeButton` when it is created.
+> 3. Adjust the appearance of the `ClickMeLabel` when it is created and set a new default value.
+> 4. Add another `NSButton` and `NSTextField` to the Window.
+>
+> ⚠️ These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.
 
 ### Defining the Window Controller
 
@@ -233,21 +226,14 @@ The last property specified when creating the new `CodeBasedWindow` is `deferCre
 
 Finally, the `AwakeFromNib` method is called on the Window. Typically, this method is invoked when the Window is inflated from a `.storyboard` or `.xib` file, because the Window is being created manually, the developer must explicitly call this method to inform the Window it has been created.
 
----
-
-###### 👍 Try it now!
-
-* Change the values for the `contentRect` to open the Window in a new default location or make it a different default size.
-
-* Adjust the `NSWindowStyle` flags to change the look and functionality of the Window that will be created.
-
-* Play with the `NSBackingStore` value to see how it affects the way the Window is drawn.
-
-* Set `deferCreation` to `true` and see how it affects the Window creation.
-
-***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Change the values for the `contentRect` to open the Window in a new default location or make it a different default size.
+> 2. Adjust the `NSWindowStyle` flags to change the look and functionality of the Window that will be created.
+> 3. Play with the `NSBackingStore` value to see how it affects the way the Window is drawn.
+> 4. Set `deferCreation` to `true` and see how it affects the Window creation.
+>
+> ⚠️ These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Window** section below.
 
 ### Displaying the Window
 
@@ -264,13 +250,9 @@ In macOS, the **Key Window** is the currently active Window that has focus and a
 
 When `MakeKeyAndOrderFront` is called, an instace of the object that created it is passed in. Typically, this will be the `AppDelegate` for the macOS app. Since this code is usually called from inside `DidFinishLaunching` method, normally the `this` keyword is used. Because this code is being executed inside of a workbook, the `AppDelegate` is being accessed via the Shared Application using `(NSObject)NSApplication.SharedApplication.Delegate`.
 
----
-
-###### 👍 Try it now!
-
-* Run the two lines of code above again to create another new Window. Every time this code is run, a new Window will be added to the app. Typically, this is done from the **File** > **New** menu item.
-
----
+> 💡**Try It Now**
+>
+> 1. Run the two lines of code above again to create another new Window. Every time this code is run, a new Window will be added to the app. Typically, this is done from the **File** > **New** menu item.
 
 ## Defining the Menu Bar in Code
 
@@ -321,21 +303,14 @@ Let’s take a closer look at what this code is doing. First, it creates a gains
 
 Next, a series of `NSMenuItem` instances are created, configured and attached to the **Actions** Menu. The Activated event for each new Item is set and this code will be executed when the user selects the specific Menu Item.
 
----
+> 💡**Try It Now**
+>
+> 1. Add a **New** Menu Item to the **Actions** Menu that opens a new `CodeBasedWindow` when selected.
 
-###### 👍 Try it now!
-
-* Add a **New** Menu Item to the **Actions** Menu that opens a new `CodeBasedWindow` when selected.
-
----
 
 ## Building Modern macOS App UI
 
----
-
-⚠️ **WARNING!** *The modern macOS App UI is currently unavaiable in the Version 0.99.0.0 of Xamarin Workbooks. This feature will be restored in a future release.*
-
----
+> ⚠️ **WARNING!** *The modern macOS App UI is currently unavailable in the Version 01.00.00 of Xamarin Workbooks. This feature will be restored in a future release.*
 
 Modern macOS apps such as Apple's Safari web browser, Pages word processor and Numbers spread sheet use many new technologies to present a unified, context sensitive User Interface that does away with traditional UI elements such as floating panels and multiple open windows.
 
@@ -411,17 +386,12 @@ Then the UpdateLayer method is overriden and the Core Graphic routines are added
 
 `Layer.BackgroundColor = NSColor.Red.CGColor;`
 
----
-
-###### 👍 Try it now!
-
-* Change the background color of the View.
-
-* Add more Core Graphic routines to change the View’s UI.
-
-***Note**: These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Modern Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Change the background color of the View.
+> 2. Add more Core Graphic routines to change the View’s UI.
+>
+> ⚠️ These changes wont take effect until a new instance of the Window is instantiated in the **Displaying the Modern Window** section below.
 
 ### Defining a Modern Window
 
@@ -592,10 +562,6 @@ The following NSAppearance types are defined:
 
 * `NameVibrantLight` - Use the light vibrant appearance.
 
----
-
-###### 👍 Try it now!
-
-* Set the Window to another type of `NSAppearance`.
-
----
+> 💡**Try It Now**
+>
+> 1. Set the Window to another type of `NSAppearance`.

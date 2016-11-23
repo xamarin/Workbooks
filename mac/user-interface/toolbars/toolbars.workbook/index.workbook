@@ -178,17 +178,12 @@ Lastly, a custom event, `ToolbarItemClicked`, was defined that the Toolbar’s p
 
 Because the Toolbar Delegate is subscribing to the Toolbar Item’s `Activated` event, all the items will be automatically be enabled when the Toolbar is displayed. See the **Enabling and Disabling Toolbar Items** section below for more information.
 
----
-
-###### 👍 Try it now!
-
-* Change the Default Toolbar that is initially displayed to the user.
-
-* Add a Wallet item to the list of Available Toolbar Items and the Default Toolbar. ***Hint**: a `Wallet.png` file has been included in the Images resources for this workbook.*
-
-***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Change the Default Toolbar that is initially displayed to the user.
+> 2. Add a Wallet item to the list of Available Toolbar Items and the Default Toolbar. _**Hint**: a `Wallet.png` file has been included in the Images resources for this workbook._
+>
+> ⚠️ These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.
 
 ### Toolbar Item Properties
 
@@ -212,17 +207,12 @@ When the Toolbar Delegate (`NSToolbarDelegate`) creates a new instance of the To
 
 * `View` - Allow the developer to attach other types of controls to a Toolbar Item such a `NSTextFields` or `NSButtons`. Please see the **Adding Other UI Controls to a Toolbar** section below for more information.
 
----
-
-###### 👍 Try it now!
-
-* Add a `ToolTip` to each Toolbar Item created in the `MainToolbarDelegate`. ***Hint**: this will need to be done inside of the `BuildItem` method.*
-
-* Add a unique Tag to each Toolbar Item created in the `MainToolbarDelegate`.
-
-***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Add a `ToolTip` to each Toolbar Item created in the `MainToolbarDelegate`. ***Hint**: this will need to be done inside of the `BuildItem` method.*
+> 2. Add a unique Tag to each Toolbar Item created in the `MainToolbarDelegate`.
+>
+> ⚠️ These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.
 
 ## Creating a Custom Toolbar
 
@@ -270,19 +260,13 @@ When a new instance of the Toolbar is created, a new `MainToolbarDelegate` is al
 
 Both the `DisplayMode` and `SizeMode` properties can be affected by the type of Window that the Toolbar is attached to and will render some of the modes unavailable.
 
----
-
-###### 👍 Try it now!
-
-* Don’t allow the user to customize the Toolbar.
-
-* Pick a different `DisplayMode`.
-
-* Pick a different `SizeMode`.
-
-***Note**: These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.*
-
----
+> 💡**Try It Now**
+>
+> 1. Don’t allow the user to customize the Toolbar.
+> 2. Pick a different `DisplayMode`.
+> 3. Pick a different `SizeMode`.
+>
+> ⚠️ These changes wont take effect until a new instance of the Window that houses the Toolbar is instantiated in the **Displaying the Toolbar in a Window** section below.
 
 ## External Resources
 
@@ -342,13 +326,9 @@ ToolbarResources.OpenNewModernWindow();
 
 Every time either one of these code blocks are run, a new Window will be created with the latest version of the `MainToolbar` and it will be displayed in a tab grouped by Traditional or Modern Window types.
 
-⚠️ **WARNING!** *Support for automatically tabbed windows is currently unavaiable in the Version 0.99.0.0 of Xamarin Workbooks. This feature will be restored in a future release.*
+> ⚠️ **WARNING!** *Support for automatically tabbed windows is currently unavailable in the Version 01.00.00 of Xamarin Workbooks. This feature will be restored in a future release.*
 
----
-
-⚠️ ***Note**: Because of the way that `NSToolBars` are handled by macOS, all of the `NSWindows` within a given app share a single Toolbar instance based on the Identifier assiged the to the Toolbar  when it was created. As a result, changing the Toolbar in one Window will affect the Toolbars on all other open Windows in the app that used the same Identifier to build the Toolbar.*
-
----
+> ⚠️ **Note**: Because of the way that `NSToolBars` are handled by macOS, all of the `NSWindows` within a given app share a single Toolbar instance based on the Identifier assigned the to the Toolbar  when it was created. As a result, changing the Toolbar in one Window will affect the Toolbars on all other open Windows in the app that used the same Identifier to build the Toolbar.
 
 ## User Toolbar Customization
 
@@ -362,15 +342,10 @@ The top set of options relate to the `DisplayMode` property and the middle optio
 
 The items in the **Drag your favorite items into the toolbar…** section come from the `AllowedItemIdentifiers` method of the custom `MainToolbarDelegate` (created above) and the items in the **…or drag the default set into the toolbar** section come from the `DefaultItemIdentifiers` method.
 
----
-
-###### 👍 Try it now!
-
-* Switch the the running macOS app, right-click the Toolbar and customize it for the Traditional Style Windows.
-
-* Switch the the running macOS app, right-click the Toolbar and customize it for the Modern Style Windows.
-
----
+> 💡**Try It Now**
+>
+> 1. Switch the the running macOS app, right-click the Toolbar and customize it for the Traditional Style Windows.
+> 2. Switch the the running macOS app, right-click the Toolbar and customize it for the Modern Style Windows.
 
 ## Hiding and Showing the Toolbar
 
@@ -384,15 +359,10 @@ ToolbarResources.LastTraditionalWindowController.Window.Toolbar.Visible = true;
 ToolbarResources.LastModernWindowController.Window.Toolbar.Visible = true;
 ```
 
----
-
-###### 👍 Try it now!
-
-* Set `Visible` to `false` to hide the Toolbars.
-
-* Set `Visible` to `true` to show the Toolbars
-
----
+> 💡**Try It Now**
+>
+> 1. Set `Visible` to `false` to hide the Toolbars.
+> 2. Set `Visible` to `true` to show the Toolbars.
 
 ## Working with Toolbar Items
 
@@ -412,17 +382,11 @@ firstItem.Label = "Certificate";
 firstItem.ToolTip = "Create a new certificate";
 ```
 
----
-
-###### 👍 Try it now!
-
-* Give the first Toolbar Item a new `Label`.
-
-* Give the first Toolbar Item a new `Tooltip`.
-
-* Access the last item in the Toolbar and change its `Label`. ***Hint**: Use the `Count()` method of the `Items` array.*
-
----
+> 💡**Try It Now**
+>
+> 1. Give the first Toolbar Item a new `Label`.
+> 2. Give the first Toolbar Item a new `Tooltip`.
+> 3. Access the last item in the Toolbar and change its `Label`. _**Hint**: Use the `Count()` method of the `Items` array._
 
 ## Hiding and Showing Toolbar Items
 

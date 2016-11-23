@@ -124,11 +124,8 @@ class TableDataSource : NSTableViewDataSource
 }
 ```
 
----
+>💡**Note:** Optionally, both the Table Data Source and the Table Delegate could have been implemented as one class that conforms to the `INSTableViewDataSource` and `INSTableViewDelegate` interfaces.
 
-💡***Note:** Optionally, both the Table Data Source and the Table Delegate could have been implemented as one class that conforms to the `INSTableViewDataSource` and `INSTableViewDelegate` interfaces.*
-
----
 
 ### Displaying the Data
 
