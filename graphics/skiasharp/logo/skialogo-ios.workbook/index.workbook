@@ -2,11 +2,6 @@
 uti: com.xamarin.workbook
 platforms:
 - iOS
-packages:
-- id: SkiaSharp
-  version: 1.49.1
-- id: Accord
-  version: 3.0.2
 ---
 
 # Exploring SkiaSharp
@@ -21,26 +16,32 @@ SkiaSharp is a Portable Library, and ships conveniently as a [cross-platform NuG
 
 SkiaSharp provides a rich and powerful 2D graphics API that can be used to render into 2D buffers. You can use these to implement custom user interface elements and 2D graphics that can be incorporated into your application. SkiaSharp is a .NET binding to the [Skia](https://skia.org/) library and inherits the features and power of this library
 
-The library is currently available as a cross-platform [NuGet Package](https://www.nuget.org/packages/SkiaSharp), you can it to your project by adding the NuGet reference.
+The library is currently available as a cross-platform [NuGet Package](https://www.nuget.org/packages/SkiaSharp), you can it to your project by adding the NuGet reference. Currently, to use SkiaSharp in a Xamarin workbook, you need to extract the `libSkiaSharp` framework and open it explicitly:
 
 ```csharp
-OpenDynamicLibrary ("libskia_ios.framework/libskia_ios")
+ObjCRuntime.Dlfcn.dlopen("libSkiaSharp.framework/libSkiaSharp", 0);
 ```
+
+Once you’ve obtained a handle to the framework, as indicated by a non-0 response above, you  can reference the SkiaSharp DLL normally:
 
 ```csharp
-#r "SkiaSharp.dll"
+#r "SkiaSharp"
 ```
+
+And then import the namespace so that you can easily access its classes:
 
 ```csharp
-using SkiaSharp;
+using SkiaSharp
 ```
-
-To draw, your code will create an `SkCanvas` which describes the surface where the drawing operations will take place.
 
 ### **Obtaining an SKCanvas**
 
+To draw, your code will create an `SkCanvas` which describes the surface where the drawing operations will take place.
+
 ```csharp
-var surface = SKSurface.Create((int) UIScreen.MainScreen.Bounds.Width, (int) UIScreen.MainScreen.Bounds.Height, SKColorType.N_32, SKAlphaType.Premul);
+using SkiaSharp;
+
+var surface = SkiaSharp.SKSurface.Create((int) UIScreen.MainScreen.Bounds.Width, (int) UIScreen.MainScreen.Bounds.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 ```
 
 ```csharp
@@ -48,7 +49,7 @@ var canvas = surface.Canvas;
 canvas.Clear(SKColors.DimGray);
 ```
 
-Both the `surface and the`canvas `are limited resources, so in real code you should wrap them in using statements.`
+Both the `surface`and the `canvas`are limited resources, so in application code you should wrap them in `using`statements.
 
 The `SKCanvas` uses a drawing model similar in spirit to other drawing models that you might be familiar with, it uses colors with an optional transparency channel and can draw lines, arcs, text and images.
 
