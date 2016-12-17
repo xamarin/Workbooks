@@ -10,7 +10,7 @@
     "listview/ListView1-ios.workbook":"ListView for iOS",
     "listview/ListView1-android.workbook":"ListView for Android",
     "map/map.workbook":"Map",
-    "margins-padding/margins-and-padding/margins-and-padding.workbook":"Margins & Padding",
+    "margins-padding/margins-and-padding/index.workbook":"Margins & Padding",
     "picker/picker.workbook":"Picker",
     "slider/slider.workbook":"Slider",
     "stacklayout/stacklayout.workbook":"Stack Layout",
