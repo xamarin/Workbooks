@@ -1,0 +1,20 @@
+---
+uti: com.xamarin.workbook
+platform: MacMobile
+---
+
+```csharp
+#r "bin/KitchenSinkIntegration.dll"
+```
+
+```csharp
+KitchenSink.RandomColor ()
+```
+
+```csharp
+new KitchenSinkIntegration.Person ("Aaron")
+```
+
+```csharp
+new [] { 1, 2, 3 }
+```
