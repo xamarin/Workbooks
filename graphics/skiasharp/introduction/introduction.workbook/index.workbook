@@ -42,6 +42,8 @@ var bitmap = new SKBitmap(BitmapWidth, BitmapHeight);
 
 Right now, the bitmap is very boring and we can’t even see it. But, this is where we can start doing interesting things. 
 
+*On some platforms, the memory is not cleared before the bitmap is allocated. When this happens, there are artifacts from what was in memory last - which is often just random bits of data.*
+
 Before we can draw on the bitmap, we need a canvas. And to do this we instantiate `SKCanvas`, and pass it the bitmap we just created:
 
 ```csharp
@@ -50,7 +52,7 @@ var canvas = new SKCanvas(bitmap);
 
 A `SKCanvas` does not appear in the workbook as an image because it doesn’t really contain any image data. This is the layer that translates your drawing commands, such as `DrawRect` and `DrawPath`, into the appropriate commands for drawing on the current surface.
 
-Now that we have our canvas created, we can start drawing. The first thing we want to do is to make sure that the canvas is cleared. On some platforms, the memory is not cleared before the bitmap is allocated. When this happens, there are artifacts from what was in memory last - which is often just random bits of data.
+Now that we have our canvas created, we can start drawing. The first thing we want to do is to make sure that the canvas is cleared.
 
 ```csharp
 canvas.Clear(SKColors.White);
