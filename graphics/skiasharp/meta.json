@@ -1,5 +1,6 @@
 {
   "order":{
+    "introduction/introduction.workbook":"An Introduction",
     "logo/skialogo-ios.workbook":"Logo for iOS"
   }
 }

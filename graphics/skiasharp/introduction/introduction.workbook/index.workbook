@@ -1,0 +1,175 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+packages:
+- id: SkiaSharp
+  version: 1.56.1-beta
+---
+
+```csharp
+// install SkiaSharp
+#r "SkiaSharp"
+#load "SkiaSharp.csx"
+```
+
+# SkiaSharp
+
+SkiaSharp is a fully cross-platform, rich 2D graphics drawing API powered by [Google's Skia library](https://skia.org/), the same library that drives Google Chrome, Mozilla Firefox, and Android's graphics stack. Not only is SkiaSharp powerful, it is also very simple to use—all you need to do is install the [SkiaSharp NuGet](https://www.nuget.org/packages/SkiaSharp).
+
+SkiaSharp can be used to render images on many platforms, including iOS, macOS, tvOS, Android, and Universal Windows Platform (UWP). Not only does SkiaSharp support native mobile apps, it also supports .NET Standard 1.3 and .NET Core on macOS and Windows, as well as Classic Windows Desktop and WPF applications.
+
+*This cool introduction is also available as a Xamarin.Forms app for iOS, Android and Windows: [mattleibow/SkiaSharpDemo](https://github.com/mattleibow/SkiaSharpDemo "SkiaSharpDemo") Download and try it out on your device.*
+
+## Creating a Surface
+
+Before we can use SkiaSharp in our app, we need to make sure we add the `using` statement:
+
+```csharp
+using SkiaSharp;
+```
+
+Now we want to draw something, but we need something to draw on. In this workbook, we are going to draw on a bitmap. As with all bitmaps, we need to have a size:
+
+```csharp
+const int BitmapWidth = 300;
+const int BitmapHeight = 300;
+```
+
+Now, we are going to create the bitmap. This is as simple as instantiating `SKBitmap` with the size that we decided on earlier:
+
+```csharp
+var bitmap = new SKBitmap(BitmapWidth, BitmapHeight);
+```
+
+Right now, the bitmap is very boring and we can't even see it. But, this is where we can start doing interesting things.
+
+*On some platforms, the memory is not cleared before the bitmap is allocated. When this happens, there are artifacts from what was in memory last - which is often just random bits of data.*
+
+Before we can draw on the bitmap, we need a canvas. And to do this we instantiate `SKCanvas`, and pass it the bitmap we just created:
+
+```csharp
+var canvas = new SKCanvas(bitmap);
+```
+
+A `SKCanvas` does not appear in the workbook as an image because it doesn't really contain any image data. This is the layer that translates your drawing commands, such as `DrawRect` and `DrawPath`, into the appropriate commands for drawing on the current surface.
+
+Now that we have our canvas created, we can start drawing. The first thing we want to do is to make sure that the canvas is cleared.
+
+```csharp
+canvas.Clear(SKColors.White);
+
+bitmap
+```
+
+We can't really see anything yet, as the bitmap is just white, but now we have a clean surface to draw some shapes. To do this we will need to create a `SKPaint`, which is where we control what the drawing looks like. We can call the drawing methods multiple times and by only changing the paint, the rectangle will look totally different.
+
+## Drawing Shapes
+
+Here we are going to draw a blue circle in the top, left corner. So, we set the `IsAntialias` property to make the edges smooth, the `Style` property to indicate that we want to do a fill and finally the `Color`.
+
+```csharp
+var circleFill = new SKPaint {
+    IsAntialias = true,
+    Style = SKPaintStyle.Fill,
+    Color = SKColors.Blue
+};
+```
+
+We can now use that paint and draw our circle using `DrawCircle`. We pass the center coordinates, the radius and then the paint to the method:
+
+```csharp
+canvas.DrawCircle(100, 100, 40, circleFill);
+
+bitmap
+```
+
+If we want to but a border on that circle, we can just run that same draw command again. But, this time we pass a different paint. We have changed the `Style` to be a stroke and added a `StrokeWidth`:
+
+```csharp
+var circleBorder = new SKPaint {
+    IsAntialias = true,
+    Style = SKPaintStyle.Stroke,
+    Color = SKColors.Red,
+    StrokeWidth = 5
+};
+canvas.DrawCircle(100, 100, 40, circleBorder);
+
+bitmap
+```
+
+All done! We have a nice blue circle with a thick red border.
+
+## Drawing Paths
+
+Although we have some simple shapes we can draw, we often want to draw complex geometry. This is done with a path. The `SKPath` type has many methods that allow us to build up any shape that we may want.
+
+Here, we are just going to draw a simple X shape using `MoveTo` and `LineTo`:
+
+```csharp
+var path = new SKPath();
+path.MoveTo(160, 60);
+path.LineTo(240, 140);
+path.MoveTo(240, 60);
+path.LineTo(160, 140);
+```
+
+Creating a path is pretty straight forward, and so is drawing it. As with all drawing, we need to create a paint - making sure that we set the style to be a stroke, and give it a width. Then, we can draw the path using `DrawPath`:
+
+```csharp
+var pathStroke = new SKPaint {
+    IsAntialias = true,
+    Style = SKPaintStyle.Stroke,
+    Color = SKColors.Green,
+    StrokeWidth = 5
+};
+canvas.DrawPath(path, pathStroke);
+
+bitmap
+```
+
+## Drawing Text
+
+Just as it is easy to draw shapes and paths, so is it easy to draw text. Drawing text also uses a paint, and we can draw either an outline with a stroke, of solid text with fill:
+
+```csharp
+var textSize = 40;
+var textPaint = new SKPaint {
+    IsAntialias = true,
+    Style = SKPaintStyle.Fill,
+    Color = SKColors.Orange,
+    TextSize = textSize
+};
+```
+
+Unlike other operations in SkiaSharp which draw from the top, left, drawing text occurs from the text baseline. All this means is that we have to “move” the text down by the height of the text:
+
+```csharp
+canvas.DrawText("SkiaSharp", 60, 160 + textSize, textPaint);
+
+bitmap
+```
+
+And, that is all there is to it! SkiaSharp is a simple library, but a powerful library.
+
+## Overview
+
+Getting off the ground with SkiaSharp is easy—all you need is one NuGet: [SkiaSharp](https://www.nuget.org/packages/SkiaSharp). This package provides everything necessary to create and manipulate drawings on any platform.
+
+If you're looking to display your drawings on-screen, you can check out the [SkiaSharp.Views](https://www.nuget.org/packages/SkiaSharp.Views) NuGet package. This package has a set of views, layers, and controls that get you going with displaying your drawing on-screen. If you have a Xamarin.Forms app, then you can install the [SkiaSharp.Views.Forms](https://www.nuget.org/packages/SkiaSharp.Views.Forms) NuGet package, which provides the same views for Xamarin.Forms.
+
+Finally, we have a lightweight SVG loading library that can be used to load an SVG into a `SKPicture`: [SkiaSharp.Svg](https://www.nuget.org/packages/SkiaSharp.Svg).
+
+## Documentation and Forums
+
+We've documented all of the APIs of SkiaSharp on the [Xamarin developer site](https://developer.xamarin.com/api/root/SkiaSharp/), along with the [developer guides](https://developer.xamarin.com/guides/cross-platform/drawing/), which provide even more information on using SkiaSharp.
+
+You can also ask questions on the [Xamarin SkiaSharp forums](https://forums.xamarin.com/categories/skiasharp). If you prefer StackOverflow, [we're there, too](http://stackoverflow.com/questions/tagged/skiasharp)!
+
+If you want to chat or ask questions, some users also hang out on Gitter.im here: [xamarin/XamarinComponents](https://gitter.im/xamarin/XamarinComponents).
+
+## Code, Issues and Suggestions
+
+The SkiaSharp codebase is constantly growing and improving. If you want to contribute, you can do so by forking on GitHub: [mono/SkiaSharp](https://github.com/mono/SkiaSharp).
+
+If you have any questions, bugs or suggestions, we welcome them as [issues](https://github.com/mono/SkiaSharp/issues).
