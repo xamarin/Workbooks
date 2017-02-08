@@ -19,6 +19,8 @@ SkiaSharp is a fully cross-platform, rich 2D graphics drawing API powered by [Go
 
 SkiaSharp can be used to render images on many platforms, including iOS, macOS, tvOS, Android, and Universal Windows Platform (UWP). Not only does SkiaSharp support native mobile apps, it also supports .NET Standard 1.3 and .NET Core on macOS and Windows, as well as Classic Windows Desktop and WPF applications.
 
+*This cool introduction is also available as a Xamarin.Forms app for iOS, Android and Windows: [mattleibow/SkiaSharpDemo](https://github.com/mattleibow/SkiaSharpDemo "SkiaSharpDemo") Download and try it out on your device.*
+
 ## Creating a Surface
 
 Before we can use SkiaSharp in our app, we need to make sure we add the `using` statement:
@@ -34,13 +36,13 @@ const int BitmapWidth = 300;
 const int BitmapHeight = 300;
 ```
 
-Now, we are going to create the bitmap. This is as simple as instantiating `SKBitmap` with the size that we descided on earlier:
+Now, we are going to create the bitmap. This is as simple as instantiating `SKBitmap` with the size that we decided on earlier:
 
 ```csharp
 var bitmap = new SKBitmap(BitmapWidth, BitmapHeight);
 ```
 
-Right now, the bitmap is very boring and we can’t even see it. But, this is where we can start doing interesting things. 
+Right now, the bitmap is very boring and we can’t even see it. But, this is where we can start doing interesting things.
 
 *On some platforms, the memory is not cleared before the bitmap is allocated. When this happens, there are artifacts from what was in memory last - which is often just random bits of data.*
 
@@ -60,11 +62,11 @@ canvas.Clear(SKColors.White);
 bitmap
 ```
 
-We can’t really see anything yet, as the bitmap is just white, but now we have a clean surface to draw some shapes. To do this we will need to create a `SKPaint`, which is where we control what the drawing looks like. We can call the drawing methods multiple times and by only changing the paint, the rectangle will look totally different. 
+We can’t really see anything yet, as the bitmap is just white, but now we have a clean surface to draw some shapes. To do this we will need to create a `SKPaint`, which is where we control what the drawing looks like. We can call the drawing methods multiple times and by only changing the paint, the rectangle will look totally different.
 
 ## Drawing Shapes
 
-Here we are hoing to draw a blue circle in the top, left corner. So, we set the `IsAntialias` property to make the edges smooth, the `Style` property to indicate that we want to do a fill and finally the `Color`.
+Here we are going to draw a blue circle in the top, left corner. So, we set the `IsAntialias` property to make the edges smooth, the `Style` property to indicate that we want to do a fill and finally the `Color`.
 
 ```csharp
 var circleFill = new SKPaint {
@@ -100,7 +102,7 @@ All done! We have a nice blue circle with a thick red border.
 
 ## Drawing Paths
 
-Although we have some simple shapes we can draw, we often want to draw complext geometry. This is done with a path. The `SKPath` type has many methods that allow us to build up any shape that we may want.
+Although we have some simple shapes we can draw, we often want to draw complex geometry. This is done with a path. The `SKPath` type has many methods that allow us to build up any shape that we may want.
 
 Here, we are just going to draw a simple X shape using `MoveTo` and `LineTo`:
 
@@ -128,7 +130,7 @@ bitmap
 
 ## Drawing Text
 
-Just as it ieasy to draw shapes and paths, so is it easy to draw text. Drawing text also uses a paint, and we can draw either an aoutline with a stroke, of solid text with fill:
+Just as it is easy to draw shapes and paths, so is it easy to draw text. Drawing text also uses a paint, and we can draw either an outline with a stroke, of solid text with fill:
 
 ```csharp
 var textSize = 40;
