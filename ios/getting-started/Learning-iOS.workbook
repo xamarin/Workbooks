@@ -47,7 +47,7 @@ controller.View.BackgroundColor = UIColor.Magenta
 
 You can’t set the color of the actual View Controller itself, it’s just an UI-less object that manages views.
 
-###### 👍 Try it now!
+###### Try it now!
 
 * See if you can change the color of the background to something different
 
@@ -69,9 +69,9 @@ window.RootViewController = navigationController
 
 Next, use the existing View Controller (named *controller*) as the first View Controller in the navigationController’s stack.
 
-###### 👍 Try it now
+###### Try it now
 
-* Pass the View Controller (controller) into the newly created instance of our navigation controller. You can pass this as an argument in the code above and press cmd \+ Enter to run the code. If you inspect the simulator, it should look like this:
+* Pass the View Controller (controller) into the newly created instance of our navigation controller. You can pass this as an argument in the code above and press cmd \+ Enter to run the code. 
 
 * ⚠️This step is important. If you don’t do this step, the rest of the code may not work correctly
 
@@ -120,7 +120,7 @@ enterButton.Frame = new CGRect(10, 200, controller.View.Bounds.Width - 20, 31.0f
 enterButton.SetTitle ("Submit", UIControlState.Normal);
 ```
 
-#### 👍 Try it now:
+#### Try it now:
 
 * Set the `KeyboardType`property of the email TextField to `EmailAddress`
 
