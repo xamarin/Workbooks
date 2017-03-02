@@ -1,0 +1,216 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Operator Overloading
+
+Workbooks conversion of an [MSDN tutorial on Operator Overloading](https://msdn.microsoft.com/en-us/library/aa288467(v=vs.71).aspx).
+
+## Tutorial
+
+Operator overloading permits user-defined operator implementations to be specified for operations where one or both of the operands are of a user-defined class or struct type. The tutorial contains two examples. The first example shows how to use operator overloading to create a complex number class that defines complex addition. The second example shows how to use operator overloading to implement a three-valued logical type.
+
+#### Example 1
+
+This example shows how you can use operator overloading to create a complex number class `Complex` that defines complex addition. The program displays the imaginary and the real parts of the numbers and the addition result using an override of the `ToString` method.
+
+```csharp
+public struct Complex
+{
+   public int real;
+   public int imaginary;
+
+   public Complex(int real, int imaginary)
+   {
+      this.real = real;
+      this.imaginary = imaginary;
+   }
+
+   // Declare which operator to overload (+), the types
+   // that can be added (two Complex objects), and the
+   // return type (Complex):
+   public static Complex operator +(Complex c1, Complex c2)
+   {
+      return new Complex(c1.real + c2.real, c1.imaginary + c2.imaginary);
+   }
+   // Override the ToString method to display an complex number in the suitable format:
+   public override string ToString()
+   {
+      return $"{real} + {imaginary}i";
+   }
+}
+```
+
+Test the overloaded operator:
+
+```csharp
+Complex num1 = new Complex(2,3);
+Complex num2 = new Complex(3,4);
+
+// Add two Complex objects (num1 and num2) through the
+// overloaded plus operator:
+Complex sum = num1 + num2;
+
+// Print the numbers and the sum using the overriden ToString method:
+Console.WriteLine($"First complex number:  {num1}");
+Console.WriteLine($"Second complex number: {num2}");
+Console.WriteLine($"The sum of the two numbers: {sum}");
+```
+
+*Exercise:* Complete the implementation by overloading the other operators (subtraction, mulitplication, division). Subtraction is very similar to addition, but you might need more info on complex numbers from the [interactive maths site](http://www.intmath.com/complex-numbers/2-basic-operations.php) to complete the others!
+
+#### Example 2
+
+This example shows how operator overloading can be used to implement a three-valued logical type. The possible values of this type are `DBBool.dbTrue`, `DBBool.dbFalse`, and `DBBool.dbNull`, where the `dbNull` member indicates an unknown value.
+
+> **Note** Defining the True and False operators is only useful for types that represent True, False, and Null (neither True nor False), as used in databases.
+
+```csharp
+public struct DBBool
+{
+   // The three possible DBBool values:
+   public static readonly DBBool dbNull = new DBBool(0);
+   public static readonly DBBool dbFalse = new DBBool(-1);
+   public static readonly DBBool dbTrue = new DBBool(1);
+   // Private field that stores -1, 0, 1 for dbFalse, dbNull, dbTrue:
+   int value;
+
+   // Private constructor. The value parameter must be -1, 0, or 1:
+   DBBool(int value)
+   {
+      this.value = value;
+   }
+
+   // Implicit conversion from bool to DBBool. Maps true to
+   // DBBool.dbTrue and false to DBBool.dbFalse:
+   public static implicit operator DBBool(bool x)
+   {
+      return x? dbTrue: dbFalse;
+   }
+
+   // Explicit conversion from DBBool to bool. Throws an
+   // exception if the given DBBool is dbNull, otherwise returns
+   // true or false:
+   public static explicit operator bool(DBBool x)
+   {
+      if (x.value == 0) throw new InvalidOperationException();
+      return x.value > 0;
+   }
+
+   // Equality operator. Returns dbNull if either operand is dbNull,
+   // otherwise returns dbTrue or dbFalse:
+   public static DBBool operator ==(DBBool x, DBBool y)
+   {
+      if (x.value == 0 || y.value == 0) return dbNull;
+      return x.value == y.value? dbTrue: dbFalse;
+   }
+
+   // Inequality operator. Returns dbNull if either operand is
+   // dbNull, otherwise returns dbTrue or dbFalse:
+   public static DBBool operator !=(DBBool x, DBBool y)
+   {
+      if (x.value == 0 || y.value == 0) return dbNull;
+      return x.value != y.value? dbTrue: dbFalse;
+   }
+
+   // Logical negation operator. Returns dbTrue if the operand is
+   // dbFalse, dbNull if the operand is dbNull, or dbFalse if the
+   // operand is dbTrue:
+   public static DBBool operator !(DBBool x)
+   {
+      return new DBBool(-x.value);
+   }
+
+   // Logical AND operator. Returns dbFalse if either operand is
+   // dbFalse, dbNull if either operand is dbNull, otherwise dbTrue:
+   public static DBBool operator &(DBBool x, DBBool y)
+   {
+      return new DBBool(x.value < y.value? x.value: y.value);
+   }
+
+   // Logical OR operator. Returns dbTrue if either operand is
+   // dbTrue, dbNull if either operand is dbNull, otherwise dbFalse:
+   public static DBBool operator |(DBBool x, DBBool y)
+   {
+      return new DBBool(x.value > y.value? x.value: y.value);
+   }
+
+   // Definitely true operator. Returns true if the operand is
+   // dbTrue, false otherwise:
+   public static bool operator true(DBBool x)
+   {
+      return x.value > 0;
+   }
+
+   // Definitely false operator. Returns true if the operand is
+   // dbFalse, false otherwise:
+   public static bool operator false(DBBool x)
+   {
+      return x.value < 0;
+   }
+
+   // Overload the conversion from DBBool to string:
+   public static implicit operator string(DBBool x)
+   {
+      return x.value > 0 ? "dbTrue"
+           : x.value < 0 ? "dbFalse"
+           : "dbNull";
+   }
+
+   // Override the Object.Equals(object o) method:
+   public override bool Equals(object o)
+   {
+      try
+      {
+         return (bool) (this == (DBBool) o);
+      }
+      catch
+      {
+         return false;
+      }
+   }
+
+   // Override the Object.GetHashCode() method:
+   public override int GetHashCode()
+   {
+      return value;
+   }
+
+   // Override the ToString method to convert DBBool to a string:
+   public override string ToString()
+   {
+      switch (value)
+      {
+         case -1:
+            return "DBBool.False";
+         case 0:
+            return "DBBool.Null";
+         case 1:
+            return "DBBool.True";
+         default:
+            throw new InvalidOperationException();
+      }
+   }
+}
+```
+
+Test the overloaded operators:
+
+```csharp
+DBBool a, b;
+a = DBBool.dbTrue;
+b = DBBool.dbNull;
+
+Console.WriteLine( "!{0} = {1}", a, !a);
+Console.WriteLine( "!{0} = {1}", b, !b);
+Console.WriteLine( "{0} & {1} = {2}", a, b, a & b);
+Console.WriteLine( "{0} | {1} = {2}", a, b, a | b);
+// Invoke the true operator to determine the Boolean
+// value of the DBBool variable:
+if (b)
+    Console.WriteLine("b is definitely true");
+else
+    Console.WriteLine("b is not definitely true");
+```

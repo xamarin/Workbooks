@@ -4,7 +4,7 @@ platforms:
 - Console
 ---
 
-# Collections: Arrays
+# Collections: Arrays (Part 1)
 
 An array is a simple data structure:
 

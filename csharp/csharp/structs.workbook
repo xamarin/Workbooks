@@ -1,0 +1,212 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Structs
+
+Workbooks conversion of an [MSDN tutorial on Structs](https://msdn.microsoft.com/en-us/library/aa288471(v=vs.71).aspx).
+
+## Tutorial
+
+This tutorial includes two examples. The first example shows you how to declare and use structs, and the second example demonstrates the difference between structs and classes when instances are passed to methods. You are also introduced to the following topics:
+
+* Structs vs. Classes
+
+* Heap or Stack?
+
+* Constructors and Inheritance
+
+* Attributes on Structs
+
+#### Example 1
+
+This example declares a struct with three members: a property, a method, and a private field. It creates an instance of the `struct` and puts it to use:
+
+```csharp
+struct SimpleStruct
+{
+    private int xval;
+    public int X
+    {
+        get
+        {
+            return xval;
+        }
+        set
+        {
+            if (value < 100)
+                xval = value;
+        }
+    }
+    public void DisplayX()
+    {
+        Console.WriteLine("The stored value is: {0}", xval);
+    }
+}
+```
+
+```csharp
+var ss1 = new SimpleStruct();
+ss1.X = 5;
+ss1.DisplayX();
+```
+
+Alternatively, set a value that doesn’t pass the `if` statement, and the property will have `int`’s default value:
+
+```csharp
+var ss2 = new SimpleStruct();
+ss2.X = 101;
+ss2.DisplayX();
+```
+
+### Structs vs. Classes
+
+Structs may seem similar to classes, but there are important differences that you should be aware of. First of all, classes are **reference types** and structs are **value types**. By using structs, you can create objects that behave like the built-in types and enjoy their benefits as well.
+
+### Heap or Stack?
+
+When you call the `new` operator on a class, it will be allocated on the heap. However, when you instantiate a struct, it gets created on the stack. This will yield performance gains. Also, you will not be dealing with references to an instance of a struct as you would with classes. You will be working directly with the struct instance. Because of this, when passing a struct to a method, it's passed by value instead of as a reference.
+
+#### Example 2
+
+This example shows that when a struct is passed to a method, a copy of the struct is passed, but when a class instance is passed, a reference is passed.
+
+```csharp
+class TheClass
+{
+    public int x;
+}
+struct TheStruct
+{
+    public int x;
+}
+void structtaker(TheStruct s)
+{
+    s.x = 5;
+}
+void classtaker(TheClass c)
+{
+    c.x = 5;
+}
+
+var a = new TheStruct();
+var b = new TheClass();
+a.x = 1;
+b.x = 1;
+structtaker(a);
+classtaker(b);
+
+Console.WriteLine($"a.x = {a.x}");
+Console.WriteLine($"b.x = {b.x}");
+```
+
+C# *does* provide a way to pass structs by reference, using the `ref` keyword. Both the method declaration and caller require the `ref` keyword to appear before the parameter.
+
+```csharp
+void structtakerref(ref TheStruct s)
+{
+    s.x = 5;
+}
+var c = new TheStruct();
+c.x = 1;
+structtakerref(ref c);
+Console.WriteLine($"c.x = {c.x}");
+```
+
+#### Code Discussion
+
+The output of the example shows that only the value of the class field was changed when the class instance was passed to the `classtaker` method. The struct field, however, did not change by passing its instance to the `structtaker` method. This is because a copy of the struct was passed to the `structtaker` method, while a reference to the class was passed to the `classtaker` method.
+
+### Constructors and Inheritance
+
+Structs can declare constructors, but they must take parameters. It is an error to declare a default (parameterless) constructor for a struct. Struct members cannot have initializers. A default constructor is always provided to initialize the struct members to their default values.
+
+When you create a struct object using the `new` operator, it gets created and the appropriate constructor is called. Unlike classes, structs can be instantiated without using the `new` operator. If you do not use `new`, the fields will remain unassigned and the object cannot be used until all the fields are initialized.
+
+There is no inheritance for structs as there is for classes. A struct cannot inherit from another struct or class, and it cannot be the base of a class. Structs, however, inherit from the base class object. A struct can implement interfaces, and it does that exactly as classes do. Here's a code snippet of a struct implementing an interface:
+
+`interface IImage
+{
+    void Paint();
+}
+
+struct Picture : IImage
+{
+    public void Paint()
+    {
+         // painting code goes here
+    }
+    private int x, y, z;  // other struct members
+}`
+
+### Attributes on Structs
+
+By using attributes you can customize how structs are laid out in memory. For example, you can create what's known as a union in C/C\+\+ by using the **`StructLayout(LayoutKind.Explicit)`** and **`FieldOffset`** attributes.
+
+```csharp
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Explicit)]
+struct TestUnion
+{
+    [FieldOffset(0)]
+    public int i;
+    [FieldOffset(0)]
+    public double d;
+    [FieldOffset(0)]
+    public char c;
+    [FieldOffset(0)]
+    public byte b1;
+}
+```
+
+In the preceding code segment, all of the fields of `TestUnion` start at the same location in memory. The example below sets the integer field to `65` (the ASCII code for capital A). Expand the results and notice the other fields are set - the char renders as ‘A’
+
+```csharp
+var tu = new TestUnion { i = 65 };
+```
+
+The following is another example where fields start at different explicitly set locations:
+
+```csharp
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Explicit)]
+struct TestExplicit
+{
+    [FieldOffset(0)]
+    public long lg;
+    [FieldOffset(0)]
+    public int i1;
+    [FieldOffset(4)]
+    public int i2;
+    [FieldOffset(8)]
+    public double d;
+    [FieldOffset(12)]
+    public char c;
+    [FieldOffset(14)]
+    public byte b1;
+}
+```
+
+The two 32-bit **int** fields, `i1` and `i2`, share the same memory locations as the 64-bit field `lg`. Setting the 64-bit value, as shown here, means `i1` and `i2` are also set. Because it’s set to a low number, `i2` remains zero and `i1` contains the same value as `lg`. Expand the result below to confirm:
+
+```csharp
+var te1 = new TestExplicit {lg = 42};
+```
+
+*Exercise:* try setting the `lg` property to a large value to see the effect on the fields (try 0x10100000101, for example). Tip: use the **0x** view of the result’s fields.
+
+The next example sets the second 32-bit field. Expand the result to see how this affects the 64-bit field:
+
+```csharp
+var te2 = new TestExplicit {i2 = 1};
+```
+
+Switch the `lg` rendering to **0x**, and you’ll see `0x100000000` – the eight zeros are the contents of `i1` and the 1 is the value if `i2`.
+
+This sort of control over struct layout is useful when using platform invocation.
+
+### Conclusion
+
+Structs are simple to use and can prove to be useful at times. Just keep in mind that they're created on the stack and that you're not dealing with references to them but dealing directly with them. Whenever you have a need for a type that will be used often and is mostly just a piece of data, structs might be a good option.
