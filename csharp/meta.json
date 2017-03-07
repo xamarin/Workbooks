@@ -1,5 +1,6 @@
 {
   "order":{
+    "csharp7":"C# 7",
     "csharp6":"C# 6",
     "async":"Async Await",
     "collections":"Collections",
