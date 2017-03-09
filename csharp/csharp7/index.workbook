@@ -5,6 +5,9 @@ platforms:
 - Console
 ---
 
+> ⚠️ C# 7 is supported in Xamarin Workbooks 1.2 (or newer).
+> Please update to version 1.2 if you experience issues with this Workbook (you may need to switch to the Alpha or Beta channel).
+
 # What's new in C# 7
 
 C# 7 adds a number of new features to the C# language:
