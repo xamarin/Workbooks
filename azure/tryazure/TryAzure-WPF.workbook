@@ -22,7 +22,7 @@ Two NuGets - **Microsoft.Azure.Mobile.Client** & Newtonsoft.Json - have been add
 #r "Microsoft.WindowsAzure.Mobile.Ext"
 ```
 
-Use the [tryappservice.azure.com](https://tryappservice.azure.com/ "tryappservice.azure.com") **Mobile App > TodoList **to create a free back-end to test. This class matches the mobile app backend that is automatically created:
+Use the [tryappservice.azure.com](https://tryappservice.azure.com/ "tryappservice.azure.com") **Mobile App > TodoList** to create a free back-end to test. This class matches the mobile app backend that is automatically created:
 
 ```csharp
 using Newtonsoft.Json;
