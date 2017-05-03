@@ -1,77 +1,70 @@
 ---
+id: 06a9e50c-6510-47e6-9a31-f0c4e2ba9b1a
+title: Exploring Drawing with SkiaSharp
 uti: com.xamarin.workbook
 platforms:
 - iOS
+packages:
+- id: SkiaSharp
+  version: 1.57.1
 ---
+
+```csharp
+// install SkiaSharp
+#r "SkiaSharp"
+#load "SkiaSharp.csx"
+
+using SkiaSharp;
+```
 
 # Exploring SkiaSharp
 
-SkiaSharp provides a powerful C# API for doing 2D graphics. It is powered by [Google’s Skia library](http://skia.org/), the same library that powers Google Chrome, Firefox and Android’s graphic stacks.
+As we saw in the [Introduction to SkiaSharp](https://developer.xamarin.com/workbooks/graphics/skiasharp/introduction/introduction.workbook "Introduction to SkiaSharp") workbook, SkiaSharp provides a powerful C# API for doing 2D graphics. It is powered by [Google’s Skia library](http://skia.org/), the same library that powers Google Chrome, Firefox and Android’s graphic stacks.
 
-![](ide-sml.png)
+In this Workbook, we’ll do a spiral drawing, and then a Xamarin logo drawing using only the SkiaSharp APIs! We’ve installed the NuGet package into the workbook and already added a `using` statement, and are now ready to go.
 
-SkiaSharp is a Portable Library, and ships conveniently as a [cross-platform NuGet package](https://www.nuget.org/packages/SkiaSharp), and supports the following platforms out of the box: MacOS X, Android and iOS with Mono and the Windows Desktop with .NET.
+## Creating a drawing surface
 
-## Introduction to SkiaSharp
-
-SkiaSharp provides a rich and powerful 2D graphics API that can be used to render into 2D buffers. You can use these to implement custom user interface elements and 2D graphics that can be incorporated into your application. SkiaSharp is a .NET binding to the [Skia](https://skia.org/) library and inherits the features and power of this library
-
-The library is currently available as a cross-platform [NuGet Package](https://www.nuget.org/packages/SkiaSharp), you can it to your project by adding the NuGet reference. Currently, to use SkiaSharp in a Xamarin workbook, you need to extract the `libSkiaSharp` framework and open it explicitly:
+To start, we’ll need a surface to draw on—we’ll create an `SKSurface` with size 640x480. You’ll see the surface appear as an image in the Workbook—because we haven’t drawn anything on it yet, it will appear blank!
 
 ```csharp
-ObjCRuntime.Dlfcn.dlopen("libSkiaSharp.framework/libSkiaSharp", 0);
+var surface = SKSurface.Create (640, 480, SKColorType.Rgba8888, SKAlphaType.Premul);
 ```
 
-Once you’ve obtained a handle to the framework, as indicated by a non-0 response above, you  can reference the SkiaSharp DLL normally:
-
-```csharp
-#r "SkiaSharp"
-```
-
-And then import the namespace so that you can easily access its classes:
-
-```csharp
-using SkiaSharp
-```
-
-### **Obtaining an SKCanvas**
-
-To draw, your code will create an `SkCanvas` which describes the surface where the drawing operations will take place.
-
-```csharp
-using SkiaSharp;
-
-var surface = SkiaSharp.SKSurface.Create((int) UIScreen.MainScreen.Bounds.Width, (int) UIScreen.MainScreen.Bounds.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-```
+To draw on the surface we’ve created, we’ll need to use its canvas—we’ll start by clearing everything to a dim gray color so we can see at least some output.
 
 ```csharp
 var canvas = surface.Canvas;
 canvas.Clear(SKColors.DimGray);
+
+surface;
 ```
 
-Both the `surface`and the `canvas`are limited resources, so in application code you should wrap them in `using`statements.
+Both the `surface` and the `canvas` are limited resources, so in application code you should wrap them in `using` statements.
 
 The `SKCanvas` uses a drawing model similar in spirit to other drawing models that you might be familiar with, it uses colors with an optional transparency channel and can draw lines, arcs, text and images.
 
-### Drawing a spiral
+## Drawing a spiral
 
-This code is based on [http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral](http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral).
+We want to draw an Archimedean spiral—we’ll approximate it using Bézier curves, following an algorithm from Math.StackExchange.
 
 ```csharp
 //Ref. http://math.stackexchange.com/questions/179000/b%C3%A9zier-approximation-of-archimedes-spiral
-Tuple<bool, float, float> ZELineIntersection(float m1, float b1, float m2, float b2) {
-	float EPSILON = 0.000001f;
 
-	if (Math.Abs(m1 - m2) < EPSILON) {
+bool TryGetZELineIntersection (float m1, float b1, float m2, float b2, out float xIntercept, out float yIntercept) {
+    xIntercept = yIntercept = float.NaN;
+
+	if (Math.Abs (m1 - m2) < float.Epsilon) {
 		//Lines are parallel, so they don't intersect
-		return new Tuple<bool, float, float> (false, float.NaN, float.NaN);
+		return false;
 	}
-	float X = (b2 - b1) / (m1 - m2);
-	float Y = m1 * X + b1;
-	return new Tuple<bool, float, float> (true, X, Y);
+
+	xIntercept = (b2 - b1) / (m1 - m2);
+	yIntercept = m1 * xIntercept + b1;
+	return true;
 }
 
-SKPath BuildPath(SKPoint center, float startRadius, float spacePerLoop, float startTheta, float endTheta, float thetaStep){
+SKPath BuildPath (SKPoint center, float startRadius, float spacePerLoop, float startTheta, float endTheta, float thetaStep) {
     var path = new SKPath ();
 
     var oldTheta = startTheta;
@@ -81,7 +74,10 @@ SKPath BuildPath(SKPoint center, float startRadius, float spacePerLoop, float st
     var oldSlope = float.MaxValue;
     var newSlope = oldSlope;
 
-    var newPoint = new SKPoint( (float) (center.X + oldR * Math.Cos (oldTheta)), (float) (center.Y + oldR * Math.Sin (oldTheta)));
+    var newPoint = new SKPoint (
+        (float)(center.X + oldR * Math.Cos (oldTheta)), 
+        (float)(center.Y + oldR * Math.Sin (oldTheta))
+    );
 	path.MoveTo (newPoint.X, newPoint.Y);
 
     var firstSlope = true;
@@ -92,26 +88,36 @@ SKPath BuildPath(SKPoint center, float startRadius, float spacePerLoop, float st
         oldR = newR;
         newR = startRadius + spacePerLoop * newTheta;
 
-        newPoint = new SKPoint ((float) (center.X + newR * Math.Cos (newTheta)), (float) (center.Y + newR * Math.Sin (newTheta)));
+        newPoint = new SKPoint (
+            (float)(center.X + newR * Math.Cos (newTheta)), 
+            (float)(center.Y + newR * Math.Sin (newTheta))
+        );
 
         // Slope calculation with the formula:
         // (spacePerLoop * sinΘ + (startRadius + bΘ) * cosΘ) / (spacePerLoop * cosΘ - (startRadius + bΘ) * sinΘ)
 
         var aPlusBTheta = startRadius + spacePerLoop * newTheta;
         if (firstSlope) {
-            oldSlope = (float) (((spacePerLoop * Math.Sin (oldTheta) + aPlusBTheta * Math.Cos (oldTheta)) / (spacePerLoop * Math.Cos (oldTheta) - aPlusBTheta * Math.Sin (oldTheta))));
+            oldSlope = (float)(
+                (spacePerLoop * Math.Sin (oldTheta) + aPlusBTheta * Math.Cos (oldTheta)) / 
+                (spacePerLoop * Math.Cos (oldTheta) - aPlusBTheta * Math.Sin (oldTheta))
+            );
             firstSlope = false;
         } else {
             oldSlope = newSlope;
         }
-        newSlope = (float) ((spacePerLoop * Math.Sin (newTheta) + aPlusBTheta * Math.Cos (newTheta)) / (spacePerLoop * Math.Cos (newTheta) - aPlusBTheta * Math.Sin (newTheta)));
+
+        newSlope = (float)(
+            (spacePerLoop * Math.Sin (newTheta) + aPlusBTheta * Math.Cos (newTheta)) / 
+            (spacePerLoop * Math.Cos (newTheta) - aPlusBTheta * Math.Sin (newTheta))
+        );
 
         var oldIntercept = (float) -(oldSlope * oldR * Math.Cos (oldTheta) - oldR * Math.Sin (oldTheta));
         var newIntercept = (float) -(newSlope * newR * Math.Cos (newTheta) - newR * Math.Sin (newTheta));
 
-        var intersection = ZELineIntersection (oldSlope, oldIntercept, newSlope, newIntercept);
-        if (intersection.Item1) {
-            var controlPoint = new SKPoint (intersection.Item2 + center.X, intersection.Item3 + center.Y);
+        float xIntercept, yIntercept;
+        if (TryGetZELineIntersection (oldSlope, oldIntercept, newSlope, newIntercept, out xIntercept, out yIntercept)) {
+            var controlPoint = new SKPoint (xIntercept + center.X, yIntercept + center.Y);
             path.LineTo (controlPoint.X, controlPoint.Y);
         } else {
             throw new ArgumentException ("These lines should never be parallel.");
@@ -120,27 +126,135 @@ SKPath BuildPath(SKPoint center, float startRadius, float spacePerLoop, float st
     return path;
 }
 
-var p = BuildPath(new SKPoint((float) UIScreen.MainScreen.Bounds.GetMidX(), (float) UIScreen.MainScreen.Bounds.GetMidY()), 0, 3.3f, 0, 50, (float) (Math.PI / 16.0));
+var path = BuildPath (
+    new SKPoint (320, 240), 
+    startRadius: 0, 
+    spacePerLoop: 3.3f, 
+    startTheta: 0, 
+    endTheta: 50, 
+    thetaStep: (float) (Math.PI / 16.0)
+);
 ```
 
 Now, with a path in hand, we can draw it to the `canvas`:
 
 ```csharp
-var canvasColor = new SKColor(127, 127, 127, 127);
-canvas.Clear(canvasColor);
+canvas.Clear(SKColors.LightGray);
 
 using (var paint = new SKPaint ()) {
 	paint.IsAntialias = true;
-	paint.Color = new SKColor (0x2c, 0x3e, 0x50);
+	paint.Color = SKColors.Blue;
 	paint.StrokeCap = SKStrokeCap.Round;
+    paint.StrokeWidth = 2;
 	paint.IsStroke = true;
-	canvas.DrawPath (p, paint);
+	canvas.DrawPath (path, paint);
 }
+
+surface;
 ```
 
-And from there, convert it to PNG format:
+As you can see, our drawing surface now has a spiral drawn in the center of it. You can play with the spiral to produce different results!
+
+### Spiral Exercises
+
+* Change the color or stroke of the `SKPaint` used to actually draw the spiral’s path. How does this change the output?
+
+* Change the parameters to the BuildPath function. How do they change the output’s shape, particularly the `startRadius`, `spacePerLoop`, and `endTheta` parameters.
+
+## Drawing the Xamarin Xamagon
+
+Drawing the Xamagon will use most of the same concepts as we used for drawing the spiral—we’ll even reuse the same canvas and surface for drawing, we just need to clear them again.
 
 ```csharp
-var skPngdata = surface.Snapshot().Encode();
-var spiral = UIImage.LoadFromData(NSData.FromBytes(skPngdata.Data, (nuint) skPngdata.Size));
+canvas.Clear (SKColors.White);
+surface;
 ```
+
+Next, we’ll create the Xamagon body:
+
+```csharp
+var xamagonBody = new SKPath();
+xamagonBody.MoveTo(71.4311121f, 56f);
+xamagonBody.CubicTo(68.6763107f, 56.0058575f, 65.9796704f, 57.5737917f, 64.5928855f, 59.965729f);
+xamagonBody.LineTo(43.0238921f, 97.5342563f);
+xamagonBody.CubicTo(41.6587026f, 99.9325978f, 41.6587026f, 103.067402f, 43.0238921f, 105.465744f);
+xamagonBody.LineTo(64.5928855f, 143.034271f);
+xamagonBody.CubicTo(65.9798162f, 145.426228f, 68.6763107f, 146.994582f, 71.4311121f, 147f);
+xamagonBody.LineTo(114.568946f, 147f);
+xamagonBody.CubicTo(117.323748f, 146.994143f, 120.020241f, 145.426228f, 121.407172f, 143.034271f);
+xamagonBody.LineTo(142.976161f, 105.465744f);
+xamagonBody.CubicTo(144.34135f, 103.067402f, 144.341209f, 99.9325978f, 142.976161f, 97.5342563f);
+xamagonBody.LineTo(121.407172f, 59.965729f);
+xamagonBody.CubicTo(120.020241f, 57.5737917f, 117.323748f, 56.0054182f, 114.568946f, 56f);
+xamagonBody.LineTo(71.4311121f, 56f);
+xamagonBody.Close();
+```
+
+And then we’ll do the same thing as we did with the spiral, and use an `SKPaint` to draw the Xamagon.
+
+```csharp
+using (var paint = new SKPaint ()) {
+    paint.IsAntialias = true;
+    paint.Color = new SKColor(0x34, 0x98, 0xdb, 0xff);
+    paint.StrokeCap = SKStrokeCap.Round;
+    canvas.DrawPath(xamagonBody, paint);
+}
+
+surface;
+```
+
+Finally, we need to path the X body and draw it onto the surface.
+
+```csharp
+var xBody = new SKPath();
+xBody.MoveTo(71.8225901f, 77.9780432f);
+xBody.CubicTo(71.8818491f, 77.9721857f, 71.9440029f, 77.9721857f, 72.0034464f, 77.9780432f);
+xBody.LineTo(79.444074f, 77.9780432f);
+xBody.CubicTo(79.773437f, 77.9848769f, 80.0929203f, 78.1757336f, 80.2573978f, 78.4623994f);
+xBody.LineTo(92.8795281f, 101.015639f);
+xBody.CubicTo(92.9430615f, 101.127146f, 92.9839987f, 101.251384f, 92.9995323f, 101.378901f);
+xBody.CubicTo(93.0150756f, 101.251354f, 93.055974f, 101.127107f, 93.1195365f, 101.015639f);
+xBody.LineTo(105.711456f, 78.4623994f);
+xBody.CubicTo(105.881153f, 78.167045f, 106.215602f, 77.975134f, 106.554853f, 77.9780432f);
+xBody.LineTo(113.995483f, 77.9780432f);
+xBody.CubicTo(114.654359f, 77.9839007f, 115.147775f, 78.8160066f, 114.839019f, 79.4008677f);
+xBody.LineTo(102.518299f, 101.500005f);
+xBody.LineTo(114.839019f, 123.568869f);
+xBody.CubicTo(115.176999f, 124.157088f, 114.671442f, 125.027775f, 113.995483f, 125.021957f);
+xBody.LineTo(106.554853f, 125.021957f);
+xBody.CubicTo(106.209673f, 125.019028f, 105.873247f, 124.81384f, 105.711456f, 124.507327f);
+xBody.LineTo(93.1195365f, 101.954088f);
+xBody.CubicTo(93.0560031f, 101.84258f, 93.0150659f, 101.718333f, 92.9995323f, 101.590825f);
+xBody.CubicTo(92.983989f, 101.718363f, 92.9430906f, 101.842629f, 92.8795281f, 101.954088f);
+xBody.LineTo(80.2573978f, 124.507327f);
+xBody.CubicTo(80.1004103f, 124.805171f, 79.7792269f, 125.008397f, 79.444074f, 125.021957f);
+xBody.LineTo(72.0034464f, 125.021957f);
+xBody.CubicTo(71.3274867f, 125.027814f, 70.8220664f, 124.157088f, 71.1600463f, 123.568869f);
+xBody.LineTo(83.4807624f, 101.500005f);
+xBody.LineTo(71.1600463f, 79.400867f);
+xBody.CubicTo(70.8647037f, 78.86725f, 71.2250368f, 78.0919422f, 71.8225901f, 77.9780432f);
+xBody.LineTo(71.8225901f, 77.9780432f);
+xBody.Close();
+```
+
+And paint it:
+
+```csharp
+using (var paint = new SKPaint ()) {
+    paint.IsAntialias = true;
+    paint.Color = SKColors.White;
+    paint.StrokeCap = SKStrokeCap.Round;
+    canvas.DrawPath(xBody, paint);
+}
+
+surface;
+```
+
+Tada! We’ve now got ourselves a Xamagon.
+
+### Xamagon Exercises
+
+* You’ll notice that the Xamagon is a bit…small. How can you increase its size, without modifying the paths themselves.\
+  Explore the APIs on `SKCanvas` and `SKSurface` for anything relevant.
+
+* What happens if you change the `SKPaint` properties?
