@@ -1,8 +1,7 @@
 ---
 uti: com.xamarin.workbook
 platforms:
-- WPF
-- MacNet45
+- Console
 ---
 
 ## Physics
@@ -18,11 +17,10 @@ using Urho; using Urho.Actions; using Urho.Shapes; using Urho.Physics;
 ```
 
 ```csharp
-var app = await SimpleApplication.RunAsync (
+var app = SimpleApplication.Show (
 	new ApplicationOptions ("Data") {
 		Width = 700, 
 		Height = 700 });
-app.Input.SetMouseVisible(true, true);
 var rootNode = app.Scene.CreateChild();
 ```
 
@@ -46,25 +44,6 @@ trashcanNode.CreateComponent<RigidBody>();
 var shape = trashcanNode.CreateComponent<CollisionShape>();
 shape.SetTriangleMesh(trashcan.Model, 0, Vector3.One, 
 	Vector3.Zero, Quaternion.Identity);
-```
-
-Add an ambient light.
-
-```csharp
-var zone = rootNode.CreateComponent<Zone>();
-zone.AmbientColor = new Color(0.3f, 0.3f, 0.3f);
-```
-
-Apply FXAA3 (Fast approximate anti-aliasing).
-
-```csharp
-app.Viewport.RenderPath.Append(CoreAssets.PostProcess.FXAA3);
-```
-
-Enable camera movements.
-
-```csharp
-app.MoveCamera = true;
 ```
 
 Define ThrowBall method

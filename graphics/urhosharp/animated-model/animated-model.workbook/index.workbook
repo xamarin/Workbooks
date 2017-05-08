@@ -1,8 +1,7 @@
 ---
 uti: com.xamarin.workbook
 platforms:
-- WPF
-- MacNet45
+- Console
 ---
 
 ## Animated Models
@@ -18,11 +17,10 @@ using Urho; using Urho.Actions; using Urho.Shapes; using Urho.Gui; using Urho.Ur
 ```
 
 ```csharp
-var app = await SimpleApplication.RunAsync (
+var app = SimpleApplication.Show (
 	new ApplicationOptions ("Data") {
 		Width = 800, 
 		Height = 800 });
-app.Input.SetMouseVisible(true, true);
 ```
 
 We have created a WPF window containing a `SimpleApplication`.
@@ -39,12 +37,6 @@ node.SetScale(2.5f);
 var animation = node.CreateComponent<AnimationController>();
 animation.Play("Animations/Mutant_Idle0.ani", 0, true, 0.2f);
 node.Position = new Vector3(0, -2f, 0.2f);
-```
-
-Apply Fast approximate anti-aliasing
-
-```csharp
-app.Viewport.RenderPath.Append(CoreAssets.PostProcess.FXAA3);
 ```
 
 Enumerate all available animations

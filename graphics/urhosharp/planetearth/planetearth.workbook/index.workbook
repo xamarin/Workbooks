@@ -1,8 +1,7 @@
 ---
 uti: com.xamarin.workbook
 platforms:
-- MacNet45
-- WPF
+- Console
 ---
 
 ## UrhoSharp: Planet Earth in C#
@@ -18,14 +17,14 @@ using Urho; using Urho.Actions; using Urho.Shapes;
 ```
 
 ```csharp
-var app = await SimpleApplication.RunAsync (
+var app = SimpleApplication.Show (
 	new ApplicationOptions ("Data") {
 		Width = 600,
 		Height = 600,
 		TouchEmulation = true });
 ```
 
-We have created a WPF window containing a `Simple3DScene`. Let’s add a new `Node` to the scene, representing the Earth.
+We have created a WPF window containing a `ApplicationOptions`. Let’s add a new `Node` to the scene, representing the Earth.
 
 `Node`s contain `Component`s that dictate what is rendered. We’ll cheat a bit
 and use a `Sphere` for the Earth.
@@ -55,7 +54,7 @@ moonNode.Position = new Vector3 (x: -3.0f, y: 0, z: 0);
 moonNode.SetScale (1f);
 var moon = moonNode.CreateComponent<Sphere> ();
 moon.CastShadows = false;
-moon.SetMaterial (Material.FromImage ("Textures/moon.jpg"));
+moon.SetMaterial (Material.FromImage ("Textures/moon.jpg", normals: "Textures/Moon_NormalsMap.png"));
 ```
 
 ```csharp
@@ -121,7 +120,7 @@ Node AddSatellite (Node parent, float lat, float lon,
 }
 ```
 
-According to NASA, there are \~3600 satellites in Low Earth Orbit.
+According to NASA, there are ~3600 satellites in Low Earth Orbit.
 
 ```csharp
 satellitesNode.RemoveAllChildren();
@@ -197,3 +196,29 @@ app.Input.TouchEnd += e => {
 };
 ```
 
+A more complicated example of how to create complex Materials in code and set shaders’ parameters.
+
+```csharp
+var advancedEarthMaterial = new Material();
+advancedEarthMaterial.SetTechnique(0, CoreAssets.Techniques.DiffNormal, 0, 0);
+advancedEarthMaterial.SetTexture(TextureUnit.Diffuse, app.ResourceCache.GetTexture2D("Textures/Earth_Diff.jpg"));
+advancedEarthMaterial.SetTexture(TextureUnit.Normal, app.ResourceCache.GetTexture2D("Textures/Earth_NormalsMap.png"));
+earth.SetMaterial(advancedEarthMaterial);
+advancedEarthMaterial.SetShaderParameter(CoreAssets.ShaderParameters.MatDiffColor, new Color(0.8f, 0.9f, 1f, 1f));
+```
+
+
+
+```csharp
+earthNode.RemoveAllChildren();
+var cloudsNode = earthNode.CreateChild();
+cloudsNode.SetScale(1.03f);
+var clouds = cloudsNode.CreateComponent<StaticModel>();
+clouds.Model = CoreAssets.Models.Sphere;
+var cloudsMaterial = new Material();
+cloudsMaterial.SetTechnique(0, CoreAssets.Techniques.DiffAddAlpha, 0, 0);
+cloudsMaterial.SetTexture(TextureUnit.Diffuse, app.ResourceCache.GetTexture2D("Textures/Earth_Clouds.jpg"));
+cloudsMaterial.SetShaderParameter(CoreAssets.ShaderParameters.MatDiffColor, new Color(1,1,1,0.6f));
+clouds.SetMaterial(cloudsMaterial);
+cloudsNode.RunActions(new RepeatForever(new RotateBy(1f, 0, 7, 0)));
+```
