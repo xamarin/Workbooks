@@ -1,0 +1,50 @@
+---
+packages:
+- id: SkiaSharp
+  version: 1.57.1
+title: Working with SKPixmap
+uti: com.xamarin.workbook
+id: ab5c4303-8a59-4786-8dca-752524d8445c
+platforms:
+- Console
+---
+
+```csharp
+// install SkiaSharp
+#r "SkiaSharp"
+
+using SkiaSharp;
+```
+
+# Working with SKPixmap
+
+SkiaSharp exposes the `SKPixmap` type, which is used when you manually want to manage image memory, or color table memory. This is useful if you’re receiving this from another library, or generating pixel data yourself and want to avoid copies. In this case, we’ll demonstrate how to manually decode an image and load it into an `SKPixmap`. We’ll use the same `cat.jpeg` image that we used in the `SKImage` workbook here to demonstrate manual loading.
+
+> ⚠️ `SKPixmap` uses some advanced .NET concepts, such as unsafe code and pinning.
+
+```csharp
+using System.IO;
+
+// First, load our image data. In other cases, this may be data you
+// received in a web app, or from some other library, or generated pixels.
+var imageData = File.ReadAllBytes ("cat.jpeg");
+// Decode the image data we've loaded into a byte[] of pure pixels.
+var codec = SKCodec.Create (new SKMemoryStream (imageData));
+var decoded = codec.Pixels;
+
+SKPixmap pixmap;
+unsafe {
+    // Because SKPixmap wants an IntPtr for data, we have to pin our existing
+    // byte[] so that the garbage collector doesn't move it.
+    fixed (byte* decodedPtr = decoded) {
+        // Create the SKPixmap instance.
+        pixmap = new SKPixmap (
+            new SKImageInfo (codec.Info.Width, codec.Info.Height, codec.Info.ColorType),
+            (IntPtr) decodedPtr
+        );
+    }
+}
+
+// Return it so that we can visualize it in the workbook.
+pixmap;
+```
