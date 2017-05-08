@@ -12,7 +12,6 @@ packages:
 ```csharp
 // install SkiaSharp
 #r "SkiaSharp"
-#load "SkiaSharp.csx"
 ```
 
 # SkiaSharp

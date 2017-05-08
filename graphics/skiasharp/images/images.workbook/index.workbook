@@ -12,7 +12,6 @@ platforms:
 ```csharp
 // install SkiaSharp
 #r "SkiaSharp"
-#load "SkiaSharp.csx"
 
 using SkiaSharp;
 ```
