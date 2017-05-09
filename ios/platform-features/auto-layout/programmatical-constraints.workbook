@@ -8,7 +8,7 @@ platforms:
 
 The goal of this workbook is to explain **advanced auto layout** concepts by showing how to create constraints **programmatically**.
 
-*Whenever possible, we recommend you use the iOS designer to create your contraints because you can easily visualize, edit, manage and debug them.*
+> ⚠️ Whenever possible, we recommend you use the iOS designer to create your constraints because you can easily visualize, edit, manage and debug them.
 
 ```csharp
 var orangeLabel = new UILabel () {
@@ -41,7 +41,7 @@ By default this is set to `true` which lets the system create a set of constrain
 
 However it prevents you from adding **additional constraints**, see API doc:
 
-> Note that the autoresizing mask constraints fully specify the view’s size and position; therefore, you cannot add additional constraints to modify this size or position without introducing conflicts. If you want to use Auto Layout to dynamically calculate the size and position of your view, you must set this property to false, and then provide a non ambiguous, nonconflicting set of constraints for the view.
+> ℹ Note that the autoresizing mask constraints fully specify the view’s size and position; therefore, you cannot add additional constraints to modify this size or position without introducing conflicts. If you want to use Auto Layout to dynamically calculate the size and position of your view, you must set this property to false, and then provide a non ambiguous, nonconflicting set of constraints for the view.
 
 ```csharp
 orangeLabel.TranslatesAutoresizingMaskIntoConstraints = false;
@@ -49,7 +49,7 @@ orangeLabel.TranslatesAutoresizingMaskIntoConstraints = false;
 
 Setting `TranslatesAutoresizingMaskIntoConstraints` to `false` should result in the label disappearing because we did not, *yet*, add our manual constraints.
 
-*Note: at this point the `Frame` we set before for `orangeLabel` is obsolete, it’s not used by the system anymore. You can try to comment the line where we set it, it won’t affect the constraints we’ll define next.*
+> ℹ At this point the `Frame` we set before for `orangeLabel` is obsolete, it’s not used by the system anymore. You can try to comment the line where we set it, it won’t affect the constraints we’ll define next.
 
 So let’s add some constraints.
 
@@ -111,7 +111,7 @@ purpleLabel.LeadingAnchor.ConstraintEqualTo (orangeLabel.TrailingAnchor, 10).Act
 
 Now you could, for instance, constrain the trailing anchor of the purple label to the trailing anchor of the marin guide to fill all the horizontal space.
 
-*Note that this will adapat to **any device form factor**.*
+> ℹ Note that this will adapat to **any device form factor**.
 
 ```csharp
 purpleLabel.TrailingAnchor.ConstraintEqualTo (marginGuide.TrailingAnchor).Active = true;
