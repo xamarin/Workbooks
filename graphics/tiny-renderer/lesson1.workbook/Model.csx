@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 struct Face
@@ -44,9 +45,9 @@ class Model
 	void ParseLine (string line)
 	{
 		Func<string [], Vec3f> parseV3f = strItems => new Vec3f {
-			x = float.Parse (strItems [1]),
-			y = float.Parse (strItems [2]),
-			z = float.Parse (strItems [3])
+			x = float.Parse (strItems [1], CultureInfo.InvariantCulture.NumberFormat),
+			y = float.Parse (strItems [2], CultureInfo.InvariantCulture.NumberFormat),
+			z = float.Parse (strItems [3], CultureInfo.InvariantCulture.NumberFormat)
 		};
 
 		var items = line.Split (new char [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
