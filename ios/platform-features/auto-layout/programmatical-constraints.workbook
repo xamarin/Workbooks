@@ -1,0 +1,124 @@
+---
+id: eb2f1f80-c574-4b2b-af0d-29fc97c1c5ef
+title: programmatical-constraints
+uti: com.xamarin.workbook
+platforms:
+- iOS
+---
+
+## Programmatically Creating Constraints
+
+The goal of this workbook is to explain **advanced auto layout** concepts by showing how to create constraints **programmatically**.
+
+> ⚠️ Whenever possible, we recommend you use the iOS designer to create your constraints because you can easily visualize, edit, manage and debug them.
+
+```csharp
+var orangeLabel = new UILabel () {
+        Text = "Orange",
+        TextColor = UIColor.White,
+        TextAlignment = UITextAlignment.Center,
+        BackgroundColor = UIColor.Orange
+};
+
+// This could be any parent view you add UI elements to.
+var rootView = RootViewController.View;
+rootView.AddSubview (orangeLabel);
+```
+
+### Absolute coordinates
+
+Let’s position the `orangeLabel` at the top left corner manually first so we can see it.
+
+```csharp
+orangeLabel.Frame = new CGRect (20, 20, 120, 50);
+```
+
+If we wanted to center this label in the middle of the screen we could, *technically*, do it using **absolute** x,y coordinates but this is **not** the most optimal, responsive and simple (will imply quite a bit of math) way to do it.
+
+### Begin with Constaints
+
+`TranslatesAutoresizingMaskIntoConstraints` is **key** to using manual constraints.
+
+By default this is set to `true` which lets the system create a set of constraints for you.
+
+However, using `TranslatesAutoresizingMaskIntoConstraints = true` prevents you from adding **additional constraints**, as described in [API doc](https://developer.apple.com/reference/uikit/uiview/1622572-translatesautoresizingmaskintoco):
+
+> ℹ️ Note that the autoresizing mask constraints fully specify the view’s size and position; therefore, you cannot add additional constraints to modify this size or position without introducing conflicts. If you want to use Auto Layout to dynamically calculate the size and position of your view, you must set this property to false, and then provide a non ambiguous, nonconflicting set of constraints for the view.
+
+```csharp
+orangeLabel.TranslatesAutoresizingMaskIntoConstraints = false;
+```
+
+Setting `TranslatesAutoresizingMaskIntoConstraints` to `false` should result in the label disappearing because we did not, *yet*, add our manual constraints.
+
+> ℹ️ At this point the `Frame` we set before for `orangeLabel` is obsolete, it’s not used by the system anymore. You can try to comment the line where we set it, it won’t affect the constraints we’ll define next.
+
+So let’s add some constraints.
+
+We can use **anchors** to align UI elements. You can use these constraints to programatically define your layout using Auto Layout.
+
+```csharp
+// This translates to: orangeLabel's CenterYAnchor (vertical alignment) = rootView's CenterYAnchor
+orangeLabel.CenterYAnchor.ConstraintEqualTo (rootView.CenterYAnchor).Active = true;
+```
+
+We can also use some **guides** to help us with the alignment.
+
+`UIView` provides a `LayoutMarginsGuide` property to represent the margins.
+
+```csharp
+var marginGuide = RootViewController.View.LayoutMarginsGuide;
+orangeLabel.LeadingAnchor.ConstraintEqualTo (marginGuide.LeadingAnchor).Active = true;
+```
+
+Finally we can restore the label’s **width** and **height**.
+
+```csharp
+orangeLabel.WidthAnchor.ConstraintEqualTo (120).Active = true;
+orangeLabel.HeightAnchor.ConstraintEqualTo (50).Active = true;
+```
+
+Feel free to play around with the constraints above to try to center the label vertically **and** horizontally.
+
+### Purple label constrained to orange label
+
+Let’s start by adding a new purple label.
+
+```csharp
+var purpleLabel = new UILabel () {
+        Text = "Purple",
+        TextColor = UIColor.White,
+        TextAlignment = UITextAlignment.Center,
+        BackgroundColor = UIColor.Purple,
+        TranslatesAutoresizingMaskIntoConstraints = false
+};
+rootView.AddSubview (purpleLabel);
+
+// Same width and height constraints as orangeLabel.
+purpleLabel.WidthAnchor.ConstraintEqualTo (120).Active = true;
+purpleLabel.HeightAnchor.ConstraintEqualTo (50).Active = true;
+```
+
+A typical Layout Constraint can be expressed simply as a **linear expression**. Take the following example:
+
+Purple.Leading = 1.0 x Orange.Trailing + 10.0
+
+or
+
+\[Item1].\[Attribute1]\[Relationship]\[Multiplier]\[Item2]\[Attribute2]\[Constant]
+
+```csharp
+purpleLabel.LeadingAnchor.ConstraintEqualTo (orangeLabel.TrailingAnchor, 10).Active = true;purpleLabel.CenterYAnchor.ConstraintEqualTo (orangeLabel.CenterYAnchor).Active = true;
+```
+
+Now you could, for instance, constrain the trailing anchor of the purple label to the trailing anchor of the marin guide to fill all the horizontal space.
+
+> ℹ️ Note that this will adapat to **any device form factor**.
+
+```csharp
+purpleLabel.TrailingAnchor.ConstraintEqualTo (marginGuide.TrailingAnchor).Active = true;
+```
+
+###### Try it now
+
+A good exercise now would be to try positioning the labels vertically instead of horizontally.
