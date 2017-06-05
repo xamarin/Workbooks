@@ -73,11 +73,11 @@ Urho organizes 3D objects in a tree of nodes. Every node except the top-level no
 
 `SimpleApplication` creates a top-level node, which is a special node of type `Scene`, and which is accessible through the `Scene` property of `SimpleApplication`. Both the camera and light are subnodes of the `Scene` node. (You’ll see shortly how you can access the camera and light source from a workbook.)
 
-The `Start` method in `SimpleApplication` also creates a node called `RootNode`. That particular node is not used in this workbook, and it’s not used for anything within the `SimpleApplication` class. Instead, this workbook creates creates something quite similar — a child node of `Scene` that will be used throughout this workbook as a parent (and sometimes a grandparent) to other nodes.
+The `Start` method in `SimpleApplication` also creates a node called `RootNode`. That particular node is not used in this workbook, and it’s not used for anything within the `SimpleApplication` class. Instead, this workbook creates creates something quite similar — a child node of `Scene` that will be used throughout this workbook as a parent to other nodes.
 
-To create a new child node of an existing node for example (the node referenced by the `Scene` property of the `SimpleApplication` object), call `CreateNode`.
+To create a new child node of an existing node (for example, the node referenced by the `Scene` property of the `SimpleApplication` object), call `CreateNode` on the node you want to create a child of.
 
-However, when you experiment with code in a workbook, the code cells can be executed multiple times. Generally you’ll want to avoid creating nodes that duplicate existing nodes. For that reason, any code in a workbook that creates a new node should be prefaced with code that removes the node created in a previous execution of the code cell. That’s why the `CreateChild` call is preferenced with calls to `GetChild` and `RemoveChild`:
+When you experiment with code in a workbook, however, the code cells can be executed multiple times. Generally you’ll want to avoid creating nodes that duplicate existing nodes. For that reason, any code in a workbook that creates a new node should be prefaced with code that removes the node that might have been created in a previous execution of the code cell. That’s why this `CreateChild` call is preferenced with calls to `GetChild` and `RemoveChild`:
 
 ```csharp
 // Remove node named "mainNode" so there are no duplicates
@@ -153,7 +153,7 @@ boxNode.Position = new Vector3(2, -1.5f, 7);
 
 Notice the parameters to the `Vector3` structure are defined as `float` so an `f` suffix is required for floating point values.
 
-And now it looks more like a box. The camera is still pointing straight down the Z axis, but the box has been moved to the right and down, and you can see the top and left side.
+And now it looks a little more like a box. The camera is still pointing straight down the Z axis, but the box has been moved to the right and down, and you can see the top and left side.
 
 You can probably also tell that the rear of the box is a little smaller than the front. By default, the camera employs a perspective projection which results in objects further from the camera being smaller than those closer to the camera. Urho also supports an orthographic camera, which does not employ projection and makes 3D objects look more like those in an engineering drawing.
 
@@ -169,7 +169,7 @@ UrhoSharp supports three basic types of light:
 
 * *Spot*: Light coming from a particular point, but only streaming in a particular direction, much like a flashlight.
 
-These are the three members of the `LightType` enumeration. Directional light has a direction; point light has a position; and spot light has both a position and direction. In addition, these different types of light sources are affected by different properties of the `Light` class.
+These are the three members of the `LightType` enumeration. Directional light has a direction; point light has a position; and spot light has both a position and direction. In addition, these different types of light sources can be customized by different properties of the `Light` class.
 
 `SimpleApplication` creates a point light source with a particular position that you can query like so:
 
