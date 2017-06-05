@@ -1,0 +1,595 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Creating (and Animating) Urho Compound Shapes
+
+This workbook shows how you can build a quadcopter from UrhoSharp `Shape` objects and fly it around the screen.
+
+UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin and .NET developers for games or visualization. If you’re unfamiliar with Urho concepts, you’ll want to download and run the **Exploring Urho Coordinates** workbook first.
+
+Wait until the workbook has completely finished loading before executing the following code cell:
+
+```csharp
+#r "Urho.dll"
+```
+
+This workbook requires four of the dozen or so namespaces for UrhoSharp types:
+
+```csharp
+using Urho;
+using Urho.Actions;
+using Urho.Gui;
+using Urho.Shapes;
+```
+
+As usual when exploring UrhoSharp in a workbook, call the static `SimpleApplication.Show` method with an `ApplicationOptions` object to create a window for the Urho graphics:
+
+```csharp
+SimpleApplication app = SimpleApplication.Show(
+    new ApplicationOptions()
+    {
+		Width = 1000,
+		Height = 1000
+    });
+```
+
+You should see a window appear on the desktop as the `Show` method completes.
+
+## Camera and Set
+
+To prepare for creating visual objects, move the camera back along the Z axis, and raise it up a little and to the left. Call `SetDirection` so the origin of the 3D coordinate system remains in the center of the window:
+
+```csharp
+app.CameraNode.Position = new Vector3(-1, 1.5f, -6);
+app.CameraNode.SetDirection(-app.CameraNode.Position);
+```
+
+The camera will remain fixed for this workbook, and until the quadcopter begins flying around the screen, the quadcopter itself will be positioned at the origin of the 3D coordinate system.
+
+Create a `Node` object at that coordinate origin for all the visual objects that comprise the quadcopter:
+
+```csharp
+app.Scene.RemoveChild(app.Scene.GetChild("mainNode", false));
+Node mainNode = app.Scene.CreateChild("mainNode");
+```
+
+As usual, the first statement in the code cell removes the `Node` named “mainNode” if the code cell is being re-executed. This prevents multiple identical nodes from being added to the tree.
+
+## Starting the Quadcopter (some assembly required)
+
+This workbook uses a tree of `Node` objects for all the parts of the quadcopter. As you’ll see, this tree structure allows various sections of the quadcopter to be transformed, cloned, and animated.
+
+For purposes of simplicity, any `Node` in this workbook that has children does not itself include a component. Here is the `Node` that will encompass the entire quadcopter:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("copterNode", false));
+Node copterNode = mainNode.CreateChild("copterNode");
+```
+
+The `copterNode` is a child of `mainNode`, and is also positioned at the origin of the 3D coordinate system. All the other parts of the quadcopter are subnodes of `copterNode`.
+
+The first child of `copterNode` is the body of the quadcopter:
+
+```csharp
+copterNode.RemoveChild(copterNode.GetChild("bodyNode", false));
+Node bodyNode = copterNode.CreateChild("bodyNode");
+Shape bodyShape = bodyNode.CreateComponent<Torus>();
+bodyShape.Color = Color.Red;
+```
+
+In a real quadcopter, this body would contain most of the quadcopter electronics, so it probably wouldn’t be a torus, but a torus looks cool, so that’s what it is. The final statement of that code block sets the `Color` property of the shape to a `Color` value.
+
+## Natural Lighting
+
+The lighting source that `SimpleApplication` creates is a spot light, which might be suitable for indoors, but you really should be flying your quadcopter outside. The spot light is a child of the camera node, and it is the only child of the camera node, so you can remove it like this:
+
+```csharp
+app.CameraNode.RemoveAllChildren();
+```
+
+The torus is still illuminated by ambiant light, which is set in a component called the `Zone`, an object responsible for other global characteristics of the scene. The ambient light can be reduced somewhat by accessing the `Zone` property of the `SimpleApplication` object:
+
+```csharp
+app.Zone.AmbientColor = new Color(0.35f, 0.35f, 0.35f);
+```
+
+The color of this ambient light is a 35% gray. You don’t want to make it white (100% gray) because that would cause everything to be maximally illuminated.
+
+Now a new mode and component can be created for directional light. Make this node a child of the `Scene`:
+
+```csharp
+app.Scene.RemoveChild(app.Scene.GetChild("directionalLight"));
+Node lightNode = app.Scene.CreateChild("directionalLight");
+Light light = lightNode.CreateComponent<Light>();
+light.LightType = LightType.Directional;
+```
+
+Set the direction of the light so it seems to come from above the user’s left shoulder, a convention for computer graphics. This direction is a property of the `Node`:
+
+```csharp
+lightNode.SetDirection(new Vector3(2, -3, 1));
+```
+
+You probably don’t want the sum of the ambient light and the directional light to exceed 1 because it would tend to wash out the definition of the visual objects, so reduce the directional light to 65% gray. This is a property of the `Light` component:
+
+```csharp
+light.Color = new Color(0.65f, 0.65f, 0.65f);
+```
+
+Now the only areas of the torus that are maximally illuminated are those that are perpendicular to the direction of the directional light.
+
+## One Quadcopter Arm
+
+The quadcopter has four arms that extend from the body, each of which has two blades that turn on a little axle. These four arm assemblies are identical, which suggests that it might be possible to build one arm and then clone it by using the `Clone` method of `Node`. (In a conventional UrhoSharp program, you probably wouldn’t use cloning but instead create the multiple similar parts in `for` loops.)
+
+This is easiest if you begin with a parent node for the assembly that you want to clone. This parent node has no component so it is invisible:
+
+```csharp
+copterNode.RemoveChild(copterNode.GetChild("armAssemblyNode1", false));
+Node armAssemblyNode1 = copterNode.CreateChild("armAssemblyNode1");
+```
+
+All the pieces of the arm assembly are children of that node. The first piece is the arm itself, which is a cylinder. Perhaps it is made from blue plastic:
+
+```csharp
+armAssemblyNode1.RemoveChild(armAssemblyNode1.GetChild("armNode", false));
+Node armNode = armAssemblyNode1.CreateChild("armNode");
+Shape armShape = armNode.CreateComponent<Cylinder>();
+armShape.Color = Color.Blue;
+```
+
+The `armAssemblyNode1` node has no transforms applied, and the `armNode` has no transforms applied, so the cylinder sits at the coordinate origin, half above and half below the XZ plane. It’s necessary to apply a few transforms to give it a proper shape and oriention. This `Scale` setting makes it longer and much thinner:
+
+```csharp
+armNode.Scale = new Vector3(0.1f, 1.5f, 0.1f);
+```
+
+Now it can be rotated around the Z axis to be parallel with the X axis:
+
+```csharp
+armNode.Rotation = Quaternion.FromAxisAngle(Vector3.UnitZ, 90);
+```
+
+The rotation is around the center of the cylinder, which is the same as the origin of the coordinate system. This `Position` setting shifts the arm towards the right:
+
+```csharp
+armNode.Position = new Vector3(0.75f, 0, 0);
+```
+
+The left end of the cylinder is now at the coordinate origin, and it seems to go through the torus.
+
+The next piece of the arm assembly is a tiny axle. Again, begin with a cylinder. Color it black:
+
+```csharp
+armAssemblyNode1.RemoveChild(armAssemblyNode1.GetChild("axleNode", false));
+Node axleNode = armAssemblyNode1.CreateChild("axleNode");
+Shape axleShape = axleNode.CreateComponent<Cylinder>();
+axleShape.Color = Color.Black;
+```
+
+Now make it very thin and tiny and shift it to the right so it seems to stick through the arm:
+
+```csharp
+axleNode.Scale = new Vector3(0.05f, 0.3f, 0.05f);
+axleNode.Position = new Vector3(1.4f, 0.05f, 0);
+```
+
+## One Blade + One Clone = Two Blades
+
+The next step is to construct the blades. Since there is more than one blade on each arm assembly, this suggests that it might be convenient to make one blade and then clone it. For that purpose, first create a node with no component to serve as a parent to the blade nodes:
+
+```csharp
+armAssemblyNode1.RemoveChild(armAssemblyNode1.GetChild("bladeAssemblyNode", false));
+Node bladeAssemblyNode = armAssemblyNode1.CreateChild("bladeAssemblyNode");
+```
+
+You can’t see it because there’s no visual component associated with it. Nevertheless, now move this node so the center of the node coincides with the top of the axle:
+
+```csharp
+bladeAssemblyNode.Position = new Vector3(1.4f, 0.2f, 0);
+```
+
+Every child node of the `bladeAssemblyNode` will be positioned relative to this node. Each blade is constructed from a sphere. Here’s the first one, colored silver:
+
+```csharp
+bladeAssemblyNode.RemoveChild(bladeAssemblyNode.GetChild("bladeNode1", false));
+Node bladeNode1 = bladeAssemblyNode.CreateChild("bladeNode1");
+Shape bladeShape1 = bladeNode1.CreateComponent<Sphere>();
+bladeShape1.Color = new Color(0.75f, 0.75f, 0.75f);
+```
+
+Although it might be hard to tell, the center of the sphere coincides with the top of the axle. Now flatten the sphere so it’s only 0.05 units in height but 0.1 units wide:
+
+```csharp
+bladeNode1.Scale = new Vector3(1, 0.05f, 0.1f);
+```
+
+Such a shape for a rotor blade would not work in real life, but visually it gives a pretty good illusion.
+
+Now the blade can be cloned. Two of the three statements in the following code are specifically for the purpose of preventing superfluous nodes when workbook cells are re-executed. The crucial statement is the second one, which clones `bladeNode1` to create `bladeNode2`. The parent of `bladeNode2` becomes the same as the parent of `bladeNode1`, which is the `bladeAssemblyNode`. The argument to `Clone` indicates that the new node is only local and won’t be replicated over a network in network-based Urho games:
+
+```csharp
+bladeAssemblyNode.RemoveChild(bladeAssemblyNode.GetChild("bladeNode2", false));
+Node bladeNode2 = bladeNode1.Clone(CreateMode.Local);
+bladeNode2.Name = "bladeNode2";
+```
+
+You can’t see the cloned node yet because it’s occupying the same space as the node that it’s been cloned from, but all that’s necessary is to rotate the new node around its center by 90 degrees:
+
+```csharp
+bladeNode2.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, 90);
+```
+
+If you’d like to add another blade or two, now is the time!
+
+The following list of `mainNode` and all its subnodes created in the workbook so far shows their hierarchical relationship:
+
+mainNode\
+  copterNode\
+    bodyNode\
+    armAssemblyNode1\
+      armNode\
+      axleNode\
+      bladeAssemblyNode\
+        bladeNode1\
+        bladeNode2
+
+## Laying down Grass
+
+It appears that the unfinished quadcopter is just floating in space. It’s more likely sitting on the lawn in your backyard. You can mimic a surface of grass with a `Shape` derivative called the `Plane`, which is simply a thin flat surface:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("grassNode", false));
+Node grassNode = mainNode.CreateChild("grassNode");
+Shape grassShape = grassNode.CreateComponent<Urho.Shapes.Plane>();
+grassShape.SetMaterial(Material.FromColor(Color.Green));
+```
+
+Notice the somewhat different way of setting the color. In 3D programming, visual objects are often said to have an appearance based on a *material*. You can set a material on a `Shape` object by calling the `SetMaterial` method. If you just need a uniformly colored material, create one by calling the static `Material.FromColor` method.
+
+In a somewhat more sophisticated program, you might have a bitmap that resembles grass, and you would call `SetMaterial` with a `Material` object that you obtain from the static `Material.FromImage` method.  But for now, it’s simply green.
+
+(Be aware, however, that when you clone a node, the component is cloned but not the material on the component. This is why the cloned nodes in this workbook use colors rather than materials.)
+
+The default `Plane` is flat and 1 unit by 1 unit square. Look closely and you’ll see that it is bisecting the torus, which is 0.25 units in height. The first step is to move the `Plane` down by half that height:
+
+```csharp
+grassNode.Position = new Vector3(0, -0.125f, 0);
+```
+
+The plane node must also be made very large so it stretches to the horizon:
+
+```csharp
+grassNode.Scale = new Vector3(2000, 1, 2000);
+```
+
+The horizon seems a little crooked because of the way the camera is positioned and directed towards the origin.
+
+You can set the sky to a sky-blue color by accessing the `Viewport` object that `SimpleApplication` creates:
+
+```csharp
+app.Viewport.SetClearColor(new Color(0.53f, 0.81f, 0.92f));
+```
+
+Now for some shadows. These are properties of the directional light. The first setting is obvious; the others were copied from some other UrhoSharp sample code:
+
+```csharp
+light.CastShadows = true;
+light.ShadowBias = new BiasParameters(0.00025f, 0.5f);
+light.ShadowCascade = new CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f);
+```
+
+## Animating the Blades
+
+Quadcopter blades must rotate. That’s how the quadcopter can fly. The `Node` class defines a `RunActions` method that accepts any number of `FiniteTimeAction` objects. These are animations that apply to the node.
+
+`Node` also defines a `RemoveAllActions` method. In a workbook, you’ll want to call `RemoveAllActions` before `RunActions` to avoid multiple identical `FiniteTimeAction` objects that apply to the node.
+
+The classes that derive from `FiniteTimeAction` are in the `Urho.Actions` namespace. Among others classes, you’ll find `RotateBy` and `RotateTo`. These are similar except that `RotateBy` changes a rotation angle *by* a specific number of degrees, while `RotateTo` changes the rotation angle *to* the specified value. `RotateBy` adds to the current rotation angle while `RotateTo` does not.
+
+The `RotateBy` and `RotateTo` constructors have four arguments that indicate the duration of the animation in seconds, and the total rotation around the X, Y, and Z axes. In the following code cell, the arguments are identified by name to avoid confusion. Also notice that the animation applies to the `bladeAssemblyNode`, which is the parent node to the two blade nodes:
+
+```csharp
+bladeAssemblyNode.RemoveAllActions();
+bladeAssemblyNode.RunActions(new RotateBy(duration: 1,
+                                          deltaAngleX: 0,
+                                          deltaAngleY: 360,
+                                          deltaAngleZ: 0));
+```
+
+It definitely works. The pair of blades spin around in one second. But it stops after it goes around once. You could try increasing the `deltaAngleX` argument (and also the `duration` argument) but the real solution is to define an animation that runs forever.
+
+That turns out to be very easy: Just pass the `RotateBy` object to the constructor of `RepeatForever`, a class that also derives from `FiniteTimeAction`. Here’s the object defined by itself:
+
+```csharp
+FiniteTimeAction bladeAction = 
+    new RepeatForever(
+        new RotateBy(duration: 1,
+                     deltaAngleX: 0,
+                     deltaAngleY: 360,
+                     deltaAngleZ: 0
+        )
+    );
+```
+
+Now this `bladeAction` object can be applied to the `bladeAssemblyNode`:
+
+```csharp
+bladeAssemblyNode.RemoveAllActions();
+bladeAssemblyNode.RunActions(bladeAction);
+```
+
+You could make it go faster, of course, just by lowering the `duration` value in the `RotateBy` constructor. It is not necessary to specify any center of rotation. By default, the blade assembly rotates around its center.
+
+## Cloning the Arm Assembly
+
+You’ve already seen cloning with the blades. Here’s the code to clone the entire arm assembly. As was the case earlier, the first and third statements are necessary only in workbooks to avoid duplicate nodes:
+
+```csharp
+copterNode.RemoveChild(copterNode.GetChild("armAssemblyNode2", false));
+Node armAssemblyNode2 = armAssemblyNode1.Clone(CreateMode.Local);
+armAssemblyNode2.Name = "armAssemblyNode2";
+```
+
+The two arm assemblies are now in the same location. The animations are not cloned along with the nodes and components, so you can see one pair of animated blades and another pair of stationary blades.\
+\
+The following code rotates the cloned arm assembly around its origin to move it on the other side of the body:
+
+```csharp
+armAssemblyNode2.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, 180);
+```
+
+Keep in mind that `armAssemblyNode1` had no transforms applied. The only transforms were applied to the children of `armAssemblyNode1`. When the clone of `armAssemblyNode2` is rotated, it rotates around its origin, which is the same as the 3D coordinate origin.
+
+It’s now necessary to apply the animation to the blade assembly in this cloned arm assembly. But where is that cloned blade assembly? Because the whole arm assembly node was cloned, it a child of the cloned object. Names are cloned along with everything else, so you need to get the child named “bladeAssemblyNode” from the cloned `armAssemblyNode2`:
+
+```csharp
+bladeAssemblyNode = armAssemblyNode2.GetChild("bladeAssemblyNode", true);
+```
+
+The second argument of `GetChild` is set to `true` in this case to search through the entire tree of subnodes.
+
+The animation can now be applied:
+
+```csharp
+bladeAssemblyNode.RemoveAllActions();
+bladeAssemblyNode.RunActions(bladeAction);
+```
+
+Now you can make another clone and rotate it 90 degrees so it’s on the side of the viewer:
+
+```csharp
+copterNode.RemoveChild(copterNode.GetChild("armAssemblyNode3", false));
+Node armAssemblyNode3 = armAssemblyNode1.Clone(CreateMode.Local);
+armAssemblyNode3.Name = "armAssemblyNode3";
+armAssemblyNode3.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, 90);
+```
+
+The animation can now be applied as before.
+
+But wait:
+
+In quadcopters, the blades in the arms opposite each other spin in the same direction, but the blades on the other two arms spin in the opposite direction. Is it necessary to define another `FiniteTimeAction` object for the opposite rotation?
+
+Not at all: `FiniteTimeAction` defines a `Reverse` method that returns an object of type `FiniteTimeAction` that is the same animation but in reverse:
+
+```csharp
+bladeAssemblyNode = armAssemblyNode3.GetChild("bladeAssemblyNode", true);
+bladeAssemblyNode.RemoveAllActions();
+bladeAssemblyNode.RunActions(bladeAction.Reverse());
+```
+
+Finally, another clone creates the fourth arm:
+
+```csharp
+copterNode.RemoveChild(copterNode.GetChild("armAssemblyNode4", false));
+Node armAssemblyNode4 = armAssemblyNode1.Clone(CreateMode.Local);
+armAssemblyNode4.Name = "armAssemblyNode4";
+armAssemblyNode4.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, 270);
+```
+
+And the following code applies the animation in the same direction as its opposite:
+
+```csharp
+bladeAssemblyNode = armAssemblyNode4.GetChild("bladeAssemblyNode", true);
+bladeAssemblyNode.RemoveAllActions();
+bladeAssemblyNode.RunActions(bladeAction.Reverse());
+```
+
+The quadcopter is complete, but can it be made to fly?
+
+## A Preprogrammed Flight Plan
+
+One of the many animations in the `Orho.Actions` namespace is `BezierTo`, which can animate the `Position` property of a `Node` based on a Bezier curve. The `BezierTo` constructor requires a time in seconds and a `BezierConfig` value that defines a Bezier curve based on two control points (the `ControlPoint1` and `ControlPoint2` properties) and an end point (the `EndPosition` property).
+
+Normally a Bezier curve is defined by a start point as well. With `BezierTo`, the start point is the current position, which in this example is the current position of the quadcopter, or (0, 0, 0).
+
+`BezierTo` actions are customarily strung together into a composite animation, so at the end of the `BezierTo` action, the current position is the `EndPosition` property of the `BezierConfig` value, and that becomes the starting point for the next `BezierTo`.
+
+Here are four `BezierTo` animations whose coordinates were derived from experimentation. (You are free to experiment further!) Notice that these Bezier curves are in three dimensions, so all the points are `Vector3` values:
+
+```csharp
+BezierTo bezier1 = new BezierTo(3, new BezierConfig
+{
+   ControlPoint1 = new Vector3(1, 2, -4),
+   ControlPoint2 = new Vector3(-1, 6, -2),
+   EndPosition = new Vector3(0, 4, 0) 
+});
+
+BezierTo bezier2 = new BezierTo(2, new BezierConfig
+{
+    ControlPoint1 = new Vector3(2, 4, 5),
+    ControlPoint2 = new Vector3(15, 10, 10),
+    EndPosition = new Vector3(10, 8, 15)
+});
+
+BezierTo bezier3 = new BezierTo(3, new BezierConfig
+{
+    ControlPoint1 = new Vector3(5, 6, 20),
+    ControlPoint2 = new Vector3(-5, 8, 20),
+    EndPosition = new Vector3(-5, 6, 14)
+});
+
+BezierTo bezier4 = new BezierTo(4, new BezierConfig
+{
+    ControlPoint1 = new Vector3(-5, 4, 7),
+    ControlPoint2 = new Vector3(-2, 0, 0),
+    EndPosition = new Vector3(-0.5f, 2, -8),
+});
+```
+
+Before running these animations, expand the camera field of view so you can see more:
+
+```csharp
+app.Camera.Fov = 90;
+```
+
+The following code sets the `Position` of the quadcopter node to the origin (in case the code-cell is re-executed) and then runs the `BezierTo` animations in sequence using `RunActionsAsync`:
+
+```csharp
+copterNode.RemoveAllActions();
+copterNode.Position = new Vector3(0, 0, 0);
+await copterNode.RunActionsAsync(bezier1, bezier2, bezier3, bezier4);
+```
+
+Both `RunActions` and `RunActionsAsync` return soon after the animation has begun. However, you can use `await` with `RunActionsAsync` to avoid continuing code execution until the animation has completed. Otherwise, the following code cell (which restores the `Position` to the origin) might be executed in the middle of the animation, and not at the end of the animation where it actually does some good:
+
+```csharp
+copterNode.Position = new Vector3(0, 0, 0);
+```
+
+Now you can run the animation again.
+
+## Manual Controls
+
+Obviously you want to fly the quadcopter yourself. There are several ways to let a user interact with a Urho application: mouse, touch, joystick, and even a simulated joystick. However, perhaps the easiest involves the keyboard. Over the years, the following keys have become common in controlling objects in two dimensions on the screen:
+
+W = Up\
+S = Down\
+A = Left\
+D = Right
+
+These keys are in an inverted T position on the keyboard. If you’ve looked at the source code for `SimpleApplication`, you might have noticed some code that makes use of the WASD keys, but that’s for moving the camera and are enabled with the `MoveCamera` property. The `MoveCamera` property is set to `true` by default, so the first step is to disable it:
+
+```csharp
+app.MoveCamera = false;
+```
+
+If the W, S, A, and D keys will move the quadcopter up, down, left, and right, what about the third dimension? Perhaps you can use the F and R keys for movement along the Z axis:
+
+F = Forward\
+R = Reverse
+
+Will you remember what these keys do? Some text displayed on the screen can help out. The `Urho.Gui` namespace has a collection of user-interface elements, including `Text`. These user-interface elements can be organized in a tree of `UIElement` objects, starting at the `Root` property of the `UI` object available from the `UI` property of `Application`.
+
+Like `Node` objects, `UIElement` objects have names. In workbooks you can remove them from the tree to avoid duplicate elements when code cells re-execute. That’s what the first statement below does. The `HorizontalAlignment` and `VerticalAlignment` properties center the `Text` element horizontally and put it at the bottom of the screen:
+
+```csharp
+app.UI.Root.RemoveChild(app.UI.Root.GetChild("helpText", false), 0);
+Text helpText = new Text()
+{
+    Name = "helpText",
+    Value = "W=Up S=Down, A=Left, D=Right, F=Forward, R=Reverse",
+	HorizontalAlignment = HorizontalAlignment.Center,
+	VerticalAlignment = VerticalAlignment.Bottom
+};
+app.UI.Root.AddChild(helpText);
+```
+
+But where is it? The `Text` element happens not to have a default font, and one must be assigned explicitly. Fortunately, a font is available from the embedded `Fonts` class in the  `CoreAssets` class in the `Urho` namespace. You also set a height for the font in this call:
+
+```csharp
+helpText.SetFont(CoreAssets.Fonts.AnonymousPro, 24);
+```
+
+By default, the text is white. In this particular case, you’ll probably want to make it black:
+
+```csharp
+helpText.SetColor(Color.Black);
+```
+
+It will be interesting also to have a real-time display of the quadcopter’s position, so here’s another `Text` element that sits in the upper-right corner of the screen:
+
+```csharp
+app.UI.Root.RemoveChild(app.UI.Root.GetChild("positionText", false), 0);
+Text positionText = new Text()
+{
+    Name = "positionText",
+	HorizontalAlignment = HorizontalAlignment.Right,
+	VerticalAlignment = VerticalAlignment.Top
+};
+positionText.SetColor(Color.Black);
+positionText.SetFont(CoreAssets.Fonts.AnonymousPro, 24);
+app.UI.Root.AddChild(positionText);
+```
+
+There is no `Value` property set for that `Text` element, so no text is displayed yet.
+
+Graphics systems often have a facility sometimes referred to as a *game loop*. This is a block of code that executes quickly, repeatedly, and continuously. The game loop is where the program can alter the visuals in real time, often based on user input.
+
+In a conventional Urho application, you derive a class from `Application`. The game loop is an override of the `OnUpdate` method. In a workbook, you can instead attach a handler to the `Update` event. Regardless which approach you use, the function is called with a time-step value, which is the time in seconds since the last call. Depending on the environment and whatever other animations might be going on, expect the function to be called anywhere from 20 times a second to 200 times a second.
+
+Here is a handler for the `Update` event that uses the `Input` subsystem of the `Application` class to check if any of six keys is currently pressed. If so, the `Translate` method is called, which changes the `Position` property by the specified vector. A series of `if` statements are used rather than an `if-else` construction to allow multiple keys to be pressed simultaneously.
+
+```csharp
+void ProcessKey(UpdateEventArgs args)
+{
+    float distancePerSecond = 1.0f;
+    float distance = distancePerSecond * args.TimeStep;
+
+    if (app.Input.GetKeyDown(Key.W))    
+    {
+        copterNode.Translate(Vector3.UnitY * distance);
+    }
+    if (app.Input.GetKeyDown(Key.S))    
+    {
+        copterNode.Translate(-Vector3.UnitY * distance);
+    }
+    if (app.Input.GetKeyDown(Key.A))    
+    {
+        copterNode.Translate(-Vector3.UnitX * distance);
+    }
+    if (app.Input.GetKeyDown(Key.D))
+    {
+        copterNode.Translate(Vector3.UnitX * distance);
+    }
+    if (app.Input.GetKeyDown(Key.F))
+    {
+        copterNode.Translate(Vector3.UnitZ * distance);
+    }
+    if (app.Input.GetKeyDown(Key.R))
+    {
+        copterNode.Translate(-Vector3.UnitZ * distance);
+    }
+    // Clamp to positive Y values
+    Vector3 position = copterNode.Position;
+    position.Y = Math.Max(0, position.Y);
+    copterNode.Position = position;
+
+    positionText.Value = String.Format("({0:F2}, {1:F2}, {2:F2})", 
+                                       position.X, position.Y, position.Z);
+}
+```
+
+Notice towards the end of the event handler three lines of code that ensures that the Y value of the `Position` property of `copterNode` remains positive. You don’t want the quadcopter to go underground! The final statement updates the `Text` element with the current position.
+
+Below is the final code cell in this workbook. It attaches the `ProcessKey` handler to the `Update` event so you can use the keyboard to fly the quadcopter. But what you definitely don’t want is more than one `ProcessKey` handler attached to that event: When multiple identical game-loop code blocks are executed, the animations go uncontrollably faster.
+
+For that reason, any code in a workbook that attaches an `Update` handler should detach the previous one first. Normally you would use an `app.Update -= ProcessKey` statement. However, in a workbook, that doesn’t work well: Every time the code cell containing the `ProcessKey` function is re-executed, a new instance of the function is created, and hence it’s difficult detaching the previous handler from the `Update` event using conventional means.
+
+For that reason, this code block begins with some .NET reflection code that removes all handlers from the `Update` event. But be aware this code is not generalized for all types of events.
+
+```csharp
+// Detach ALL Update handlers
+using System.Reflection;
+FieldInfo field = typeof(Application).GetField("Update", 
+                      BindingFlags.Instance | BindingFlags.NonPublic);
+field.SetValue(app, null);
+
+app.Update += ProcessKey;
+```
+
+Now you’re ready to fly the quadcopter. But be sure to click on the Urho window to give it input focus before you press the keys!

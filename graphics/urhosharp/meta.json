@@ -5,5 +5,6 @@
     "coordinates/ExploringUrhoCoordinates.workbook":"Exploring Urho Coordinates",
     "physics/physics.workbook":"Physics",
     "planetearth/planetearth.workbook":"Planet Earth",
+    "compound-shapes/CreatingUrhoCompoundShapes.workbook":"Creating Compound Shapes (Quadcopter)"
   }
 }
