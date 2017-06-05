@@ -124,9 +124,20 @@ A 3D coordinate point is notated as (x, y, z). The origin of the coordinate syst
 
 There’s a good reason why you can’t see the box you created in the Urho window: By default, the camera is positioned at the origin of the 3D coordinate system, and so is the box. The camera is inside the box! The camera and box must be moved apart before the camera can see the box.
 
-The camera has a direction as well as a position, and by default, the camera is pointing in the direction of the positive Z axis, that is, into the screen. Directions are indicated by 3D vectors, which are notated much like 3D points but generally in a bold typeface: **(x, y, z)**.
+The camera has a direction as well as a position. Directions are indicated by 3D vectors, which are notated just like points but usually displayed in boldface: **(x, y, z)**. In UrhoSharp, both points and vectors are values of type `Vector3`.
 
-In UrhoSharp, both points and vectors are values of type `Vector3`. The following code moves the box so that it has a Z coordinate of 7 and sits in front of the camera. Notice that `Position` is a property of the `Node` object and not the `Box` object:
+By default, the camera is positioned at the origin and pointing into the screen in the direction of the positive Z axis.
+
+Or rather, it should be. To override some settings in `SimpleApplication` used to create the libraries used with this workbook, set the camera to what should be the default settings:
+
+```csharp
+app.CameraNode.Position = new Vector3(0, 0, 0);
+app.CameraNode.SetDirection(new Vector3(0, 0, 1));
+```
+
+Although the `Position` property is readable and writeable, the `Direction` property is read-only so `SetDirection` must be used to set it.
+
+The following code moves the box so that it has a Z coordinate of 7 and sits in front of the camera. Notice that `Position` is a property of the `Node` object and not the `Box` object:
 
 ```csharp
 boxNode.Position = new Vector3(0, 0, 7);
