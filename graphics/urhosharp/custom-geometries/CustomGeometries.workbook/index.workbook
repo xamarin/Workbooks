@@ -1,0 +1,639 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Working with Urho Custom Geometries
+
+This workbook is an introduction to custom geometries in UrhoSharp. The techniques shown here allow you to define your own 3D shapes algorithmically.
+
+UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin and .NET developers for games or visualization. If you’re unfamiliar with Urho concepts, you’ll want to download and run the **Exploring Urho Coordinates** and **Creating Urho Compound Shapes** workbooks first.
+
+Wait until the workbook has completely finished loading before executing the following code cell:
+
+```csharp
+#r "Urho.dll"
+```
+
+This workbook requires only one namespace for UrhoSharp types:
+
+```csharp
+using Urho;
+```
+
+As usual when exploring Urho in a workbook, call the static `SimpleApplication.Show` method to create a window for the Urho graphics. The argument to the `ApplicationOptions` constructor is a folder from which resources can be loaded:
+
+```csharp
+SimpleApplication app = SimpleApplication.Show(
+    new ApplicationOptions("Data")
+    {
+        Width = 1000,
+        Height = 1000   
+    });
+```
+
+You should see a window appear on the desktop as the `Show` method completes.
+
+## Preliminaries
+
+`SimpleApplication` creates a camera, a point light source, and a root node for visuals. In preparation for this workbook, first move the camera back a little from the origin and make sure that it is pointing in the direction of the positive Z axis (that is, into the screen):
+
+```csharp
+app.CameraNode.Position = new Vector3(0, 0, -5);
+app.CameraNode.SetDirection(new Vector3(0, 0, 1));
+```
+
+Set the position of the root node at the origin. This is where the 3D graphics will be positioned throughout this workbook:
+
+```csharp
+app.RootNode.Position = new Vector3(0, 0, 0);
+```
+
+Remove the point light (which is a subnode of the camera) and add a directional light coming from above and behind the viewer’s left shoulder. The following is identical to code in the **Creating Urho Compound Shapes** workbook:
+
+```csharp
+// Remove the point light
+app.CameraNode.RemoveAllChildren();
+
+// Remove previous directionalLight node before adding new one
+app.Scene.RemoveChild(app.Scene.GetChild("directionalLight"));
+Node lightNode = app.Scene.CreateChild("directionalLight");
+
+// Create the light compononent
+Light light = lightNode.CreateComponent<Light>();
+light.LightType = LightType.Directional;
+light.Color = new Color(0.65f, 0.65f, 0.65f);
+
+// Set the direction of the directional light
+lightNode.SetDirection(new Vector3(2, -3, 1));
+
+// Set the ambient light
+app.Zone.AmbientColor = new Color(0.35f, 0.35f, 0.35f);
+```
+
+Disable the code in `SimpleApplication` that moves the camera in response to mouse and touch:
+
+```csharp
+app.MoveCamera = false;
+```
+
+Instead, define an event handler that uses mouse movement to apply a rotate transform to `RootNode`. This will allow you to rotate the 3D graphics created in this workbook by sweeping the mouse along the Urho window with the left mouse button depressed:
+
+```csharp
+void ProcessMouseMovement(UpdateEventArgs args)
+{
+    if (app.Input.GetMouseButtonDown(MouseButton.Left))
+    {
+        Vector2 mouseMove = new Vector2(app.Input.MouseMove.X, -app.Input.MouseMove.Y);
+        float angle = mouseMove.Length;         // 1 degree per pixel is simple
+
+        if (angle > 0)
+        {
+            Vector3 axis = new Vector3(mouseMove.Y, -mouseMove.X, 0);
+            app.RootNode.Rotate(Quaternion.FromAxisAngle(axis, angle), TransformSpace.Parent);
+        }
+    }
+}
+```
+
+The following code is described towards the bottom of the **Creating Urho Compound Shapes** workbook. It removes all previous handlers on the `Update` event and attaches the event handler shown above:
+
+```csharp
+// Detach ALL Update handlers
+using System.Reflection;
+FieldInfo field = typeof(Application).GetField("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+field.SetValue(app, null);
+
+app.Update += ProcessMouseMovement;
+```
+
+That completes the preliminaries.
+
+## Terminology and Classes
+
+In 3D graphics, the word *model* generally refers to a description of a three-dimensional object. The model generally combines a *geometry*, which is a collection of connected 3D coordinate points, and a *material*, which describes how the geometric surfaces are colored. How the model is actually rendered depends on other factors, such as the camera, lights, and transforms.
+
+The names of the Urho classes do not exactly coincide with these definitions. Urho defines a `Geometry` class that describes a 3D surface based on *vertices*, which are 3D coordinate points connected to form surfaces. The `Model` class combines multiple `Geometry` objects. The `StaticModel` class essentially combines a `Model` object and `Material` objects, which describes how the geometries are rendered with colors or bitmaps.
+
+`StaticModel` derives from `Component`, which means that a `StaticModel` object can be associated with a node and be assigned a position and subjected to transforms. The `Shape` class derives from `StaticModel`, and from `Shape` derives `Box`, `Cylinder`, `Sphere`, and other basic shapes described in previous workbooks. Also deriving from `StaticModel` is `AnimatedModel`, which allows a program to dynamically change the vertices that make up the geometries.
+
+Generally developers create complex 3D models in interactive applications designed specifically for that purpose. However, geometries can also be created algorithmically, and that is the focus of this workbook.
+
+## Triangles, Vertices, and the VertexBuffer
+
+A 3D geometry is most often a *triangle mesh*, which is a collection of triangles that fit together to define a surface in three-dimensional space. Triangles are used for this purpose because they are the simplest two-dimensional objects, and they are always flat in three-dimensaional space. Any other polygon (such as a pentagon) can be decomposed into triangles.
+
+A triangle has three vertices. When you use triangles to define a 3D surface, each vertex of each triangle has several characteristics associated with it. These are the most common:
+
+* The most obvious is the *position* of the vertex in 3D space. This is specified with a `Vector3` value.
+
+* Also often associated with each vertex is a *normal*, which is a vector that is parallel to the surface of the triangle at the vertex. It might seem as if this value could be calculated automatically (and it sometimes is), but it is possible to manipulate normals to give triangles the appearance of being curved. The normal is specified with a `Vector3` value.
+
+* A vertex can have a particular *color*, in which case the colors at three vertices are interpolated over the surface of the triangle. Generally you specify a color as an unsigned integer, which can be obtained directly from a `Color` value.
+
+* Sometimes a bitmap (called as *texture*) is used to cover the surface of a 3D object. In this case, the 3D system needs to know how to map the two-dimensional coordinates of the texture to each triangle. This information is provided with texture coordinates for each vertex, which are relative to the two-dimensional texture and therefore `Vector2` values rather than `Vector3` values.
+
+* A *tangent* of type `Vector4` is sometimes provided for each vertex, but this is for somewhat more advanced techniques, which won’t be demonstrated in this workbook.
+
+To help consolidate this information, the `VertexBuffer` class defines four embedded public structures:
+
+* `PositionNormal` with `Position` and `Normal` fields
+
+* `PositionNormalColor` with `Position`, `Normal`, and `Color` fields
+
+* `PositionNormalColorTexcoord` with `Position`, `Normal`, `Color`, and `TexCoord` fields
+
+* `PositionNormalColorTexcoordTangent` with `Position`, `Normal`, `Color`, `TexCoord`, and `Tangent` fields
+
+How these various fields are actually used is specified by the `Material` object set on the `StaticModel` object.
+
+## The Simplest Geometry
+
+The simplest type of 3D object is a triangle. The following code defines an array of three `VertexBuffer.PositionNormalColor` values whose `Position` fields define the three coordinates of a triangle in the XY plane centered around the origin. When the triangle is displayed, it should appear to be directly in front of the camera:
+
+```csharp
+VertexBuffer.PositionNormalColor[] vertices = 
+{
+    new VertexBuffer.PositionNormalColor
+    { 
+        Position = new Vector3(0, 1, 0), 
+        Normal = new Vector3(0, 0, -1),
+        Color = Color.Red.ToUInt() 
+    },
+    new VertexBuffer.PositionNormalColor
+    { 
+        Position = new Vector3(0.86f, -0.5f, 0), 
+        Normal = new Vector3(0, 0, -1),
+        Color = Color.Green.ToUInt() 
+    },
+    new VertexBuffer.PositionNormalColor
+    { 
+        Position = new Vector3(-0.86f, -0.5f, 0), 
+        Normal = new Vector3(0, 0, -1),
+        Color = Color.Blue.ToUInt() 
+    }
+};
+```
+
+The three `Normal` fields are all set to the same vector, which points in the direction of the negative Z axis. This vector is perpendicular to the triangle and points towards the camera. The three `Color` fields are red, green, and blue.
+
+The array of `PositionNormalColor` values must be stored in a `VertexBuffer` object:
+
+```csharp
+VertexBuffer vertexBuffer = new VertexBuffer(Application.CurrentContext, false)
+{
+   Shadowed = true
+};
+vertexBuffer.SetSize((uint)vertices.Length, ElementMask.Position | ElementMask.Normal | ElementMask.Color, false);
+vertexBuffer.SetData(vertices);
+```
+
+The `SetSize` call must include `ElementMask` enumeration flags corresponding to the particular structure that you have selected for storing the vertex information. Internally, the C++ code obtains the vertex data as a simple void pointer, so it needs to use the flags set in `SetSize` to interpret that data.
+
+Although this particular `vertices` array clearly defines the three coordinates of a triangle, often vertex information is more complex, and the entire network of triangles often share vertices. For this reason, another array is required to indicate how the various vertices form triangles. This is an array of `short` values that are indices into the `vertices` array.
+
+The number of elements in this array must be a multiple of three. Each group of three indices specifies one triangle. In this particular case, the array is very simple:
+
+```csharp
+short[] indices = 
+{
+    0, 1, 2
+};
+```
+
+The order of these vertex indices matters. The three vertices of a triangle can be specified in either a clockwise or a counter-clockwise direction. If the vertices are specified in a clockwise direction, then for the same triangle viewed from behind, the vertices are counter-clockwise. The surface of a triangle will only be visible from the perspective of clockwise vertices.
+
+The three vertices of the triangle defined in the `vertices` array are in this order when viewed from the perspective of the camera: top, lower-right, lower-left. This means that the indices need only be sequential for the triangle to be visible. The sequence 1, 2, 0 or 2, 0, 1 would be just as good.
+
+The array of indices must be stored in an `IndexBuffer`, which is similar in syntax to the `VertexBuffer`:
+
+```csharp
+IndexBuffer indexBuffer = new IndexBuffer(Application.CurrentContext, false)
+{
+   Shadowed = true
+};
+indexBuffer.SetSize((uint)indices.Length, false, false);
+indexBuffer.SetData(indices);
+```
+
+The `VertexBuffer` and the `IndexBuffer` objects are brought together in a `Geometry` object. The `SetDrawRange` call must follow the setting of the `VertexBuffer` and the `IndexBuffer`:
+
+```csharp
+Geometry geometry = new Geometry();
+geometry.SetVertexBuffer(0, vertexBuffer);
+geometry.IndexBuffer = indexBuffer;
+geometry.SetDrawRange(PrimitiveType.TriangleList, 0, (uint)indices.Length, true);
+```
+
+The `PrimitiveType.TriangleList` enumeration member specifies the basic relationship between the vertices and indices. There are other formats that this geometry data can take, but this is by far the most common.
+
+You can simplify this process somewhat by dispensing with the `IndexBuffer`. In that case, the number of vertices referenced by the `VertexBuffer` must be a multiple of 3, and if triangles share vertices, the vertices must appear separately for each triangle. An overload of the `SetDrawRange` method accomodates the case where there are no indices.
+
+The `Model` object can consolidate multiple geometries. This particular `Model` contains only the one geometry:
+
+```csharp
+Model model = new Model();
+model.NumGeometries = 1;
+model.SetGeometry(0, 0, geometry);
+model.BoundingBox = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
+```
+
+Now you are ready to create a node for displaying the triangle. As usual in a workbook, the code to create a node begins with a statement to delete the node in the event that this code cell is re-executed:
+
+```csharp
+// Remove possible previous node before creating new node
+app.RootNode.RemoveChild(app.RootNode.GetChild("triangleNode", false));
+
+// Create the node and a StaticModel
+Node triangleNode = app.RootNode.CreateChild("triangleNode");
+StaticModel triangle = triangleNode.CreateComponent<StaticModel>();
+```
+
+After the `Node` object has been created, a call to `CreateComponent` creates a `StaticModel` component associated with the node.
+
+Set the `Model` created earlier to the `Model` property of the `StaticModel` component:
+
+```csharp
+triangle.Model = model;
+```
+
+You should at long last see a triangle in the Urho window. It is colored gray because there is not yet a `Material` object associated with the component. Use a simple `Material` object to give the triangle a blue color:
+
+```csharp
+triangle.SetMaterial(Material.FromColor(Color.Blue));
+```
+
+There is no `Color` property of `StaticModel`. The `Color` property used in previous workbooks is defined by the `Shape` class.
+
+## Variations on the Triangle
+
+The triangle appears dark blue because it is not directly facing the light. Move the mouse inside the Urho window and press the left button to give the window input focus. Now press the left button again and when you move the mouse, you should be able to rotate the triangle so it faces more towards the light source coming from above and behind the viewer’s left shoulder. The triangle is fully illuminated when the direction of the light is exactly opposite the normals at the vertices of the triangle.
+
+You can use the mouse to rotate the triangle so that the back of the triangle faces the camera. In that case, the triangle disappears. However, if you go back to the definition of the `indices` array, and change the order to 0, 2, 1, and re-execute that cell, then the triangle will appear again because now the vertices are specified in a clockwise direction from the perspective of the back of the triangle. However, the normals still indicate the same direction relative to the triangle, so the triangle becomes fully illuminated when the visible part is facing away from the light!
+
+Go back and change the indices back to the original order: 0, 1, 2.
+
+The original `vertices` array also includes settings of a `Color` field, but those fields are apparently being ignored. To use those `Color` settings in the rendering of the triangle, you must specify a different `Material` object. This `Material` object must use a particular *technique*, which is generally a read-only property from the `CoreAssets.Techniques` static class. The technique used here is called `NoTextureVCol`. The `NoTexture` part of the technique name indicates that the material does not involve a bitmap; the `VCol` part means that it uses the vertex color setting:
+
+```csharp
+Material material = new Material();
+material.SetTechnique(0, CoreAssets.Techniques.NoTextureVCol, 1, 1);
+triangle.SetMaterial(material);
+```
+
+Now you’ll see the top vertex colored red, the bottom left vertex colored blue, and the bottom right vertex colored green. The rest of the triangle is colored with an interpolated value. These colors are still affected by directional light: The colors become brighter if you rotate the triangle so it’s more directly illuminated by the directional light.
+
+The ability of a 3D graphics system to color a triangle with interpolated values is an important part of the shading algorithms that enables the appearance of curved surfaces.
+
+Before continuing, remove the triangle from the root note to make room for other visual objects:
+
+```csharp
+app.RootNode.RemoveChild(triangleNode);
+```
+
+## Rendering a Tetrahedron
+
+To reduce code bulk in the remainder of this workbook, all the code required to create a `Model` object has been consolidated in an external C# script file:
+
+```csharp
+#load "CreateModel.csx"
+```
+
+You can look it over at your leisure. The file has a single method named `CreateModel` with the following syntax:
+
+`Model CreateModel(IList<Vector3> positions, IList<Vector3> normals = null, IList<Color> colors = null, IList<Vector2> texCoords = null);`
+
+The only argument that’s required is an array or a `List` of `Vector3` values for the `positions`. The number of `positions` elements must be a multiple of three. Each group of three values defines a triangle. The code uses the `SetDrawRange` overload that does not require indices. Consequently, there is no way with this method for a vertex be be shared among two or more triangles.
+
+If normals are not provided, they are calculated. You’ll see below how you can use this feature for different types of shading.
+
+Here is the `CreateModel` method in action to create a `Model` object for a tetrahedron, which is the simplest regular polyhedron. The tetrahedron consists of four sides, each of which is a triangle. The coordinates of these vertices correspond to four corners of a unit cube:
+
+```csharp
+Model tetrahedronModel = CreateModel(new Vector3[]
+{
+    new Vector3(-1,  1, -1), new Vector3(-1, -1,  1), new Vector3( 1,  1,  1),
+    new Vector3( 1, -1, -1), new Vector3( 1,  1,  1), new Vector3(-1, -1,  1),
+    new Vector3( 1,  1,  1), new Vector3( 1, -1, -1), new Vector3(-1,  1, -1),
+    new Vector3(-1, -1,  1), new Vector3(-1,  1, -1), new Vector3( 1, -1, -1)
+});
+```
+
+The following code is all that’s necessary to display it:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("tetrahedronNode", false));
+Node tetrahedronNode = app.RootNode.CreateChild("tetrahedronNode");
+StaticModel tetrahedron = tetrahedronNode.CreateComponent<StaticModel>();
+tetrahedron.Model = tetrahedronModel;
+tetrahedron.SetMaterial(Material.FromColor(Color.Red));
+```
+
+When you are finished twirling it around with the mouse, you can remove it from the root node in preparation for the next object:
+
+```csharp
+app.RootNode.RemoveChild(tetrahedronNode);
+```
+
+## From Disk to Cone
+
+Many algorithmically generated models have curved surfaces. To create these surfaces, it is necessary to use trigonometry. Many common figures can be created knowing only the formulas for a circle:
+
+x = cos(α)
+
+y = sin(α)
+
+For α ranging from 0 to 360 degrees (or from 0 to 2π radians), the *x* and *y* values define a circle with a radius of 1 centered on the two dimensional point (0, 0). In a 3D coordinate system where values of *x* increase to the right and values of *y* increase going up, the angle is counter-clockwise from the positive X axis.
+
+Perhaps the easiest way to begin using these formulas is by creating a two-dimensional disk. A disk can be constructed of triangles that share a common point in the center of the disk.
+
+The number of triangles is up to you. Generally you set the value in a variable or constant called something like `slices` or `stacks` (and sometimes you need both):
+
+```csharp
+int slices = 24;
+```
+
+That’s the number of triangles. There will be a total of 24 × 3 (or 72) vertices, but defining a `List<Vector3>` to store the vertices is usually easier than a `Vector3` array:
+
+```csharp
+List<Vector3> diskVertices = new List<Vector3>();
+```
+
+As you loop through all the triangles to calculate their vertices, the following value will be useful:
+
+```csharp
+float angleIncrement = 360 / slices;
+```
+
+For 24 triangles, `angleIncrement` is 15 degrees.
+
+The `for` loop to set the positions is preceded by a statement that clears `diskVertices` in case the cell is run again. Within the loop, four values are first calculated for each triangle. These comprise two (*x*, *y*) coordinates along the circumference of the circle:
+
+```csharp
+diskVertices.Clear();
+
+for (float angle = 0; angle < 360; angle += angleIncrement)
+{
+    float xThis = (float)Math.Cos(MathHelper.DegreesToRadians(angle));
+    float yThis = (float)Math.Sin(MathHelper.DegreesToRadians(angle));
+
+    float xNext = (float)Math.Cos(MathHelper.DegreesToRadians(angle + angleIncrement));
+    float yNext = (float)Math.Sin(MathHelper.DegreesToRadians(angle + angleIncrement));
+
+    diskVertices.Add(new Vector3(0, 0, 0));
+    diskVertices.Add(new Vector3(xNext, yNext, 0));
+    diskVertices.Add(new Vector3(xThis, yThis, 0));
+}
+```
+
+In this code and in code in the rest of this workbook, variables containing the word `This` are calculated from the `angle` value in the `for` loop. Variables with the word `Next` refer to the next angle in the loop.
+
+The code at the bottom of the `for` loop adds three values to the `diskVertices` collection for each triangle: The first `Vector3` is the center of the circle, and the next two are points on the circumference of the circle. Keep in mind that increasing angles define points along the circle’s circumference in a counter-clockwise direction, so the (`xNext`, `yNext`, 0) point is added to the colleciton first, followed by (`xThis`, `yThis`, 0) to define the vertices of the triangle in a clockwise direction.
+
+Display the disk like so:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("diskNode", false));
+Node diskNode = app.RootNode.CreateChild("diskNode");
+StaticModel disk = diskNode.CreateComponent<StaticModel>();
+disk.Model = CreateModel(diskVertices);
+disk.SetMaterial(Material.FromColor(Color.Yellow));
+```
+
+It might be necessary to use the mouse to rotate it into full view.
+
+In reality, this is not a disk but a 24-sided polygon, sometimes called a icositetragon, and you can clearly see the edges. However, if you change the `slices` value above to 360 and re-run that cell, it should look much rounded.
+
+Here’s another little variation: Instead of setting the first `Vector3` to the point (0, 0, 0), set it to (0, 0, -2) and rerun the cell. Now you’ve created a cone.
+
+If you rotate the cone so that you’re looking at the inside, it seems to disappear. Triangles are only visible from one side. If you want to have an interior of the cone, define another `List<Vector3>` and fill it with triangles defined counter-clockwise rather than clockwise:
+
+```csharp
+List<Vector3> insideVertices = new List<Vector3>();
+
+for (float angle = 0; angle < 360; angle += angleIncrement)
+{
+    float xThis = (float)Math.Cos(MathHelper.DegreesToRadians(angle));
+    float yThis = (float)Math.Sin(MathHelper.DegreesToRadians(angle));
+
+    float xNext = (float)Math.Cos(MathHelper.DegreesToRadians(angle + angleIncrement));
+    float yNext = (float)Math.Sin(MathHelper.DegreesToRadians(angle + angleIncrement));
+
+    insideVertices.Add(new Vector3(0, 0, -2));
+    insideVertices.Add(new Vector3(xThis, yThis, 0));
+    insideVertices.Add(new Vector3(xNext, yNext, 0));
+}
+```
+
+Notice that the `Vector3` value using `xThis` and `yThis` is added to the collection before the one using `xNext` and `yNext`. Assuming that you’re now displaying a cone rather than the earlier disk, you can add another cone that is inside of the first one:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("insideNode", false));
+Node insideNode = app.RootNode.CreateChild("insideNode");
+StaticModel inside = insideNode.CreateComponent<StaticModel>();
+inside.Model = CreateModel(insideVertices);
+inside.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+Now the outside of the cone is yellow and the inside is cyan.
+
+Before moving on, remove both nodes:
+
+```csharp
+app.RootNode.RemoveChild(diskNode);
+app.RootNode.RemoveChild(insideNode);
+```
+
+## Cylinder or Dodecagonal Prism?
+
+Creating a cylinder is a step up from the disk and the cone. There are two disks at the two ends of the cylinder. Although these disks are not part of this particular cylinder model, the angles around the disks are calculated in the same way as the disk. The difference is that for each pair of angles, two triangles must be defined that extend from one disk to the other, or four triangles if you want a visible interior as well:
+
+```csharp
+List<Vector3> cylinderVertices = new List<Vector3>();
+int slices = 12;
+float angleIncrement = 360 / slices;
+
+for (float angle = 0; angle < 360; angle += angleIncrement)
+{
+    float cosThis = (float)Math.Cos(MathHelper.DegreesToRadians(angle));
+    float sinThis = (float)Math.Sin(MathHelper.DegreesToRadians(angle));
+
+    float cosNext = (float)Math.Cos(MathHelper.DegreesToRadians(angle + angleIncrement));
+    float sinNext = (float)Math.Sin(MathHelper.DegreesToRadians(angle + angleIncrement));
+
+    // Outside
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, -1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, -1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, 1));
+
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, -1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, 1));
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, 1));
+
+    // Inside
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, -1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, 1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, -1));
+
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, -1));
+    cylinderVertices.Add(new Vector3(cosThis, sinThis, 1));
+    cylinderVertices.Add(new Vector3(cosNext, sinNext, 1));
+}
+```
+
+For each angle, four triangles are added to the collection: two on the outside and two more with swapped coordinates for the inside.
+
+And here it is displayed:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("cylinderNode", false));
+Node cylinderNode = app.RootNode.CreateChild("cylinderNode");
+StaticModel cylinder = cylinderNode.CreateComponent<StaticModel>();
+cylinder.Model = CreateModel(cylinderVertices);
+cylinder.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+Now as you rotate the cylinder around you can see both the outside and the inside.
+
+But it doesn’t look much linke a cylinder. Instead, it’s more like a figure called a dodecagonal prism. One solution is to simply increase the `slices` value to make the triangles smaller and more numerous.
+
+Another solution is to calculate a better set of surface normals and use that to set the `normals` argument to `CreateModel`. The normals calculated in the code below are the same as the `positions` values except that the Z coordinate is set to 0:
+
+```csharp
+Vector3[] cylinderNormals = new Vector3[cylinderVertices.Count];
+
+for (int i = 0; i < cylinderVertices.Count; i++)
+{
+    cylinderNormals[i] = new Vector3(cylinderVertices[i].X, cylinderVertices[i].Y, 0);
+}
+
+cylinder.Model = CreateModel(cylinderVertices, cylinderNormals);
+```
+
+Run that code to reset the `Model` property of the `cylinder` component, and you see an illusion of curvature even though it’s obviously still a 12-sided prism.
+
+The normals are vectors that point out from the surface. For each vertex of the triangle, the illumination of that vertex is calculated by how the directional light and the normal lines up. If they are exactly opposite, that vertex is maximally illuminated. Otherwise, the illumination is decreased based on the angle between the directional light and the normal.
+
+If the `normals` argument to `CreateModel` is `null`, then the normals are calculated to be perpendicular to the triangle. This means that the normals at all three vertices are the same, and the triangle appears to be flat. However, if the normals are different, and they are perpendicular to the triangle *as if the triangle were curved*, then the illumination is different over the triangle and appears to resemble a curved surface.
+
+The function above calculates normals to be perpendicular to the surface of a curved cylinder. However, you’ll notice that the simple code doesn’t quite adjust for the inside of the cylinders, and the normals are opposite what they should be.
+
+Before moving on, remove the cylinder:
+
+```csharp
+app.RootNode.RemoveChild(cylinderNode);
+```
+
+## Sphere and Globe
+
+Defining a sphere is somewhat more difficult than a cylinder because it’s rounded in two dimensions. The most straightfoward approach is to use the common geographic coordinate system consisting of lines of longitude (which extend from the north pole to the south pole) and lines of latitude (which are horizontal to the equator). When triangulating the globe, the intersection of lines of longitude and latitude form a rectangle that is a pair of triangles. (This isn’t quite the case for the area around the north and south pole, but you can ignore that anomaly and the code will be rather simpler.)
+
+The following code begins with a `List<Vector3>` for the vertices and a `List<Vector2>` for texture coordinates. Texture coordinates are required when displaying a two-dimensional bitmap on a three-dimensional surface. To do this, each vertex of each triangle must correspond to a particular 2D point within the bitmap. These 2D points are relative to the size of the bitmap. The point (0, 0) references the upper-left corner of the bitmap, (1, 0) is the upper-right corner, and (1, 1) is the lower-right corner. Notice that three-dimensional Y coordinates increase going up but texture Y coordinates increase going down.
+
+There are two loops, one for the latitude and another for the longitude. The comments provide some guidance for reading the code:
+
+```csharp
+List<Vector3> sphereVertices = new List<Vector3>();
+List<Vector2> sphereTextures = new List<Vector2>();
+
+int stacks = 18;    // X and Z axis, latitude
+int slices = 36;    // Y axis, longitude
+
+float latitudeIncr = 180 / stacks;
+float longitudeIncr = 360 / slices;
+
+// From the north pole to the south pole
+for (float latitude = 90; latitude > -90; latitude -= latitudeIncr)
+{
+    // Calculate Y coordinate for this angle and next angle
+    float yThis = (float)Math.Sin(MathHelper.DegreesToRadians(latitude));
+    float yNext = (float)Math.Sin(MathHelper.DegreesToRadians(latitude - latitudeIncr));
+
+    // Calculate relative Y coordinates for texture coordinates
+    float yRelativeThis = (90 - latitude) / 180;
+    float yRelativeNext = (90 - latitude + latitudeIncr) / 180; 
+
+    // Calculate scaling factors to apply to lines of latitude
+    float scaleThis = (float)Math.Cos(MathHelper.DegreesToRadians(latitude));
+    float scaleNext = (float)Math.Cos(MathHelper.DegreesToRadians(latitude - latitudeIncr));
+
+    // From the International Date Line westward around the world
+    for (float longitude = 0; longitude < 360; longitude += longitudeIncr)
+    {
+        // Calculate unscaled X coordinates, starts at zero, then positive
+        float xThis = (float)Math.Sin(MathHelper.DegreesToRadians(longitude));
+        float xNext = (float)Math.Sin(MathHelper.DegreesToRadians(longitude + longitudeIncr));
+
+        // Calculate unscaled Z coordinates, starts at 1 (furthest from camera)
+        float zThis = (float)Math.Cos(MathHelper.DegreesToRadians(longitude));
+        float zNext = (float)Math.Cos(MathHelper.DegreesToRadians(longitude + longitudeIncr));
+
+        // Calculate relative X coordinates for texture coordinates
+        float xRelativeThis = (360 - longitude) / 360;
+        float xRelativeNext = (360 - longitude - longitudeIncr) / 360;
+
+        // Add two triangles to vertices collection
+        sphereVertices.Add(new Vector3(scaleThis * xThis, yThis, scaleThis * zThis));
+        sphereVertices.Add(new Vector3(scaleNext * xThis, yNext, scaleNext * zThis));
+        sphereVertices.Add(new Vector3(scaleThis * xNext, yThis, scaleThis * zNext));
+
+        sphereVertices.Add(new Vector3(scaleThis * xNext, yThis, scaleThis * zNext));
+        sphereVertices.Add(new Vector3(scaleNext * xThis, yNext, scaleNext * zThis));
+        sphereVertices.Add(new Vector3(scaleNext * xNext, yNext, scaleNext * zNext));
+
+        // Add corresponding points to texture coordinates collection
+        sphereTextures.Add(new Vector2(xRelativeThis, yRelativeThis));
+        sphereTextures.Add(new Vector2(xRelativeThis, yRelativeNext));
+        sphereTextures.Add(new Vector2(xRelativeNext, yRelativeThis));
+
+        sphereTextures.Add(new Vector2(xRelativeNext, yRelativeThis));
+        sphereTextures.Add(new Vector2(xRelativeThis, yRelativeNext));
+        sphereTextures.Add(new Vector2(xRelativeNext, yRelativeNext));
+    }
+}
+```
+
+The following code displays the sphere. Notice that the `CreateModel` call uses only the `sphereVertices` collection for the vertex positions, and hence the rectangles that make up the sphere are clearly discernable:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("sphereNode", false));
+Node sphereNode = app.RootNode.CreateChild("sphereNode");
+StaticModel sphere = sphereNode.CreateComponent<StaticModel>();
+sphere.Model = CreateModel(sphereVertices);
+sphere.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+To make this look smooth, you need a collection of normal vectors that point from the center of the sphere through each vertex. But these already exist! They are exactly the same as the vertex positions. Because UrhoSharp uses the same `Vector3` type for points and vectors, the same `sphereVertices` collection can be passed as the second argument to `CreateModel` as well:
+
+```csharp
+sphere.Model = CreateModel(sphereVertices, sphereVertices);
+```
+
+Now the sphere is rounded.
+
+The next step is to cover this sphere with a map of the whole Earth. The first step is to create a new model using the texture coordinates as well.
+
+```csharp
+sphere.Model = CreateModel(sphereVertices, sphereVertices, null, sphereTextures);
+```
+
+The easy way to use a bitmap as a `Material` object is to call the static `Material.FromImage` method. The following bitmap of the entire Earth is stored in the **Data** directory relative to this workbook. It was obtained from <http://maps.jpl.nasa.gov/earth.html>, and is used courtesy of NASA/JPL-Caltech:
+
+```csharp
+sphere.SetMaterial(Material.FromImage("ear0xuu2.jpg"));
+```
+
+However, this material is still using the normals to calculate the light intensity around the globe. This might be desireable if you were showing half the Earth in darkness during the day, but in that case you’d want to increase the intensity of the directional light and reduce the intensity of the ambient light considerably.
+
+For a simple image of the world, it make more sense to use a technique that keeps the bitmap fully illuminated regardless of the light. This is a technique called `DiffUnlit`:
+
+```csharp
+Material earthMaterial = new Material();
+earthMaterial.SetTexture(TextureUnit.Diffuse, app.ResourceCache.GetTexture2D("ear0xuu2.jpg"));
+earthMaterial.SetTechnique(0, CoreAssets.Techniques.DiffUnlit, 0, 0);
+
+sphere.SetMaterial(earthMaterial);
+```
+
+And there is a fully illuminated globe that you can turn with the mouse.
