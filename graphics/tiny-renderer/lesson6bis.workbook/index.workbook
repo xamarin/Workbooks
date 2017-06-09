@@ -24,6 +24,8 @@ using static ShaderUtils;
 
 # Lesson 6bis: tangent space normal mapping
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 The subject for today is [normal mapping](https://en.wikipedia.org/wiki/Normal_mapping). What is the main difference between normal mapping and Phong shading? The key is the density of information we have. For Phong shading we use normal vectors given per vertex of triangle mesh (and interpolate it inside triangles), whereas normal mapping textures provide dense information, dramatically improving rendering details.
 
 Well, we have already applied normal mapping in previous lesson, however we used the global system of coordinates to store the texture. Today we are talking about [tangent space](https://en.wikipedia.org/wiki/Darboux_frame) normal mapping.

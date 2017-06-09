@@ -20,6 +20,8 @@ using static MatrixHelpers;
 
 # **Lesson 4: Perspective projection**
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 # The goal
 
 In previous lessons we rendered our model in orthographic projection by simply forgetting the z-coordinate. The goal for today is to learn how to draw in perspective:

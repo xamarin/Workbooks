@@ -22,6 +22,8 @@ using static MatrixHelpers;
 
 # **Lesson 6: Shaders for the software renderer**
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 Refactoring the source code. IShader.
 
 ```csharp

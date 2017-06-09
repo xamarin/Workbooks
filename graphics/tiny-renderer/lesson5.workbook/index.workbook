@@ -21,6 +21,8 @@ using static MatrixHelpers;
 
 # Lesson 5: Moving the camera
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 # Change of basis in 3D space
 
 In Euclidean space coordinates can be given by a point (the origin) and a basis. What does it mean that point P has coordinates `(x,y,z)` in the frame `(O, i,j,k)`? It means that the vector OP can be expressed as follows:

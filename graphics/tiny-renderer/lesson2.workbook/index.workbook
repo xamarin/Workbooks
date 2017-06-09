@@ -16,6 +16,8 @@ using static Geometry;
 
 # Lesson 2: Triangle rasterization and back face culling
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 # Old-school method: Line sweeping
 
 Thus, the task is to draw two-dimensional triangles. For motivated students it normally takes a couple of hours, even if they are bad programmers. Last time we saw Bresenham’s line drawing algorithm. Today’s task is to draw a filled triangle. Funny enough, but this task is not trivial. I don’t know why, but I know that it’s true. Most of my students struggle with this simple task. So, the initial stub will look like this:

@@ -14,6 +14,8 @@ platforms:
 
 # **Lesson 1: Bresenham’s Line Drawing Algorithm**
 
+> ℹ️ This workbook is a port of an [excellent C++ series](https://github.com/ssloy/tinyrenderer/wiki) written by Dmitry Sokolov. We appreciate that original work is available under a license that allowed us to turn it into a Workbook.
+
 # First attempt
 
 The goal of the first lesson is to render the wire mesh. To do this, we should learn how to draw line segments. We can simply read what Bresenham’s line algorithm is, but let’s write code ourselves. How does the simplest code that draws a line segment between `(x0, y0)` and `(x1, y1)` points look like? Apparently, something like this:
