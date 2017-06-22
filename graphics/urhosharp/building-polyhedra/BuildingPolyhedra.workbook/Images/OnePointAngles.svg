@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="365" height="200">
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(105 95)" d="M95.1057 30.9017L6.12303e-15 100L-95.1057 30.9017L-58.7785 -80.9017L58.7785 -80.9017L95.1057 30.9017Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(105 95)" d="M248.99 -80.9017L58.7785 -80.9017L95.1057 30.9017L248.99 -80.9017Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(105 95)" d="M0 0L248.99 -80.9017"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(105 95)" d="M0 0L95.1057 30.9017"/>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(105 95)" font-size="8" font-family="Segoe UI" x="13" y="3">
+			36°
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(105 95)" font-size="8" font-family="Segoe UI" x="208.98984" y="-60.901703">
+			18°
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(105 95)" font-size="8" font-family="Segoe UI" x="95.105652" y="20.901701">
+			72°
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(105 95)" font-size="8" font-family="Segoe UI" x="77.105652" y="22.901701">
+			54°
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(105 95)" font-size="12" font-family="Segoe UI" x="88" y="2">
+			H
+	</text>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(105 95)" d="M84.5505 -27.4721L87.0227 -19.8637L71.8058 -14.9194L69.3336 -22.5279"/>
+</svg>

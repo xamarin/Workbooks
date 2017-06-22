@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="520" height="490">
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(260 270)" d="M153.884 211.803L95.1057 30.9017L6.12303e-15 100L153.884 211.803Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(260 270)" d="M-153.884 211.803L6.12303e-15 100L-95.1057 30.9017L-153.884 211.803Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(260 270)" d="M-248.99 -80.9017L-95.1057 30.9017L-58.7785 -80.9017L-248.99 -80.9017Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(260 270)" d="M-4.80909e-14 -261.803L-58.7785 -80.9017L58.7785 -80.9017L-4.80909e-14 -261.803Z"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(260 270)" d="M248.99 -80.9017L58.7785 -80.9017L95.1057 30.9017L248.99 -80.9017Z"/>
+</svg>

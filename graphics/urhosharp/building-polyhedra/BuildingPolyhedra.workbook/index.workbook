@@ -1,0 +1,417 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Building Polyhedra with UrhoSharp
+
+One of the best ways to gain a familiarity and skill in working with 3D graphics is by building various sorts of figures, and particularly, polyhedra. A polyhedron is a three-dimensional solid with flat faces. Each face of a polyhedron is a polygon with straight sides. This workbook demonstrates how to use UrhoSharp to construct a regular dodecahedron and three *stellations* of the dodecahedron, which are produced by extending (“stellating”) the pentagons that make up the dodecahedron.
+
+UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin and .NET developers for games or visualization. If you’re unfamiliar with UrhoSharp concepts, you’ll want to download and run the following workbooks before tackling this one:
+
+* **Exploring Urho Coordinates**
+
+* **Creating Urho Compound Shapes**
+
+* **Working with Urho Custom Geometries**
+
+If you’re ready to go, wait until the workbook has completely finished loading before executing the following code cell:
+
+```csharp
+#r "Urho.dll"
+```
+
+This workbook requires only one namespace for UrhoSharp types:
+
+```csharp
+using Urho;
+```
+
+As usual when exploring Urho in a workbook, call the static `SimpleApplication.Show` method to create a window for the Urho graphics:
+
+```csharp
+SimpleApplication app = SimpleApplication.Show(
+    new ApplicationOptions()
+    {
+        Width = 1000,
+        Height = 1000   
+    });
+```
+
+You should see a window appear on the desktop as the `Show` method completes.
+
+## Preliminaries
+
+In preparation for this workbook, load the following C# script file:
+
+```csharp
+#load "UrhoSettings.csx"
+```
+
+As you know, `SimpleApplication` creates a camera, a point light source, and a root node for visuals. The **UrhoSettings.csx** script file contains a method named `Initialize` that adjusts the position and direction of the camera, replaces the point light source with a directional light source and ambient light, and sets the position of `RootNode` to the origin of the coordinate system. These settings are very similar to those shown in the **Working with Urho Custom Geometries** workbook.
+
+Run that `Initialize` method:
+
+```csharp
+Initialize(app);
+```
+
+As in that earlier workbook, the `Initialize` method also disables the code in `SimpleApplication` that moves the camera in response to mouse and touch. Instead, it sets up an event handler that applies a rotation transform to `RootNode` when you move the mouse along the Urho window with the left mouse button depressed. You can use this to rotate graphical objects for observation.
+
+The **Working with Urho Custom Geometries** workbook also described this C# script file:
+
+```csharp
+#load "CreateModel.csx"
+```
+
+The **CreateModel.csx** script contains a method named `CreateModel` that creates a UrhoSharp `Model` class based on vertex information passed to the method.
+
+## Polyhedra and Platonic Solids
+
+A polyhedron is a 3D solid with flat polygonal faces. Polyhedra can be divided into many different categories, such as convex and concave. A regular polyhedron is one in which all the faces are the same shape.
+
+There are only five regular convex polyhedra. These are known as the Platonic solids:
+
+* Tetrahedron: Four triangle faces
+
+* Cube: Six square faces
+
+* Octahedron: Eight triangle faces
+
+* Dodecahedron: Twelve pentagonal faces
+
+* Icosahedron: Twenty triangle faces
+
+You’ve already seen the tetrahedron in **Working with Urho Custom Geometries** workbook, and the cube is easy enough to be left to the student.
+
+The regular dodecahedron is a nice challenge, and it is also the basis on which to build the stellated dodecahedrons.
+
+## The Regular Dodecahedron
+
+The regular dodecahedron has twelve faces. Each face is a regular pentagon. To begin rendering the dodecahedron, you must somehow define the 3D coordinates of all the vertices in the object. Fortunately, this information is available. The [Wolfram MathWorld article on the Regular Dodecahedron](http://mathworld.wolfram.com/RegularDodecahedron.html) has plenty of information, but it’s probably somewhat easier to use the [Cartesian Coordinates section of the Wikipedia article on the Regular Dodecahedron](https://en.wikipedia.org/wiki/Regular_dodecahedron#Cartesian_coordinates). This section (and accompanying illustration) provides enough information to create a dodecahedron that is centered around the point (0, 0, 0) and fits inside a circle with the radius √3.
+
+The coordinates of the dodecahedron involve the Golden Ratio, which is a number often symbolized by the Greek phi (ϕ) that satisfies the following formula:
+
+1 / ϕ = ϕ – 1
+
+It’s approximately equal to 1.618. Here is a calculation of the Golden Ratio:
+
+```csharp
+float G = (1 + (float)Math.Sqrt(5)) / 2;
+```
+
+The coordinates also involve 1 divided by the Golden Ratio, and because G is the Golden Ratio, 1 / G is equal to G – 1:
+
+```csharp
+float H = G - 1;
+```
+
+Here is a two-dimensional array of `Vector3` values. Each row is one of the 12 pentagonal faces of the dodecahedron, and the five values are the five vertices of the pentagon:
+
+```csharp
+Vector3[,] dodecahedronFaces =
+{
+  { new Vector3( 1,-1,-1), new Vector3( G,0,-H), new Vector3( G,0, H), new Vector3( 1,-1, 1), new Vector3( H,-G,0) },
+  { new Vector3(-1,-1, 1), new Vector3(-G,0, H), new Vector3(-G,0,-H), new Vector3(-1,-1,-1), new Vector3(-H,-G,0) },
+  { new Vector3(-1, 1,-1), new Vector3(-G,0,-H), new Vector3(-G,0, H), new Vector3(-1, 1, 1), new Vector3(-H, G,0) },
+  { new Vector3( 1, 1, 1), new Vector3( G,0, H), new Vector3( G,0,-H), new Vector3( 1, 1,-1), new Vector3( H, G,0) },
+  { new Vector3(-1, 1,-1), new Vector3(0, H,-G), new Vector3(0,-H,-G), new Vector3(-1,-1,-1), new Vector3(-G,0,-H) },
+  { new Vector3(-1,-1, 1), new Vector3(0,-H, G), new Vector3(0, H, G), new Vector3(-1, 1, 1), new Vector3(-G,0, H) },
+  { new Vector3( 1,-1,-1), new Vector3(0,-H,-G), new Vector3(0, H,-G), new Vector3( 1, 1,-1), new Vector3( G,0,-H) },
+  { new Vector3( 1, 1, 1), new Vector3(0, H, G), new Vector3(0,-H, G), new Vector3( 1,-1, 1), new Vector3( G,0, H) },
+  { new Vector3( 1,-1,-1), new Vector3( H,-G,0), new Vector3(-H,-G,0), new Vector3(-1,-1,-1), new Vector3(0,-H,-G) },
+  { new Vector3(-1, 1,-1), new Vector3(-H, G,0), new Vector3( H, G,0), new Vector3( 1, 1,-1), new Vector3(0, H,-G) },
+  { new Vector3(-1,-1, 1), new Vector3(-H,-G,0), new Vector3( H,-G,0), new Vector3( 1,-1, 1), new Vector3(0,-H, G) },
+  { new Vector3( 1, 1, 1), new Vector3( H, G,0), new Vector3(-H, G,0), new Vector3(-1, 1, 1), new Vector3(0, H, G) }
+};
+```
+
+These vertices define a dodecahedron where the pentagon faces have sides of length 2 × H.
+
+The following two values will be convenient in some loops:
+
+```csharp
+int faceCount = dodecahedronFaces.GetLength(0);
+int vertexCount = dodecahedronFaces.GetLength(1);
+```
+
+The twelve faces of the dodecahedron are pentagons:
+
+![](Images/PentagonPlain.svg)
+
+For a UrhoSharp model, each pentagon must be divided into triangles. There are a couple ways to do that. If you’re trying to minimize the number of triangles, you can divide a pentagon into three triangles:
+
+![](Images/Pentagon3Triangles.svg)
+
+However, the code is somewhat simpler if you triangulate each pentagon more symmetrically based on a center point:
+
+![](Images/Pentagon5Triangles.svg)
+
+The center point of each face is not directly available, but these centers can be easily calculated by averaging the five vertices of each pentagon. The following code calculates and stores these centers:
+
+```csharp
+Vector3[] centers = new Vector3[faceCount];
+
+for (int face = 0; face < faceCount; face++)
+{
+    centers[face] = new Vector3();
+
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        centers[face] += dodecahedronFaces[face, vertex];
+    }
+
+    centers[face] /= vertexCount;        
+}
+```
+
+Because the UrhoSharp `Vector3` structure is used for both points and vectors, it supports many convenient arithmetic operations, such as addition and division.
+
+A `Vector3` collection can then be defined for storing the actual triangle vertices. When the loop finishes, `dodecahedronMesh` will contain 180 `Vector3` values, three for each triangle, with five triangles per pentagon, and 12 pentagons in the dodecahedron:
+
+```csharp
+List<Vector3> dodecahedronMesh = new List<Vector3>();
+
+for (int face = 0; face < faceCount; face++)
+{    
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        dodecahedronMesh.Add(centers[face]);
+        dodecahedronMesh.Add(dodecahedronFaces[face, vertex]);
+        dodecahedronMesh.Add(dodecahedronFaces[face, (vertex + 1) % vertexCount]);
+    }
+}
+```
+
+The `CreateModel` function from the **CreateModel.csx** script file loaded earlier calculates a `Model` object:
+
+```csharp
+Model dodecahedronModel = CreateModel(dodecahedronMesh);
+```
+
+The following is similar to code that you’ve seen before. It first removes the node that might have been created in an earlier execution of this block, and then associates a new node with the `Model` object just created, and give it a color:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("dodecahedronNode", false));
+Node dodecahedronNode = app.RootNode.CreateChild("dodecahedronNode");
+StaticModel dodecahedron = dodecahedronNode.CreateComponent<StaticModel>();
+dodecahedron.Model = dodecahedronModel;
+dodecahedron.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+At this point the dodecahedron should fill the window, and you can use your mouse with the button depressed to rotate it around the X and Y axes.
+
+## The Small Stellated Dodecahedron
+
+The word *stellate* means to extend in a way that often resembles a star. In the small stellated dodecahedron, each pentagon face becomes the interior area of a five-pointed star (also known as a pentagram). The result is still considered to be a regular dodechadron: It has 12 faces of the same shape, but it is not convex. It is one of only four regular nonconvex polyhedra, known as *star polyhedra*.
+
+The small stellated dodecahedron is larger than the regular dodecahedron, so move the camera back a bit:
+
+```csharp
+app.CameraNode.Position = new Vector3(0, 0, -8);
+```
+
+In the regular dodecahedron, each face is a pentagon:
+
+![TK](Images/PentagonPlain.svg)
+
+In the small stellated dodecahedron, the pentagon is replaced with a pentagram as if the pentagon were the center of the star:
+
+![](Images/FullStar.svg)
+
+Amazingly (as you’ll soon see), each point of each star meets up with five other points to form a solid figure. Although the center pentagon is considered part of the face, those pentagons are not visible, so they will not be drawn in the code below.
+
+The challenging part is calculating the coordinate at the end of each star point. Draw a line from the center to one of the points:
+
+![](Images/OnePointLine.svg)
+
+That line bisects the line between the consecutive two vertices of the pentagon. Therefore a vector from the center to that midpoint can be calculated by subtracting the center point from the midpoint. That vector must then be multiplied by the length of the line.
+
+Each edge of the pentagon is 2 × H, where H is the Golden Ratio minus 1. The line from the center to the star point creates two right triangles with a common side equal to H:
+
+![TK](Images/OnePointAngles.svg)
+
+The angles are easy to calculate if you start by observing that the interior angles of the pentagon are 108 degrees. (For any polygon, the interior angles always total to the number of sides times 90 degrees. For a pentagon, that’s 540 degrees. Then divide by the number of sides, or 5.) Half of that is 54 degrees, and the other angles can be derived from that.
+
+Or, the angle from the center to any pair of consecutive vertices is 360 degrees divided by 5, or 72 degrees. The angle at the center point is half that, or 36 degrees.
+
+The length of the line from the center to the point of the star can be calculated with trigonometry: It’s the sum of H divided by the tangent of 36 degrees (for the side of the triangle inside the pentagon), and H divided by the tangent of 18 degrees (for the triangle in the point of the star).
+
+The following code calculates the locations of the five points of each of the stellated stars:
+
+```csharp
+Vector3[,] starPoints = new Vector3[faceCount, vertexCount];
+
+for (int face = 0; face < faceCount; face++)
+{
+    Vector3 center = centers[face];
+
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        // Get vector from center to midpoint of two vertices
+        Vector3 vertex1 = dodecahedronFaces[face, vertex];
+        Vector3 vertex2 = dodecahedronFaces[face, (vertex + 1) % vertexCount];
+        Vector3 midPoint = (vertex1 + vertex2) / 2;
+        Vector3 vector = midPoint - center;
+        vector.Normalize();
+
+        // Calculate the length from center to star point
+        float length = (float)(H / Math.Tan(Math.PI / 5) + H / Math.Tan(Math.PI / 10));
+
+        // The star point is the center plus the scaled vector
+        starPoints[face, vertex] = center + length * vector;
+    }
+}
+```
+
+The ssdMesh (“small stellated dodecahedron mesh”) assembles the triangle meshes for the additional triangles required for the small stellated dodecahedron:
+
+```csharp
+List<Vector3> ssdMesh = new List<Vector3>();
+
+for (int face = 0; face < faceCount; face++)
+{
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        // Add three points to the mesh collection
+        ssdMesh.Add(dodecahedronFaces[face, vertex]);
+        ssdMesh.Add(starPoints[face, vertex]);
+        ssdMesh.Add(dodecahedronFaces[face, (vertex + 1) % vertexCount]);
+    }
+}
+```
+
+Although the trigonometry was derived from a two-dimensional rendition of a star, it works just as well in three dimensions because each star is flat.
+
+The following code creates the node and `StaticModel`, and calls `CreateModel` to obtain a `Model` object from the mesh:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("ssdNode", false));
+Node ssdNode = app.RootNode.CreateChild("ssdNode");
+StaticModel ssd = ssdNode.CreateComponent<StaticModel>();
+ssd.Model = CreateModel(ssdMesh);
+ssd.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+This is a fascinating figure. You can see how the twelve five-pointed stars meet up to form a solid figure, but it also seems as if the regular dodecahedron has been enhanced by the placement of a five-sided pyramid of each of the original faces. The peaks of each trio of adjacent pyramid forms a triangle, and if these peaks were actually connected by triangles, they would form an icosahedron.
+
+## The Great Dodecahedron
+
+Another intestesting aspect of the small stellated dodecahedron is that the five points of each star form a pentagon. What would happen if each of the star was replaced by that pentagon?
+
+The result is called the *great dodecahedron*. It is still a regular polyhedron because each face is the same — a pentagon — but part of each face is hidden by intersecting faces, and the result is not convex.
+
+With the data already accumulated, the great dodecahedron is easy to construct. Each triangle in the mesh is simply the space between successive points of the five-pointed stars:
+
+```csharp
+List<Vector3> greatDodecahedronMesh = new List<Vector3>();
+
+for (int face = 0; face < faceCount; face++)
+{    
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        greatDodecahedronMesh.Add(dodecahedronFaces[face, vertex]);
+        greatDodecahedronMesh.Add(starPoints[face, (vertex + vertexCount - 1) % vertexCount]);
+        greatDodecahedronMesh.Add(starPoints[face, vertex]);
+    }
+}
+```
+
+Once again, create the node and model, and give it a color:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("greatDodecahedronNode", false));
+Node greatDodecahedronNode = app.RootNode.CreateChild("greatDodecahedronNode");
+StaticModel greatDodecahedron = greatDodecahedronNode.CreateComponent<StaticModel>();
+greatDodecahedron.Model = CreateModel(greatDodecahedronMesh);
+greatDodecahedron.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+The faces are definitely pentagons (which is why this is not considered a stellated figure) but against each pentagon is what appears to be an embossed five-pointed star with a raised center. However, this star is nothing more than the meeting of ten pentagons.
+
+Can this process go one more level?
+
+## The Great Stellated Dodecahedron
+
+The great dodecahedron can itself be stellated and the result is called the stellated great dodecahedron or, more commonly, the great stellated dodecahedron.
+
+This workbook began with a regular dodecahedron, which has faces that are pentagons:
+
+![](Images/StellationsStep0.svg)
+
+These faces were stellated, which added triangles to make the faces into stars:
+
+![](Images/StellationsStep1.svg)
+
+The result was the small stellated dodecahedron. The points of the stars were then connected to make a pentagon again:
+
+![](Images/StellationsStep2.svg)
+
+That was the great dodecahedron. And now, this pentagon will be stellated:
+
+![](Images/StellationsStep3.svg)
+
+That’s going to be the great stellated dodecahedron.
+
+There are two pentagons in that final composite figure. What is the relationship between the length of the side of the larger pentagon to the smaller pentagon? If you do the trigonometry, the larger pentagon has a side length that is (sin(54) / sin(18)) times the smaller one. It turns out that this ratio is related to the Golden Ratio ϕ. The ratio of the sines of those two angles equals (ϕ + 1).
+
+The vertices of the original pentagon were defined so that the length of the side is (ϕ – 1), which means that the length of the side of the larger pentagon is (ϕ + 1)·(ϕ – 1), which equals ϕ² – 1. The Golden Ratio squared is actually (ϕ + 1), which means that the length of the side of the larger pentagon is simply ϕ. The calculation of the coordinates of the large star points use G defined earlier in this workbook as the Golden Ratio:
+
+```csharp
+Vector3[,] greatStarPoints = new Vector3[faceCount, vertexCount];
+
+for (int face = 0; face < faceCount; face++)
+{
+    Vector3 center = centers[face];
+
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        // Get vector from center to vertex of original pentagon
+        Vector3 vector = dodecahedronFaces[face, vertex] - center;
+        vector.Normalize();
+
+        // Calculate the length from center to star point
+        float length = (float)(G / Math.Tan(Math.PI / 5) + G / Math.Tan(Math.PI / 10));
+
+        // The star point is the center plus the scaled vector
+        greatStarPoints[face, vertex] = center + length * vector;
+    }
+}
+```
+
+Just as earlier, triangles describing the points of these stars can be accumulated in a collection called `gsdMesh` for “great stellated dodecahendron”):
+
+```csharp
+List<Vector3> gsdMesh = new List<Vector3>();
+
+for (int face = 0; face < faceCount; face++)
+{    
+    for (int vertex = 0; vertex < vertexCount; vertex++)
+    {
+        gsdMesh.Add(greatStarPoints[face, vertex]);
+        gsdMesh.Add(starPoints[face, vertex]);
+        gsdMesh.Add(starPoints[face, (vertex + vertexCount - 1) % vertexCount]);
+    }
+}
+```
+
+Move the camera further back because this is going to grow considerably in size:
+
+```csharp
+app.CameraNode.Position = new Vector3(0, 0, -20);
+```
+
+And display the new model:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("gsdNode", false));
+Node gsdNode = app.RootNode.CreateChild("gsdNode");
+StaticModel gsd = gsdNode.CreateComponent<StaticModel>();
+gsd.Model = CreateModel(gsdMesh);
+gsd.SetMaterial(Material.FromColor(Color.Cyan));
+```
+
+Now as you twist this new figure around and examine it, you’ll discover that the triangular faces are very hard to detect. Instead, this figure seems to be a collection of three sided pyramids emanating like spikes. It’s possible to view it so that a group of five of these spikes seem to form a three-dimensional star.
+
+But this is the end of the line. It is not possible to stellate again and create another regular polyhedron.
