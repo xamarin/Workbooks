@@ -49,7 +49,7 @@ In preparation for this workbook, load the following C# script file:
 #load "UrhoSettings.csx"
 ```
 
-As you know, `SimpleApplication` creates a camera, a point light source, and a root node for visuals. The **UrhoSettings.csx** script file contains a method named `Initialize` that adjusts the position and direction of the camera, replaces the point light source with a directional light source and ambient light, and sets the position of `RootNode` to the origin of the coordinate system. These settings are very similar to those shown in the **Working with Urho Custom Geometries** workbook.
+As you know, `SimpleApplication` creates a camera, a point light source, and a root node for visuals. The **UrhoSettings.csx** script file contains a method named `Initialize` that adjusts the position and direction of the camera, replaces the point light source with directional light sources and ambient light, and sets the position of `RootNode` to the origin of the coordinate system. These settings are similar to those shown in the **Working with Urho Custom Geometries** workbook, except that two directional light sources are created: one coming from above the viewer’s left shoulder, and another pointing in the same direction as the camera. This second light gives the objects created here a little more definition.
 
 Run that `Initialize` method:
 
@@ -412,6 +412,6 @@ gsd.Model = CreateModel(gsdMesh);
 gsd.SetMaterial(Material.FromColor(Color.Cyan));
 ```
 
-Now as you twist this new figure around and examine it, you’ll discover that the triangular faces are very hard to detect. Instead, this figure seems to be a collection of three sided pyramids emanating like spikes. It’s possible to view it so that a group of five of these spikes seem to form a three-dimensional star.
+Now as you twist this new figure around and examine it, you’ll discover that the triangular faces are very hard to detect. Instead, this figure seems to be a collection of three-sided pyramids emanating like spikes. It’s possible to view it so that a group of five of these spikes seem to form a three-dimensional star.
 
 But this is the end of the line. It is not possible to stellate again and create another regular polyhedron.
