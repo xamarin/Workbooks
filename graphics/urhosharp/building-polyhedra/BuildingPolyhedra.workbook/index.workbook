@@ -418,9 +418,9 @@ But this is the end of the line. It is not possible to stellate again and create
 
 ## Modifying the Vertex Buffer
 
-If you wanted to remove the additional triangles that created the various stellations of the dodecahedron, you could simply remove the nodes for these additional models. But another approach — an approach that will lead to an animation of these stellations — is to modify the vertex buffer so that the triangles defining the model have no dimension. That will cause them to disappear from view.
+If you wanted to remove the additional triangles that created the various stellations of the dodecahedron, you could simply remove the nodes for these additional models. But another approach — an approach that will eventually lead to an animation of these stellations — is to modify the vertex buffer so that the triangles defining the model have no dimension. That will cause them to disappear from view.
 
-Here is the `Model` object for the great stellated dodecahedron:
+Here is the `Model` object for the great stellated dodecahedron, which was the last step in this process:
 
 ```csharp
 Model model = gsd.Model;
@@ -438,27 +438,27 @@ And from the geometry, the `VertexBuffer` can be obtained:
 VertexBuffer buffer = geometry.GetVertexBuffer(0);
 ```
 
-Information about this `VertexBuffer` is available. This is how many vertices it contains:
+Information about this `VertexBuffer` is also available. This is how many vertices it contains:
 
 ```csharp
 uint count = buffer.VertexCount;
 ```
 
-The value of 180 encompasses the 12 faces, the 5 triangles per face, and the 3 vertices points per triangle.
+The value of 180 encompasses the 12 faces, the 5 triangles per face, and the 3 coordinates per triangle.
 
 The size of the `VertexBuffer` is also available:
 
 ```csharp
-uint size = buffer.VertexSize; // 2 Vector3's (Position and normal), each Vector3 is 3'floats, 4 bytes each.
+uint size = buffer.VertexSize; 
 ```
 
 The value of 24 is the byte size of the `VertexBuffer.PositionNormal` structure used to create the vertex buffer in the **CreateModel.csx** script. The structure contains two fields `Position` and `Normal` of type `Vector3`. The `Vector3`structure contains three fields of type `float`, and each `float`is 4 bytes in size.
 
-You can also get access to the items stored in the vertex buffer itself. In this case, these are the `VertexBuffer.PositionNormal` values. You can then dynamically modify the values, and the visuals will be updated.
+You can also get access to the items stored in the vertex buffer itself. In this example, these are an array of `VertexBuffer.PositionNormal` values. After getting access to this array, you can dynamically modify the values, and the visuals will be updated.
 
-However, there’s a catch: To get access to these vertices, you must call the `Lock` method of `VertexBuffer`. This returns an `IntPtr`, which you can then case to a pointer of type `VertexBuffer.PositionNormal`. But because you’re now working with pointers in C# code, you must put any code that accesses this pointer in an `unsafe` block.
+However, there’s a catch: To get access to these vertices, you must call the `Lock` method of `VertexBuffer`. This method returns an `IntPtr`, which you can then cast to a pointer of type `VertexBuffer.PositionNormal`. When you’re finished, call `Unlock`. But because you’re now working with pointers in C# code, you must put this code in an `unsafe` block.
 
-The following code obtains that pointer, and then loops through the vertex buffer of the great stellated dodecahedron. It knows that the first coordinate of each trio of triangle vertices is the star point, so it sets that coordinate instead to the midpoint of the other two triangle coordinates, essentially collapsing the triangle:
+The following code obtains that pointer, and then loops through the vertex buffer of the great stellated dodecahedron. It knows that the first coordinate of each trio of triangle coordinates is the point at the end of the star, so it sets that coordinate instead to the midpoint of the other two triangle coordinates, effectively collapsing the triangle:
 
 ```csharp
 unsafe
@@ -483,7 +483,7 @@ Now we’re back viewing the great dodecahedron and the camera can be moved forw
 app.CameraNode.Position = new Vector3(0, 0, -8);
 ```
 
-Similarly you can collapse the triangles that comprise the great dodecahedron. In this case, two coordinates of the additional triangle are set to the first triangle coordinates:
+Similarly you can collapse the triangles that comprise the great dodecahedron. In this case, two coordinates of the additional triangle are set to the first triangle coordinate:
 
 ```csharp
 VertexBuffer buffer = greatDodecahedron.Model.GetGeometry(0, 0).GetVertexBuffer(0);
@@ -534,9 +534,9 @@ app.CameraNode.Position = new Vector3(0, 0, -5);
 
 ## Animating the Vertex Buffer
 
-A similar technique can be used to build them stellations back up, but this time the process can be animated.
+Now let’s do all that in reverse to build the stellations back up again, but this time the process can be animated.
 
-The following function looks similar to the last code that you saw, but the method has a parameter named `t` that can range from 0 to 1. If `t` is 0, then the center coordinate of each triangle is set to the midpoint of the other two coordinates, just as in the previous code, but if `t` is 1, that cordinate is set to the value stored in `ssdMesh`, the triangle mesh for the small stellated dodecahedron. For values in between 0 and 1, it’s an interpolation:
+The following function looks similar to the last code that you saw, but the function has a parameter named `t` that can range from 0 to 1. If `t` is 0, then the center coordinate of each triangle is set to the midpoint of the other two coordinates, just as in the previous code. But if `t` is 1, that cordinate is set to the value stored in `ssdMesh`, the triangle mesh for the small stellated dodecahedron. For values in between 0 and 1, it’s an interpolation:
 
 ```csharp
 void FormSmallStellatedDodecahedron(float t)
@@ -569,7 +569,7 @@ FormSmallStellatedDodecahedron(0);
 
 Set it back to 0 when you’re finished experimenting.
 
-The following method is asynchronous and returns a `Task` object. It begins by creating a TaskCompletionSource object which returns that Task object immediately. Then it adds a handler to the `Update` event of `Application`.  This handler is frequently called. The `TimeStep` property of the event arguments provides the time in seconds since the last call. The function uses this to update the value of `t`, which it then uses to call `FormSmallStellatedDodecahedron` and to move the camera back:
+The following function is asynchronous and returns a `Task` object. It begins by creating a `TaskCompletionSource` object which returns that `Task` object the the caller at the end of the function body. Then it adds a handler to the `Update` event of `Application`.  This handler is frequently called. The `TimeStep` property of the event arguments provides the time in seconds since the last call. The function uses this to update the value of `t`, which it then uses to call `FormSmallStellatedDodecahedron` and to move the camera back:
 
 ```csharp
 Task AnimateSmallStellatedDodecahedronAsync()
@@ -669,7 +669,7 @@ Task AnimateGreatDodecahedronAsync()
 }
 ```
 
-Now as you execute this function, areas between the star points fill up with another triangle:
+Now as you execute that function, areas between the star points fill up with another triangle:
 
 ```csharp
 await AnimateGreatDodecahedronAsync();
@@ -734,7 +734,7 @@ Task AnimateGreatStellatedDodecahedronAsync()
 }
 ```
 
-And you can execute it like this:
+And you can execute it like so:
 
 ```csharp
 await AnimateGreatStellatedDodecahedronAsync();
