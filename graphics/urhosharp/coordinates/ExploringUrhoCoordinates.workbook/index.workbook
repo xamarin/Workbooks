@@ -1,4 +1,4 @@
----
+﻿---
 packages:
 - id: UrhoSharp
   version: 1.4.47
@@ -96,7 +96,7 @@ Similarly, the following code creates a child node of `mainNode` named `boxNode`
 mainNode.RemoveChild(mainNode.GetChild("boxNode", false));
 
 // Create a node for a Box component
-Node boxNode = mainNode.CreateChild("BoxNode");
+Node boxNode = mainNode.CreateChild("boxNode");
 Box box = boxNode.CreateComponent<Box>();
 ```
 
