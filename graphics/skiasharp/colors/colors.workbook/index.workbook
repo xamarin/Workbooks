@@ -1,0 +1,198 @@
+---
+title: Working with SKColor
+uti: com.xamarin.workbook
+id: a8709e7d-ba63-47a4-8fb3-bed7d3bf9fbb
+platforms:
+- Console
+packages:
+- id: SkiaSharp
+  version: 1.57.1
+---
+
+```csharp
+// install SkiaSharp
+#r "SkiaSharp"
+
+using SkiaSharp;
+```
+
+# SkiaSharp and colors
+
+In previous workbooks, we’ve explored the SkiaSharp drawing and image APIs. In this workbook, we’re going to do a quick demo of `SKColor`, used by SkiaSharp to represent colors. We’ve seen `SKColor` before in the canvas-filling APIs, and you can see it in the image filters that create colored lights. Here, we’ll just demonstrate some of the built-in colors and the way they’re presented in Workbooks. First, a SKColor rainbow:
+
+```csharp
+new [] {
+    new SKColor (255, 0, 0),
+    new SKColor (255, 127, 0),
+    new SKColor (255, 255, 0),
+    new SKColor (0, 255, 0),
+    new SKColor (0, 0, 255),
+    new SKColor (75, 0, 130),
+    new SKColor (143, 0, 255)
+}
+```
+
+SkiaSharp also provides a massive list of named colors—it includes all of the CSS named colors:
+
+```csharp
+new [] {
+    SKColors.AliceBlue,
+    SKColors.AntiqueWhite,
+    SKColors.Aqua,
+    SKColors.Aquamarine,
+    SKColors.Azure,
+    SKColors.Beige,
+    SKColors.Bisque,
+    SKColors.Black,
+    SKColors.BlanchedAlmond,
+    SKColors.Blue,
+    SKColors.BlueViolet,
+    SKColors.Brown,
+    SKColors.BurlyWood,
+    SKColors.CadetBlue,
+    SKColors.Chartreuse,
+    SKColors.Chocolate,
+    SKColors.Coral,
+    SKColors.CornflowerBlue,
+    SKColors.Cornsilk,
+    SKColors.Crimson,
+    SKColors.Cyan,
+    SKColors.DarkBlue,
+    SKColors.DarkCyan,
+    SKColors.DarkGoldenrod,
+    SKColors.DarkGray,
+    SKColors.DarkGreen,
+    SKColors.DarkKhaki,
+    SKColors.DarkMagenta,
+    SKColors.DarkOliveGreen,
+    SKColors.DarkOrange,
+    SKColors.DarkOrchid,
+    SKColors.DarkRed,
+    SKColors.DarkSalmon,
+    SKColors.DarkSeaGreen,
+    SKColors.DarkSlateBlue,
+    SKColors.DarkSlateGray,
+    SKColors.DarkTurquoise,
+    SKColors.DarkViolet,
+    SKColors.DeepPink,
+    SKColors.DeepSkyBlue,
+    SKColors.DimGray,
+    SKColors.DodgerBlue,
+    SKColors.Firebrick,
+    SKColors.FloralWhite,
+    SKColors.ForestGreen,
+    SKColors.Fuchsia,
+    SKColors.Gainsboro,
+    SKColors.GhostWhite,
+    SKColors.Gold,
+    SKColors.Goldenrod,
+    SKColors.Gray,
+    SKColors.Green,
+    SKColors.GreenYellow,
+    SKColors.Honeydew,
+    SKColors.HotPink,
+    SKColors.IndianRed,
+    SKColors.Indigo,
+    SKColors.Ivory,
+    SKColors.Khaki,
+    SKColors.Lavender,
+    SKColors.LavenderBlush,
+    SKColors.LawnGreen,
+    SKColors.LemonChiffon,
+    SKColors.LightBlue,
+    SKColors.LightCoral,
+    SKColors.LightCyan,
+    SKColors.LightGoldenrodYellow,
+    SKColors.LightGray,
+    SKColors.LightGreen,
+    SKColors.LightPink,
+    SKColors.LightSalmon,
+    SKColors.LightSeaGreen,
+    SKColors.LightSkyBlue,
+    SKColors.LightSlateGray,
+    SKColors.LightSteelBlue,
+    SKColors.LightYellow,
+    SKColors.Lime,
+    SKColors.LimeGreen,
+    SKColors.Linen,
+    SKColors.Magenta,
+    SKColors.Maroon,
+    SKColors.MediumAquamarine,
+    SKColors.MediumBlue,
+    SKColors.MediumOrchid,
+    SKColors.MediumPurple,
+    SKColors.MediumSeaGreen,
+    SKColors.MediumSlateBlue,
+    SKColors.MediumSpringGreen,
+    SKColors.MediumTurquoise,
+    SKColors.MediumVioletRed,
+    SKColors.MidnightBlue,
+    SKColors.MintCream,
+    SKColors.MistyRose,
+    SKColors.Moccasin,
+    SKColors.NavajoWhite,
+    SKColors.Navy,
+    SKColors.OldLace,
+    SKColors.Olive,
+    SKColors.OliveDrab,
+    SKColors.Orange,
+    SKColors.OrangeRed,
+    SKColors.Orchid,
+    SKColors.PaleGoldenrod,
+    SKColors.PaleGreen,
+    SKColors.PaleTurquoise,
+    SKColors.PaleVioletRed,
+    SKColors.PapayaWhip,
+    SKColors.PeachPuff,
+    SKColors.Peru,
+    SKColors.Pink,
+    SKColors.Plum,
+    SKColors.PowderBlue,
+    SKColors.Purple,
+    SKColors.Red,
+    SKColors.RosyBrown,
+    SKColors.RoyalBlue,
+    SKColors.SaddleBrown,
+    SKColors.Salmon,
+    SKColors.SandyBrown,
+    SKColors.SeaGreen,
+    SKColors.SeaShell,
+    SKColors.Sienna,
+    SKColors.Silver,
+    SKColors.SkyBlue,
+    SKColors.SlateBlue,
+    SKColors.SlateGray,
+    SKColors.Snow,
+    SKColors.SpringGreen,
+    SKColors.SteelBlue,
+    SKColors.Tan,
+    SKColors.Teal,
+    SKColors.Thistle,
+    SKColors.Tomato,
+    SKColors.Turquoise,
+    SKColors.Violet,
+    SKColors.Wheat,
+    SKColors.White,
+    SKColors.WhiteSmoke,
+    SKColors.Yellow,
+    SKColors.YellowGreen,
+    SKColors.Transparent
+};
+```
+
+There are no convenience APIs provided for it, but colors can be darkened or lightened by fiddling with the HSL (hue, saturation, lightness) values:
+
+```csharp
+float hue, saturation, luminance;
+SKColors.WhiteSmoke.ToHsl(out hue, out saturation, out luminance);
+SKColors.WhiteSmoke;
+```
+
+Here we’ve converted `SKColors.WhiteSmoke` into HSL via the `ToHsl` method. We want to make it 20% darker, so we’ll reduce its luminance by 20%—i.e., we’ll multiply by 0.8.
+
+```csharp
+var newLuma = luminance * 0.8f;
+var newColor = SKColor.FromHsl(hue, saturation, newLuma, 0xff);
+```
+
+We see our new color—it looks approximately 20% darker than the previous one indeed. You can manipulate hue and saturation as well—you can think of hue as the pure color value (that is, the base color), saturation as how much color there is (100% being pure color, 0% being pure grey), and lightness as the change from white to black. See [Wikipedia](https://en.wikipedia.org/wiki/HSL_and_HSV "HLS and HSV - Wikipedia") for more information.

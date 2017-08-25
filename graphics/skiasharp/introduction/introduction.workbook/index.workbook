@@ -1,16 +1,17 @@
 ---
+id: dd45fdd0-cb47-4fa9-ae05-cb7549704db3
+title: Introduction to SkiaSharp
 uti: com.xamarin.workbook
 platforms:
 - Console
 packages:
 - id: SkiaSharp
-  version: 1.56.1-beta
+  version: 1.57.1
 ---
 
 ```csharp
 // install SkiaSharp
 #r "SkiaSharp"
-#load "SkiaSharp.csx"
 ```
 
 # SkiaSharp

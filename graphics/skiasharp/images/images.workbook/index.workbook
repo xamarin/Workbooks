@@ -1,0 +1,80 @@
+---
+packages:
+- id: SkiaSharp
+  version: 1.57.1
+uti: com.xamarin.workbook
+id: 42aced37-cff5-4cd5-8cd7-a23c986406f3
+title: Exploring SKImage
+platforms:
+- Console
+---
+
+```csharp
+// install SkiaSharp
+#r "SkiaSharp"
+
+using SkiaSharp;
+```
+
+# Exploring SKImage
+
+In previous workbooks, we’ve explored the basics of SkiaSharp, and we’ve explored drawing with SkiaSharp, drawing an Archimedes spiral and a Xamagon. In addition to powerful drawing APIs, SkiaSharp also has powerful image manipulation APIs for loading, resizing, and even filtering images.
+
+## Loading an image
+
+We’ve included an image with this workbook, called `cat.jpeg`. Let’s load it using the `SKBitmap` and `SKImage` classes. `SKImage` doesn’t have any methods for directly loading images, which is why we need to use an `SKBitmap`.
+
+```csharp
+using System.IO;
+
+SKBitmap bitmap;
+using (var stream = File.OpenRead ("cat.jpeg"))
+    bitmap = SKBitmap.Decode (stream);
+bitmap;
+```
+
+As you can see, the image is a bit large at 1080x1080. Let’s use `SKBitmap`’s resizing support to scale it down to a more manageable size, like 540x540. We’ll use the Lanczos resizing method, as it tends to produce the most visually pleasing results. We’ll re-assign the new bitmap back to the original variable—we could keep both to compare, but we don’t need them right now.
+
+```csharp
+bitmap = bitmap.Resize (new SKImageInfo (540, 540), SKBitmapResizeMethod.Lanczos3);
+```
+
+## Filtering images
+
+Now that we have our image loaded, we’d like to apply some filters to express our artistic desire—SkiaSharp provides numerous filters via the `SKImageFilter.Create*` static API.
+
+In particular, we’d like to use the Erode and Dilate filters, which will help us create a new image that’s styled like a painting from our original photo.
+
+Skia’s filtering API lets us chain filters to produce complex effects without having to apply the filters multiple times to an image, and we’ll use that here.
+
+```csharp
+// First, load the image from the bitmap.
+var image = SKImage.FromBitmap (bitmap);
+
+// Next, set up some rectangles. Since we want to apply our filters to the whole image, we'll create
+// two rectangles that encompass the whole image.
+var imageRect = SKRect.Create (0, 0, image.Width, image.Height);
+var cropRect = new SKImageFilter.CropRect (imageRect, SKCropRectFlags.HasAll);
+
+// Next, we need to create our filters. We'll create the dilate filter first, and then
+// the erode filter, passing in the dilate filter as an input.
+var dilate = SKImageFilter.CreateDilate (radiusX: 6, radiusY: 6, input: null, cropRect: cropRect);
+var erode = SKImageFilter.CreateErode (radiusX: 12, radiusY: 12, input: dilate, cropRect: cropRect);
+
+// Now we need to create a final rectangle for the filter, and set up some return variables
+// for the applied filter. ApplyImageFilter returns a new image, so we don't need to do anything
+// to have Workbooks display it!
+var imageRectI = SKRectI.Ceiling (imageRect);
+SKRectI outRect; SKPoint outPoint;
+image.ApplyImageFilter (erode, imageRectI, imageRectI, out outRect, out outPoint);
+```
+
+As you can see, our cat now looks like a painting. The filter APIs are incredibly powerful for imagine manipulations—you can use them to tile images, do blends, blurs, and color filtering, or change the lighting in a photo!
+
+### Exercises for image filtering
+
+* Try resizing the image to different sizes or using different resize methods.
+
+* Try going up in size instead of just down to see how the different resize methods affect that.
+
+* Try some other filters, or change the parameters/order of the existing filters.
