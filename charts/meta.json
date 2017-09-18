@@ -1,6 +1,6 @@
 {
   "order":{
-    "OxyPlot.workbook":"OxyPlot",
-    "Xplot.workbook":"XPlot"
+    "oxyplot":"OxyPlot",
+    "xplot":"XPlot"
   }
 }
