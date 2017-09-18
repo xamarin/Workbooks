@@ -4,6 +4,6 @@
     "logo/skialogo-ios.workbook":"Logo for iOS",
     "colors/colors.workbook":"Working with SKColor",
     "images/images.workbook":"Exploring SKImage",
-    "pixmap/pixmap.workbook":"Workign with WKPixmap"
+    "pixmap/pixmap.workbook":"Working with SKPixmap"
   }
 }
