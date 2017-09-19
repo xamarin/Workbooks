@@ -1,11 +1,16 @@
 ---
+id: a98401e1-2efa-4b55-a83b-6d55f2bda733
 uti: com.xamarin.workbook
+title: "UrhoSharp: Charts"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.4.47
 ---
 
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
 
 We are going to bring the Urho namespaces:

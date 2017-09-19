@@ -1,22 +1,20 @@
 ﻿---
+id: cb4208bd-7759-4878-9e28-72c87a06da15
+uti: com.xamarin.workbook
+title: "UrhoSharp: Exploring Coordinates"
+platforms:
+- Console
 packages:
 - id: UrhoSharp
   version: 1.4.47
-uti: com.xamarin.workbook
-platforms:
-- Console
 ---
 
 # Exploring Urho Coordinates
 
 UrhoSharp is a powerful cross-platform 3D graphics engine that Xamarin and .NET developers can use for games or visualization. This workbook is intended as a basic introduction to UrhoSharp and 3D concepts, focusing on the 3D coordinate system.
 
-The directory in which a UrhoSharp workbook runs must contain the U**rho.dll** library. In addition, the **mono-urho.dll** library is required for running the workbook under Windows using the Windows Presentation Foundation (WPF) and **libmono-urho.dylib** for running the workbook on the Mac. These libraries are already present for this workbook. If you want to create your own UrhoSharp workbooks, you can copy those same files to your workbook directory.
-
-The workbook itself needs to reference only **Urho.dll**:
-
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
 
 This workbook requires only two of the dozen or so namespaces for UrhoSharp types:

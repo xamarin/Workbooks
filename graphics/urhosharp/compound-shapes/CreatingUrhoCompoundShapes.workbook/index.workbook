@@ -1,7 +1,12 @@
 ---
+id: 4792faac-5c28-4cef-98bb-89f4af10fee9
 uti: com.xamarin.workbook
+title: "UrhoSharp: Compound Shapes"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.4.47
 ---
 
 # Creating (and Animating) Urho Compound Shapes
@@ -13,7 +18,7 @@ UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin a
 Wait until the workbook has completely finished loading before executing the following code cell:
 
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
 
 This workbook requires four of the dozen or so namespaces for UrhoSharp types:

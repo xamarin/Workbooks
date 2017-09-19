@@ -1,7 +1,12 @@
 ---
+id: 8254f6d9-784a-4a79-bc0b-a5f7fe9705d6
 uti: com.xamarin.workbook
+title: "UrhoSharp: Building Polyhedra"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.4.47
 ---
 
 # Building Polyhedra with UrhoSharp
@@ -19,7 +24,7 @@ UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin a
 If you’re ready to go, wait until the workbook has completely finished loading before executing the following code cell:
 
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
 
 This workbook requires only one namespace for UrhoSharp types:

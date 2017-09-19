@@ -1,7 +1,12 @@
 ---
+id: cb210751-0da5-43e6-bcfb-74a14f1861b1
 uti: com.xamarin.workbook
+title: "UrhoSharp: Custom Geometries"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.5.20
 ---
 
 # Working with Urho Custom Geometries
@@ -13,7 +18,7 @@ UrhoSharp is a powerful cross-platform 3D graphics engine available to Xamarin a
 Wait until the workbook has completely finished loading before executing the following code cell:
 
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
 
 This workbook requires only one namespace for UrhoSharp types:

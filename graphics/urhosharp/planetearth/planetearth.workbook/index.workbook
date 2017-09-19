@@ -1,19 +1,24 @@
 ---
+id: 72272456-553a-465a-be48-20b922321c19
 uti: com.xamarin.workbook
+title: "UrhoSharp: Planet Earth in C#"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.5.20
 ---
 
-## UrhoSharp: Planet Earth in C#
+# UrhoSharp: Planet Earth in C#
 
-UrhoSharp is a powerful 3D game engine for Xamarin and .NET developers. Start by loading URho into the workbook and import some namespaces that we’ll want to consume.
-
-```csharp
-#r "Urho.dll"
-```
+[UrhoSharp](https://developer.xamarin.com/guides/cross-platform/urho/) is a powerful 3D game engine for Xamarin and .NET developers. Start by loading URho into the workbook and import some namespaces that we’ll want to consume.
 
 ```csharp
-using Urho; using Urho.Actions; using Urho.Shapes;
+#r "Urho"
+
+using Urho;
+using Urho.Actions;
+using Urho.Shapes;
 ```
 
 ```csharp
@@ -24,7 +29,7 @@ var app = SimpleApplication.Show (
 		TouchEmulation = true });
 ```
 
-We have created a WPF window containing a `ApplicationOptions`. Let’s add a new `Node` to the scene, representing the Earth.
+We have created a window containing a `ApplicationOptions`. Let’s add a new `Node` to the scene, representing the Earth.
 
 `Node`s contain `Component`s that dictate what is rendered. We’ll cheat a bit
 and use a `Sphere` for the Earth.
@@ -206,8 +211,6 @@ advancedEarthMaterial.SetTexture(TextureUnit.Normal, app.ResourceCache.GetTextur
 earth.SetMaterial(advancedEarthMaterial);
 advancedEarthMaterial.SetShaderParameter(CoreAssets.ShaderParameters.MatDiffColor, new Color(0.8f, 0.9f, 1f, 1f));
 ```
-
-
 
 ```csharp
 earthNode.RemoveAllChildren();

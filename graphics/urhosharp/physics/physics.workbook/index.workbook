@@ -1,19 +1,25 @@
 ---
+id: 0cee522c-9c60-4860-9681-50124c220680
 uti: com.xamarin.workbook
+title: "UrhoSharp: Physics"
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.5.20
 ---
 
-## Physics
+# Physics
 
 UrhoSharp is a powerful 3D game engine for Xamarin and .NET developers. It is similar in spirit to Apple’s SceneKit and SpriteKit and includes physics, navigation, networking, and much more...while still being cross-platform.
 
 ```csharp
-#r "Urho.dll"
-```
+#r "Urho"
 
-```csharp
-using Urho; using Urho.Actions; using Urho.Shapes; using Urho.Physics;
+using Urho;
+using Urho.Actions;
+using Urho.Shapes;
+using Urho.Physics;
 ```
 
 ```csharp
