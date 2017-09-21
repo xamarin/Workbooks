@@ -1,4 +1,4 @@
-{
+﻿{
   "order":{
     "coordinates/ExploringUrhoCoordinates.workbook":"Exploring Urho Coordinates",
     "compound-shapes/CreatingUrhoCompoundShapes.workbook":"Creating Compound Shapes (Quadcopter)",
@@ -8,6 +8,6 @@
     "barchart/charts.workbook":"Charts",
     "physics/physics.workbook":"Physics",
     "planetearth/planetearth.workbook":"Planet Earth",
-    "mobius-strip-speedway/MobiusStripSpeedway.workbook": "Mobius Strip Speedway"
+    "mobius-strip-speedway/MobiusStripSpeedway.workbook": "Möbius Strip Speedway"
   }
 }
