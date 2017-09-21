@@ -1,0 +1,982 @@
+---
+uti: com.xamarin.workbook
+platforms:
+- Console
+---
+
+# Möbius Strip Speedway
+
+This Workbook creates a circular road in the form of a Möbius strip, and then animates two cars to drive around that road.
+
+![Speedway Preview](Images/SpeedwayPreview.png "Speedway Preview")
+
+A variation of this Workbook was described in the webinar “Exploring UrhoSharp 3D with Xamarin Workbooks” broadcast on September 21, 2017.
+
+This Workbook uses UrhoSharp, Xamarin’s cross-platform C# and .NET wrapper on the open-source Urho3D graphics system. It demonstrates creating 3D objects algorithmically and loading predefined 3D models available on the new Microsoft-curated **Remix 3D** web site.
+
+The Workbook discusses in detail the technique of rotating the cars so that they properly tilt along the surface of the curved Möbius strip as they drive around it. Also explored is the ability of UrhoSharp to draw lines in 3D space. This is often useful for experimentation and to erect a type of “scaffolding” that is helpful to visualize 3D surfaces.
+
+The first step in any UrhoSharp Workbook is referencing the **Urho.dll** dynamic link library:
+
+```csharp
+#r "Urho.dll"
+```
+
+The directory in which the Workbook is located must also contain the **mono-urho.dll** library if the Workbook is run under Windows, and the **libmono-urho.dylib** library if the Workbook is run under MacOS. The best way to obtain these files is from an existing UrhoSharp Workbook.
+
+Most of this Workbook requies only one `using` directive:
+
+```csharp
+using Urho;
+```
+
+Two more `using` directives are specified towards the end of this Workbook in connection with animation.
+
+A special `SimpleApplication` class exists for using UrhoSharp in a Workbook. The `ApplicationOptions` object allows specifying a directory for loadable resources as well as other options:
+
+```csharp
+SimpleApplication app = SimpleApplication.Show(new ApplicationOptions("Data"));
+```
+
+Executing this code block creates a window that you can then move and resize.
+
+`SimpleApplication` also creates a default camera and lights, which this Workbook does not change. The origin of the 3D coordinate system is in the center of the window. X coordinates increase to the right, Y coordinates increase going up, and Z coordinates increase going into the screen.
+
+## Drawing a Circle
+
+This project begins by creating a type of scaffolding to visualize the shape of the road before the road is “paved” with surfaces. This scaffolding consists of straight lines in 3D space. These lines do not constitute a wireframe (which is an alternative way to visualize 3D surfaces) but they are similar.
+
+However, because UrhoSharp is a 3D graphics framework, drawing lines is not nearly as simple or straightforward as in a 2D graphics environment. Substantial overhead is required, but this overhead is very similar to that for drawing 3D surfaces.
+
+The first part of this scaffolding is a circle that will eventually become the dividing line between the two lines of the road. The first step is to accumulate a collection of `Vector3` values that define a circle.
+
+The `Vector3` structure has three fields of type `float` named `X`, `Y`, and `Z`. This is the structure used to represent a point in 3D space as well as a vector, which encapsulates a direction and a magnitude. Points and vectors are related: A point is the same value as a vector from the origin to that point, but vectors do not have any specific position in 3D space.
+
+The following code defines a series of points that approximate a circle. This circle has Y coordinates of zero, so it sits on the plane defined by the X and Z axis, called the XZ plane. The `DIVISIONS` constant determines how many points approximate this circle. These points define a 100-sided regular polygon (called a *hectagon*) but you’ll see that it is visually indistinguishable from a circle.
+
+```csharp
+const int DIVISIONS = 100;
+
+List<Vector3> radii = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    double angle = i * 2 * Math.PI / DIVISIONS;
+    float x = (float)Math.Cos(angle);
+    float y = 0;
+    float z = (float)Math.Sin(angle);
+    radii.Add(new Vector3(x, y, z));
+}
+```
+
+These *radii* values are both points and vectors. They are points on the circumference of a circle with a radius of 1, and they are also vectors from the origin to those points. As vectors, they have a length (or magnitude) of 1, which means that the vectors are said to be *normalized*.
+
+Notice that the loop increments `i` from 0 to less than *or equal to*  `DIVISIONS`, so the collection contains 101 values rather than 100. Because the points define a circle, the last element of the collection is the same as the first. As you’ll see, sometimes this is helpful when later indexing the array.\
+\
+The next code block uses the `radii` vectors to calculate points on the circumference of a circle with a radius of 2 units. Notice that a `Vector3` value can be multiplied by a number, called a *scalar*, such as the `RADIUS` constant:
+
+```csharp
+const float RADIUS = 2;
+
+List<Vector3> circlePts = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    circlePts.Add(RADIUS * radii[i]);
+}
+```
+
+If you’re accustomed to 2D graphics, that might seem like a very small circle, but 3D units are relative. They are based on the relationship of the camera to the graphical objects, and to the height of the window. With the camera created by `SimpleApplication`, one unit is about 15% of the height of the window.
+
+To actually get this circle on the screen requires several more steps. The first of these steps is creating a vertex collection. A vertex is a position in 3D space, but accompanied with other information associated with that position. The simplest type of a vertex collection is a collection of `PositionNormal` structures. This structure is defined within the `VertexBuffer` class, so the full name is `VertexBuffer.PositionNormal`. The structure has two fields named `Position` and `Normal`, but for drawing lines, you only need to set the `Position` field:
+
+```csharp
+var circleVertices = new List<VertexBuffer.PositionNormal>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    circleVertices.Add(new VertexBuffer.PositionNormal
+    { 
+        Position = circlePts[i]
+    });
+}
+```
+
+Notice that the loop also goes to less than or equal to `DIVISIONS`, so again the last point is the same as the first. This will be necessary for drawing a complete closed circle.
+
+This collection of vertices must be stored in an object of type `VertexBuffer`. For performance purposes, these vertices might also be stored in the memory of the graphics processing unit (GPU) of the video display. Because UrhoSharp is a C# wrapper on C++ code, the internal code can’t determine the size and type of the collection of vertices. You must explicitly specify the size of the vertex collection, and the fact that each vertex consists of a position and a normal, even though the normal is not used here:
+
+```csharp
+VertexBuffer circleBuffer = new VertexBuffer(Application.CurrentContext, false);
+circleBuffer.SetSize((uint)circleVertices.Count, ElementMask.Position | ElementMask.Normal, false);
+circleBuffer.SetData(circleVertices.ToArray());
+```
+
+The next step is to construct a `Geometry` object. This is a collection of one or more vertex buffers, in this case just the one vertex buffer:
+
+```csharp
+Geometry circleGeometry = new Geometry();
+circleGeometry.SetVertexBuffer(0, circleBuffer);
+circleGeometry.SetDrawRange(PrimitiveType.LineStrip, 0, 0, 0, (uint)circleVertices.Count, true);
+```
+
+An important piece of information specified in this `Geometry` object is the enumeration member `PrimitiveType.LineStrip`. This indicates how the vertices should be interpreted. The `LineStrip` member means that each successive vertex is connected to the next vertex with a line. This creates a series of connected lines often called a *polyline*. You’ll see two other members of the `PrimitiveType` enumeration later in this Workbook.
+
+A `Model` object is one or more geometries, in this case just one geometry:
+
+```csharp
+Model circleModel = new Model();
+circleModel.NumGeometries = 1;
+circleModel.SetGeometry(0, 0, circleGeometry);
+circleModel.BoundingBox = new BoundingBox(new Vector3(-10, -10, -10), new Vector3(10, 10, 10));
+```
+
+The `BoundingBox` is required. It should encompass the coordinates in the geometry but otherwise the values are not critical.
+
+Most of the objects in a 3D scene are organized in a tree structure of nodes and subnodes. The camera is a node, light sources are nodes, and visual objects are nodes. The big advantage of the tree structure is that a graphics transform can be applied to a node, and it affects all the child nodes as well.
+
+The `SimpleApplication` object creates a root node that is accessible through the `RootNode` property. The following code adds a child node to that node named `mainNode`. This will be the parent node to all the other nodes created in this Workbook. Since code blocks in a Workbook can be re-executed, any code that creates a node must be preceded in the same code block by code that removes the node:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("mainNode"));
+Node mainNode = app.RootNode.CreateChild("mainNode");
+```
+
+This code also works if the code block is being executed for the first time. If the node does not exist, `GetChild` returns `null` and `RemoveNode` ignores a `null` argument.
+
+Here’s the node for the circle. It is a child of `mainNode`. A `StaticModel` component is created for the node, and that is used to reference the model created earlier:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("circleNode"));
+Node circleNode = mainNode.CreateChild("circleNode");
+StaticModel circle = circleNode.CreateComponent<StaticModel>();
+circle.Model = circleModel;
+```
+
+The final step is to associate a `Material` object with the `StaticModel` object. The material indicates the visual appearance of the model. The specification here indicates the color, the fact that it should not be affected by light, and that it should be antialiased:
+
+```csharp
+Material blackLineMaterial = Material.FromColor(Color.Black);
+blackLineMaterial.SetTechnique(0, CoreAssets.Techniques.NoTextureUnlit, 1, 1);
+blackLineMaterial.LineAntiAlias = true;
+circle.SetMaterial(blackLineMaterial);
+```
+
+At long last, a circle appears on the screen. On the PC, the circle will be very faint, but it is darker on the Mac.
+
+The center of the circle is aligned with the center of the window. The camera is positioned above the XZ plane but pointing down somewhat, so the circle is seen from above.
+
+Within the UrhoSharp window, you can pan the camera horizontally and vertically using touch or the mouse with the button depressed, and you can zoom in and out using a mousewheel or the two-finger scroll gesture on the touchpad. \
+\
+You can experiment with changing `DIVISIONS` to smaller values to see how that affects the appearance of the circle. When you re-execute a code block in a Workbook, all the subsequent previously executed code blocks are also re-executed.
+
+You might also experiement with the loop that adds vertices to the `circleVertices` collection. Change `DIVISIONS` to `DIVISIONS / 2` and `DIVISIONS / 4`. This will convince you that the circle begins at the far right, and the lines go counter-clockwise from the viewer’s perspective. This information is important when later animating the cars.
+
+## The Looping Road
+
+The next step is to construct a series of lines that span the width of the road. These lines will be at right angles to the circumference of the circle.
+
+The following code block computes tangents to the circle. For every point on the circle, a vector is calculated. This is the difference between the two points on either side of that point. The modulo operations avoid invalid array indices:
+
+```csharp
+List<Vector3> tangents = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    Vector3 tangent = circlePts[(i + 1) % DIVISIONS] - circlePts[(i + DIVISIONS - 1) % DIVISIONS];
+    tangents.Add(tangent);
+}
+```
+
+The following collection called `parallels` are vectors that span the width of the road at every point. These vectors are parallel to the surface of the road like the `radii` vectors but rotated around an axis from the `tangents` collection:
+
+```csharp
+List<Vector3> parallels = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    float tilt = i * (float)Math.PI / DIVISIONS;
+    Matrix4 matrix = Matrix4.CreateFromAxisAngle(tangents[i], tilt);
+    Vector3 parallel = Vector3.TransformVector(radii[i], matrix);
+    parallels.Add(parallel);
+}
+```
+
+There are several ways to tilt these `parallels` vectors around the `tangents` axes, but this particular code twists the `parallels` to create a Möbius strip.
+
+The `tilt` value goes from 0 to 180 degrees (π radians) as `i` goes around the circle. The `CreateFromAxisAngle` method creates a `Matrix4` value, which is a 4×4 transform matrix that represents a rotation of `tilt` angles around the tangent. This is then used to transform a vector from the `radii` collection to create a vector for the `parallels` collection.
+
+Because the `radii` vectors are normalized (that is, have a length of 1) and are only subjected here to a rotation transform, the `parallels` vectors are also normalized.
+
+Vectors that are normalized are very useful for performing arithmetic operations on points and vectors, such as in the following code. The width of the road is set to half the radius, or 1. Two collections are accumulated: `innerPts` defines a circle on the inside of the road, and `outerPts` defines a circle on the outside of the road. These are calculated by multiplying half the width by a `parallels` vector, and either adding that to, or subtracting it from, a `circlePts` value:
+
+```csharp
+const float WIDTH = RADIUS / 2;
+
+List<Vector3> innerPts = new List<Vector3>();
+List<Vector3> outerPts = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    innerPts.Add(circlePts[i] - WIDTH / 2 * parallels[i]);
+    outerPts.Add(circlePts[i] + WIDTH / 2 * parallels[i]);
+}
+```
+
+It will be useful to see what these lines look like, but they need to be drawn a little differently from the circle. Instead of drawing a polyline, it will be useful to see the lines connecting each point in `innerPts` to the corresponding point in `outerPts`. That is possible. The first step is to construct a collection of `VertexBuffer.PositionNormal` values with these pairs of points:
+
+```csharp
+var widthVertices = new List<VertexBuffer.PositionNormal>();
+
+for (int i = 0; i < DIVISIONS; i++)
+{
+    widthVertices.Add(new VertexBuffer.PositionNormal 
+    {
+        Position = innerPts[i]
+    });
+    widthVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerPts[i]
+    });
+}
+```
+
+Next, create a `VertexBuffer` the same way as the previous one:
+
+```csharp
+VertexBuffer widthBuffer = new VertexBuffer(Application.CurrentContext, false);
+widthBuffer.SetSize((uint)widthVertices.Count, ElementMask.Position | ElementMask.Normal, false);
+widthBuffer.SetData(widthVertices.ToArray());
+```
+
+Then the `Geometry`:
+
+```csharp
+Geometry widthGeometry = new Geometry();
+widthGeometry.SetVertexBuffer(0, widthBuffer);
+widthGeometry.SetDrawRange(PrimitiveType.LineList, 0, 0, 0, (uint)widthVertices.Count, true);
+```
+
+Notice that the first argument to `SetDrawRange` is the enumeration value `PrimitiveType.LineList`. The code that rendered the circle used an enumeration value of `LineStrip`, which causes the vertices to be connected with a series of lines forming a polyline. The `LineList` member causes the points to be interpreted in pairs, and a line is drawn between each pair of points.
+
+The `Model` is constructed just like the earlier one:
+
+```csharp
+Model widthModel = new Model();
+widthModel.NumGeometries = 1;
+widthModel.SetGeometry(0, 0, widthGeometry);
+widthModel.BoundingBox = new BoundingBox(new Vector3(-10, -10, -10), new Vector3(10, 10, 10));
+```
+
+And finally the `Node` can re-use the `blackLineMaterial` created earlier:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("widthNode"));
+Node widthNode = mainNode.CreateChild("widthNode");
+StaticModel width = widthNode.CreateComponent<StaticModel>();
+width.Model = widthModel;
+width.SetMaterial(blackLineMaterial);
+```
+
+This renders a series of lines that clearly display the surface of a road in the form of a Möbius strip. If you want to see a flat road, simpy set `tilt` to 0 in the earlier code block and re-execute it.
+
+## The Road Depth
+
+Besides the width, the road will also be given a depth. To compute the coordinates for this depth, it is necessary to compute vectors that are perpendicular to the `parallels` vectors. However, in 3D, there are an infinite number of vectors that are perpendicular to another vector. More specifically, the `perpendiculars` vectors must be perpendicular to both the corresponding `parallels` vector and the `tangents` vector.
+
+There is a standard way to obtain a vector that is perpendicular to two other vectors, and that is the vector *cross product*, accessible through the static `Vector3.Cross` method:
+
+```csharp
+List<Vector3> perpendiculars = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    Vector3 perpendicular = Vector3.Cross(tangents[i], parallels[i]);
+    perpendicular.Normalize();
+    perpendiculars.Add(perpendicular);
+}
+```
+
+Notice that the perpendiculars vectors are normalized. This makes them suitable for arithmetic operations such as those in the next code block.
+
+This code block assembles four more collections. These are based on `innerPts` and `outerPts` but offset by half the depth times a vector from the `perpendiculars` collection:
+
+```csharp
+const float DEPTH = RADIUS / 10;
+
+List<Vector3> innerUpperPts = new List<Vector3>();
+List<Vector3> outerUpperPts = new List<Vector3>();
+List<Vector3> innerLowerPts = new List<Vector3>();
+List<Vector3> outerLowerPts = new List<Vector3>();
+
+for (int i = 0; i <= DIVISIONS; i++)
+{
+    innerUpperPts.Add(innerPts[i] + DEPTH / 2 * perpendiculars[i]);
+    outerUpperPts.Add(outerPts[i] + DEPTH / 2 * perpendiculars[i]);
+    innerLowerPts.Add(innerPts[i] - DEPTH / 2 * perpendiculars[i]);
+    outerLowerPts.Add(outerPts[i] - DEPTH / 2 * perpendiculars[i]);
+}
+```
+
+It will be useful to see these new points. The following code assembles a collection of `VertexBuffer.PositionNormal` values with two pairs of points for each index: from a point in the `outerUpperPts` collection to the corresponding point in `outerLowerPts`, and from points in `innerUpperPts` to points in `innerLowerPts`:
+
+```csharp
+var depthVertices = new List<VertexBuffer.PositionNormal>();
+
+for (int i = 0; i < DIVISIONS; i++)
+{
+    depthVertices.Add(new VertexBuffer.PositionNormal 
+    { 
+        Position = outerUpperPts[i]
+    });
+    depthVertices.Add(new VertexBuffer.PositionNormal 
+    { 
+        Position = outerLowerPts[i]
+    });
+    depthVertices.Add(new VertexBuffer.PositionNormal 
+    { 
+        Position = innerUpperPts[i]
+    });
+    depthVertices.Add(new VertexBuffer.PositionNormal 
+    { 
+        Position = innerLowerPts[i]
+    });
+}
+```
+
+These vertices could have been integrated with the previous collection, but it’s rather messy to do that after the previous nodes have been created. For that reason, this new collection of vertices is given a new `VertexBuffer`:
+
+```csharp
+VertexBuffer depthBuffer = new VertexBuffer(Application.CurrentContext, false);
+depthBuffer.SetSize((uint)depthVertices.Count, ElementMask.Position | ElementMask.Normal, false);
+depthBuffer.SetData(depthVertices.ToArray());
+```
+
+That becomes part of a `Geometry`:
+
+```csharp
+Geometry depthGeometry = new Geometry();
+depthGeometry.SetVertexBuffer(0, depthBuffer);
+depthGeometry.SetDrawRange(PrimitiveType.LineList, 0, 0, 0, (uint)depthVertices.Count, true);
+```
+
+And that becomes part of a `Model`:
+
+```csharp
+Model depthModel = new Model();
+depthModel.NumGeometries = 1;
+depthModel.SetGeometry(0, 0, depthGeometry);
+depthModel.BoundingBox = new BoundingBox(new Vector3(-10, -10, -10), new Vector3(10, 10, 10));
+```
+
+Finally, a new `Node` is created:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("depthNode"));
+Node depthNode = mainNode.CreateChild("depthNode");
+StaticModel depth = depthNode.CreateComponent<StaticModel>();
+depth.Model = depthModel;
+depth.SetMaterial(blackLineMaterial);
+```
+
+Now the solidity of the road should be apparent. The goal now is to connect the ends of these little perpendicular lines with a surface.
+
+## The Edge of the Track
+
+In 3D graphics, surfaces are defined by a mesh of triangles. Triangles are used because they are the simplest two-dimensional objects and are always flat. The illusion of three dimensions is accomplished by making the triangles rather small, and by shading the surfaces: Each of the three vertices of the triangle can reflect light a little differently, and the 3D system interpolates that shading over the triangle’s surface.
+
+This shading requires specifying the `Normal` field of the `VertexBuffer.PositionNormal` structure. The normal is a vector that is perpendicular to the surface at that vertex.
+
+The following code assembles a collection of `VertexBuffer.PositionNormal` values for the outer and inner edge of the road. Each group of four ends of the little perpendicular lines are connected with two triangles, and each triangle requires three vertices. The normal is a member of the `parallels` collection because those vectors are perpendicular to the edges.
+
+The vertices of each triangle must be defined in a clockwise order from the viewpoint of where they are visible.
+
+```csharp
+var edgeVertices = new List<VertexBuffer.PositionNormal>();
+
+for (int i = 0; i < DIVISIONS; i++)
+{
+    // Outer edge
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerLowerPts[i],
+        Normal = parallels[i]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerUpperPts[i],
+        Normal = parallels[i]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerUpperPts[i + 1],
+        Normal = parallels[i + 1]
+    });
+
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerLowerPts[i],
+        Normal = parallels[i]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerUpperPts[i + 1],
+        Normal = parallels[i + 1]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = outerLowerPts[i + 1],
+        Normal = parallels[i + 1]
+    });
+
+    // Inner edge
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerLowerPts[i],
+        Normal = -parallels[i]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerUpperPts[i + 1],
+        Normal = -parallels[i + 1]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerUpperPts[i],
+        Normal = -parallels[i]
+    });
+
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerLowerPts[i],
+        Normal = -parallels[i]
+    });
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerLowerPts[i + 1],
+        Normal = -parallels[i + 1]
+    });    
+    edgeVertices.Add(new VertexBuffer.PositionNormal
+    {
+        Position = innerUpperPts[i + 1],
+        Normal = -parallels[i + 1]
+    });
+}
+```
+
+The six vertices for the inner edge were simply copied and pasted from those for the outer edge, and modified in three ways:
+
+* The word `inner` was changed to `outer`.
+
+* The `Normal` was made a negative of the value because a perpendicular to the surface is in the opposite direction.
+
+* Two vertices in each triangle were swapped so the vertices would be clockwise when viewed from the other direction.
+
+The following `VertexBuffer` is defined the same as the ones you’ve already seen except that the `Shadowed` property is set. This relates to how the vertices are stored in computer memory:
+
+```csharp
+VertexBuffer edgeBuffer = new VertexBuffer(Application.CurrentContext, false)
+{
+    Shadowed = true
+};
+edgeBuffer.SetSize((uint)edgeVertices.Count, ElementMask.Position | ElementMask.Normal, false);
+edgeBuffer.SetData(edgeVertices.ToArray());
+```
+
+The `Geometry` object is calculated similarly to those you’ve already seen but now the first argument to `SetDrawRange` is `PrimitiveType.TriangleList`. This means that every group of three consecutive vertices defines a triangle:
+
+```csharp
+Geometry edgeGeometry = new Geometry();
+edgeGeometry.SetVertexBuffer(0, edgeBuffer);
+edgeGeometry.SetDrawRange(PrimitiveType.TriangleList, 0, 0, 0, (uint)edgeVertices.Count, true);
+```
+
+The `Model` is then calculated as you’ve already seen:
+
+```csharp
+Model edgeModel = new Model();
+edgeModel.NumGeometries = 1;
+edgeModel.SetGeometry(0, 0, edgeGeometry);
+edgeModel.BoundingBox = new BoundingBox(new Vector3(-10, -10, -10), new Vector3(10, 10, 10));
+```
+
+Finally, a new `Node` is added that references the model and sets a material:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("edgeNode"));
+Node edgeNode = mainNode.CreateChild("edgeNode");
+StaticModel edge = edgeNode.CreateComponent<StaticModel>();
+edge.Model = edgeModel;
+edge.SetMaterial(Material.FromColor(Color.Gray));
+```
+
+This is a simpler material than the one used for the lines, and is simply the color gray.
+
+Nevertheless, when you execute this code block, you’ll see different shades of gray in various areas of the inner and outer edges. This is the effect of the normals. Even with a relatively small value for `DIVISIONS`, the surface still looks curved as a result of the interpolation of the shading over the surface of each triangle.
+
+The edges are only visible from one direction. This is the result of the clockwise ordering of the vertices.
+
+## The Track Surface
+
+The top and bottom of the triangles defining the surface of track can be calculated similarly to the edges, but to make it look realistic, the `Material` object can be based on a bitmap that resembles a little stretch of road:
+
+![](Data/Textures/RoadSurface.png)
+
+This is a file named **RoadSurface.png**. It is stored in the **Textures** subdirectory of **Data**, which was the directory specified in the `ApplicationOptions` constructor when the `SimpleApplication` object was first created at the beginning of this Workbook.
+
+Using a different `Material` for the top and bottom surfaces of the road requires a separate `Node` object from that used for the inner and outer edges.
+
+Also, the `VertexBuffer.PositionNormal` structure is no longer adequate for storing the vertices. Each vertex must also be associated with a *texture coordinate* of type `Vector2`.  The texture coordinate indicates what part of the bitmap corresponds with that vertex. A triangular area of the bitmap defined by the texture coordinates is then interpolated over the surface of each triangle.
+
+Texture coordinates are relative to the bitmap image itself:
+
+![Texture Coordinates](Images/TextureCoordinates.svg "Texture Coordinates")
+
+However, this particular bitmap is wider than it needs to be. All the pixel columns in this image are identical. For purposes of covering the top and bottom of the road, the bitmap really only needs to be one pixel wide. This implies that a texture coordinate of (0, 0) can correspond to vertices at the outer edge, while a texture coordinate of (0, 1) can be specified for the inner edge.
+
+To accomodate texture coordinates, the following code uses the `VertexBuffer.PositionNormalColorTexcoord` structure. This structure defines additional fields named `Color` (which is not used here) and `TexCoord` of type `Vector2`. The normals are vectors perpendicular to the surface, which are values from the `perpendiculars` collection:
+
+```csharp
+var surfaceVertices = new List<VertexBuffer.PositionNormalColorTexcoord>();
+
+for (int i = 0; i < DIVISIONS; i++)
+{
+    // Upper surface
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerUpperPts[i],
+        Normal = perpendiculars[i],
+        TexCoord = new Vector2(0, 0)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerUpperPts[i],
+        Normal = perpendiculars[i],
+        TexCoord = new Vector2(0, 1)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerUpperPts[i + 1],
+        Normal = perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 1)
+    });
+
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerUpperPts[i],
+        Normal = perpendiculars[i],
+        TexCoord = new Vector2(0, 0)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerUpperPts[i + 1],
+        Normal = perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 1)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerUpperPts[i + 1],
+        Normal = perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 0)
+    });
+
+    // Lower surface
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerLowerPts[i],
+        Normal = -perpendiculars[i],
+        TexCoord = new Vector2(0, 0)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerLowerPts[i + 1],
+        Normal = -perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 1)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerLowerPts[i],
+        Normal = -perpendiculars[i],
+        TexCoord = new Vector2(0, 1)
+    });
+
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerLowerPts[i],
+        Normal = -perpendiculars[i],
+        TexCoord = new Vector2(0, 0)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = outerLowerPts[i + 1],
+        Normal = -perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 0)
+    });
+    surfaceVertices.Add(new VertexBuffer.PositionNormalColorTexcoord
+    {
+        Position = innerLowerPts[i + 1],
+        Normal = -perpendiculars[i + 1],
+        TexCoord = new Vector2(0, 1)
+    });
+}
+```
+
+The six vertices for the two triangles of the upper surface were simply copied and pasted for the lower surface. In the collection names, `Upper` was changed to `Lower`, the normals were made negative, and two vertices in each triangle were swapped.
+
+The size of the `VertexBuffer` object now needs to indicate that the vertices also contain specifications for color (even though it’s not used) and a texture coordinate:
+
+```csharp
+VertexBuffer surfaceBuffer = new VertexBuffer(Application.CurrentContext, false)
+{
+    Shadowed = true
+};
+surfaceBuffer.SetSize((uint)surfaceVertices.Count, 
+                      ElementMask.Position | ElementMask.Normal | ElementMask.Color | ElementMask.TexCoord1, 
+                      false);
+surfaceBuffer.SetData(surfaceVertices.ToArray());
+```
+
+The `Geometry` object is specified the same as for the edges:
+
+```csharp
+Geometry surfaceGeometry = new Geometry();
+surfaceGeometry.SetVertexBuffer(0, surfaceBuffer);
+surfaceGeometry.SetDrawRange(PrimitiveType.TriangleList, 0, 0, 0, (uint)surfaceVertices.Count, true);
+```
+
+The `Model` is also specified in the same way:
+
+```csharp
+Model surfaceModel = new Model();
+surfaceModel.NumGeometries = 1;
+surfaceModel.SetGeometry(0, 0, surfaceGeometry);
+surfaceModel.BoundingBox = new BoundingBox(new Vector3(-10, -10, -10), new Vector3(10, 10, 10));
+```
+
+The `Node` object, however, needs a different type of material. This is simply loaded from the external bitmap using the static `Material.FromImage` method:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("surfaceNode"));
+Node surfaceNode = mainNode.CreateChild("surfaceNode");
+StaticModel surface = surfaceNode.CreateComponent<StaticModel>();
+surface.Model = surfaceModel;
+surface.SetMaterial(Material.FromImage("Textures/RoadSurface.png"));
+```
+
+After this code block is executed, the entire road is complete.
+
+## Remove the Scaffolding
+
+Look closely, and you can see little lines bleeding through the edges. At his point, the scaffolding that helped visualize the surfaces can be removed:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("circleNode"));
+mainNode.RemoveChild(mainNode.GetChild("widthNode"));
+mainNode.RemoveChild(mainNode.GetChild("depthNode"));
+```
+
+A close look also reveals that the yellow dividing line is a little erratic. This results from some distortion in the interpolation of the bitmap over the curved surface of the road. It could probably be fixed by doubling the number of triangles, and having triangle sides coorespond to the dividing line.
+
+## Model Cars
+
+As you’ve seen, you can algorithmically create entire 3D objects within a UrhoSharp program. But for more complex objects such as cars, it makes much more sense to create a model using a 3D design tool, and then import the model into your scene. Or, you can download a model that someone else has already created.
+
+There are a number of file formats for 3D interchange developed throughout the years, and a number of web sites exist with downloadable 3D models of various formats. Although UrhoSharp can’t directly import them, a command-line tool exists called **[Asset Importer](https://urho3d.github.io/documentation/1.4/_tools.html "Asset Importer")** that can convert many popular 3D formats into a UrhoSharp’s native .MDL (“model”) format.
+
+One way to get **Asset Importer** is to first clone the Xamarin GitHub repository for UrhoSharp, which is simply named **[urho](https://github.com/xamarin/urho "UrhoSharp repo")**. If you don’t have the [CMake](https://cmake.org/ "CMake") utility, install it. In the **Urho3D/Source** directory of the **urho** repository that you’ve cloned are a number of .BAT (Windows batch) and .SH (Bash shell script) files. These files build an entire directory structure for Urho3D development. For example, if you’re running Windows and you use Visual Studio 2015, run the **cmake\_vs2015.bat** file and specify a destination directory, for example:
+
+**cmake\_vs2015 c:/MyUrho3D**
+
+When it completes, you’ll find a **Urho3D.sln** file in the directory you specified. Load that into Visual Studio 2015. One of the projects is named **AssetImporter**. After you build that project, **AssetImporter.exe** will be in the **bin/tool** subdirectory.
+
+The models used in this Workbook are from the Microsoft website [Remix 3D](https://www.remix3d.com/ "Remix 3D"). This website is a curated collection of 3D models that are intended to be used in conjunction with the **Paint 3D** and **3D Builder** applications included in the Windows 10 Creators Update. You can freely download, use, and modify these files. The contents of the **3D Objects** folder on the Windows 10 hard drive also contains a collection of models with filename extensions .3MF, which is the 3D Manufacturing Format. These are actually ZIP package files. If you rename the .3MF extension to .ZIP, you can examine the contents, which consists of a large XML file describing 3D geometries and .PNG files for textures.
+
+For this workbook, **Paint 3D** was used to download a model identified as [Shift Race Blue Car](https://www.remix3d.com/details/G009SX0M5G9T "Shift Race Blue Car") and export it in the .3MF format. **3D Builder** was then used to load this model and save it to the .OBJ (Wavefront  Object) format with the name **BlueRacer.obj**. **AssetImporter** was then run with the following arguments:
+
+**AssetImporter node BlueRacer.obj node.xml**
+
+The **node** command is one of several **AssetImporter** commands that specify what files **AssetImporter** exports. The **node** command causes the utility to output an XML file along with three folders: **Materials**, **Models**, and **Textures**.
+
+The **node.xml** file is a description of a tree of nodes that references files in the **Materials** and **Models** folders. The **Materials** folder contains XML descriptions of materials that reference bitmap files in the **Textures** folder. The **Models** folder contains binary .MDL files in the Urho3D format.
+
+The **node.xml** file and these folders were then copied into a **BlueRacer** subdirectory of the **Data** directory for this Workbook. The **node.xml** file and all the XML files in the **Materials** folder were edited and modified so that references to filenames in the **Models**, **Materials**, and **Textures** folders were changed to **BlueRacer/Models**, **BlueRacer/Materials**, and **BlueRacer/Textures**.
+
+With that preliminary work, it then becomes fairly easy to use the `LoadXml` method defined by `Node` to load in the **node.xml** file, and in the process bring in all the models, materials, and textures associated with that node.
+
+The following code creates three nodes: The first is a child of `mainNode` named `car1Node`, the second is a child of `car1Node` named `car1ChildNode`, and the third is a child of `car1ChildNode` named `car1DefinitionNode`, which is the node loaded from the XML file:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("car1Node"));
+Node car1Node = mainNode.CreateChild("car1Node");
+Node car1ChildNode = car1Node.CreateChild();
+Node car1DefinitionNode = car1ChildNode.CreateChild();
+car1DefinitionNode.LoadXml("BlueRacer/node.xml");
+```
+
+Creating three nodes rather than just one eases the application of different transforms to these nodes. If the transforms are applied to each node separately, the transforms are independent of each other, but they are compounded when the car is rendered.
+
+The car will not be visible when that code block is executed. The models use coordinates that are very much larger than the coordinates implied by the road. The following position, scaling, and rotation factors were empirically determined to align the car so that the bottom of the tires sit on the XY plane, and the (0, 0, 0) point of the car is approximately in the center between the bottom of those four tires:
+
+```csharp
+car1DefinitionNode.Position = new Vector3(0.8f, 4.112f, -1.344f);
+car1DefinitionNode.SetScale(0.004f);
+car1DefinitionNode.Rotation = Quaternion.FromAxisAngle(Vector3.UnitZ, -11.5f);
+```
+
+Those are the only adjustments applied to `car1DefinitionNode`. (These adjustments were not shown in the webinar. Instead, the parent node in the **node.xml** file was modified.)
+
+The car is now visible but it is still ten times too large. It can be reduced in size commensurate with the racetrack by applying a scaling factor to `car1ChildNode`:
+
+```csharp
+car1ChildNode.SetScale(0.1f);
+```
+
+This is the only adjustment made to `car1ChildNode`. All other transforms to position the car on the road will be applied to `car1Node`.
+
+The second car is described in the Remix 3D web site as [Rolls Royce Phantom Car](https://www.remix3d.com/details/G009SX0LG9PZ "Rolls Royce Phantom Car"). The model was downloaded and converted as described earlier and stored in the **RedRolls** subdirectory of **Data**. The following code loads in the node:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("car2Node"));
+Node car2Node = mainNode.CreateChild("car2Node");
+Node car2ChildNode = car2Node.CreateChild();
+Node car2DefinitionNode = car2ChildNode.CreateChild();
+car2DefinitionNode.LoadXml("RedRolls/node.xml");
+```
+
+These position, scaling, and rotation adjustments align the model as described earlier:
+
+```csharp
+car2DefinitionNode.Position = new Vector3(0.4f, 3.04f, -1.16f);
+car2DefinitionNode.SetScale(0.004f);
+car2DefinitionNode.Rotation = Quaternion.FromAxisAngle(Vector3.UnitZ, -10.5f);
+```
+
+The Blue Racer faced towards the right; this one faces toward the left.
+
+Finally, the node is additionally scaled to make it a proper size for driving on the track:
+
+```csharp
+car2ChildNode.SetScale(0.1f);
+```
+
+Now that the two cars are the proper size, they must be animated, and in the process tilted and rotated to follow the course of the Möbius strip.
+
+## Drivers, Start Your Engines
+
+The `GetCarPosition` method shown below calculates the position of a car on the road and the orientation of the road at that point.
+
+The parameter `t` can range from 0 to 1, and the two Boolean parameters specify whether the car is on the top or bottom of the road, and the outer or inner lane. On a Möbius strip, a car that is on the top and outer lane during one revolution around the track will move to the bottom and inner lane during the next.
+
+The method returns a 3D coordinate on the surface of the road corresponding to the position of the car. In addition, three `out` parameters supply three vectors that indicate the `forward` direction of the road (based on increasing index numbers), a vector at right angles to `forward` that points to the `outer` part of the road,  and a vector that is `perpendicular` to the road. These three vectors are orthogonal (at right angles to each other), so it is only necessary to calculate two of them, and the third can be derived from the cross product.
+
+At the beginning of the method, the `t` parameter is converted to a floating point `index`, which is then used to derive integer values of `i1` and `i2`, which are the integer indices immediately below and above `index`. The `Vector3` values are calculated by interpolating between various points and vectors:
+
+```csharp
+Vector3 GetCarPosition(float t, bool isUpper, bool isOuter,
+                       out Vector3 forward, out Vector3 outer, out Vector3 perpendicular)
+{
+    float index = t * DIVISIONS;
+    int i1 = (int)index;
+    int i2 = i1 + 1;
+
+    IList<Vector3> outerPts = isUpper ? outerUpperPts : outerLowerPts;
+    IList<Vector3> innerPts = isUpper ? innerUpperPts : innerLowerPts;
+
+    Vector3 outerPt = (i2 - index) * outerPts[i1] + (index - i1) * outerPts[i2];
+    Vector3 innerPt = (i2 - index) * innerPts[i1] + (index - i1) * innerPts[i2];
+
+    outer = outerPt - innerPt;
+    outer.Normalize();
+
+    perpendicular = (i2 - index) * perpendiculars[i1] + (index - i1) * perpendiculars[i2];
+    perpendicular.Normalize();
+
+    forward = Vector3.Cross(outer, perpendicular);
+
+    return (isOuter ? 0.75f : 0.25f) * outerPt + (isOuter ? 0.25f : 0.75f) * innerPt;
+}
+```
+
+These four `Vector3` values describe a position and orientation of a car on the road.
+
+## Matrix Transforms
+
+For jobs such as positioning and rotating a car based on `Vector3` values, the `Node` class defines a `SetTransform` method. The `Matrix3x4` argument has the capability to translate, scale, rotate, and even skew the node and all its children. (However, no perspective or taper transforms are possible.) The `Matrix3x4` structure defines 12 fields named `m` followed by the numeric zero-based row and column number. You can visualize these fields as the cells of the 3×4 matrix.
+
+![Matrix 3x4](Images/Matrix3x4.svg "Matrix 3x4")
+
+Internal to UrhoSharp, this matrix is used to transform 3D coordinates of (x, y, z) to coordinates of (x’, y’, z’) using standard matrix multiplication. The (x, y, z) coordinate is first represented as a 4×1 column vector with a 1 in the fourth position:
+
+![Matrix 4x1](Images/Matrix4x1.svg "Matrix 4x1")
+
+Conceptually, this is a position in 4D space with the fourth coordinate fixed at 1. The use of 4D coordinates in 3D graphics is analogous to the use of 3D coordinates in 2D graphics. The extra dimension allows matrix transforms to encapsulate translation and (in the more general case) perspective.
+
+The 3×4 matrix is multiplied by that 4×1 column vector:
+
+![Matrix Multiplicaton General](Images/MatrixMultiplicationGeneral.svg "Matrix Multiplication General")
+
+The result is a 3×1 column vector that represents the transformed point (x’, y’, z’). The transform formulas are:
+
+x’ = m00·x + m01·y + m02·z + m03
+
+y’ = m10·x + m11·y + m12·z + m13
+
+z’ = m20·x + m21·y + m22·z + m23
+
+> ⚠️ You might be accustomed to matrix transforms in which the coordinate is represented as a row vector rather than a column vector, which is then positioned to the left of the transform matrix for the multiplication. The convention of column vectors used within UrhoSharp is conceptually the same, except that the rows and columns of the transform matrix are transposed.
+>
+> One advantage of the UrhoSharp notation is that it’s easier to show the full result of the multiplication as a 3×1 column vector rather than a row vector:
+>
+> ![Matrix Multiplicaton General Full](Images/MatrixMultiplicationGeneralFull.svg "Matrix Multiplication General Full")
+
+The four columns of the matrix perform different tasks. The fourth column functions as translation factors that indicate where the (0, 0, 0) point is transformed. This is evident when the matrix is multiplied by the column vector represeting the point (0, 0, 0):
+
+![Matrix Multiplication Translation](Images/MatrixMultiplicationTranslation.svg "Matrix Multiplication Translation")
+
+The first three columns of the matrix perform scaling, rotation, and skewing, and can be analyzed independently as a 3×3 matrix:
+
+![Matrix 3x3](Images/Matrix3x3.svg "Matrix 3x3")
+
+Because no translation is involved, the matrix multiplication simply involves a 3×1 column vector, and the result is also a 3×1 column vector:
+
+![Matrix 3x3 Multiplication General](Images/Matrix3x3MultiplicationGeneral.svg "Matrix 3x3 Multiplication General")
+
+## The Rotation Matrix
+
+It is convenient to think of the three columns of the 3×3 transform matrix as vectors. If these three column vectors are
+
+* mutually orthogonal (that is, at right angles to each other); and
+
+* normalized (that is, have a length of 1)
+
+then the three vectors are called *orthonormal*, and the 3×3 matrix is known as a *rotation matrix*. It performs rotation only, and not scaling or skewing. Moreover, this rotation is performed in a very predicatable way that is ideal for orienting the cars along the road.
+
+To see this, apply the matrix transform to the vector (1, 0, 0), which is the vector that points in the direction of the positive X axis:
+
+![Matrix Multiplication Rotation X](Images/MatrixMultiplicationRotationX.svg "Matrix Multiplication Rotation X")
+
+The result is the first column of the matrix. Similarly, apply the transform to the (0, 1, 0) vector pointing in the direction of the positive Y axis:
+
+![Matrix Multiplication Rotation Y](Images/MatrixMultiplicationRotationY.svg "Matrix Multiplication Rotation X")
+
+And for the sake of completion, apply it to the positive Z axis (0, 0, 1):
+
+![Matrix Multiplication Rotation Z](Images/MatrixMultiplicationRotationZ.svg "Matrix Multiplication Rotation Z")
+
+Keep in mind that to restrict the matrix to rotation, the three columns must be mutually orthogonal and normalized. If they are not normalized, then scaling will result as well as rotation. If they are not mutually orthogonal, then skewing will result, and right angles won’t be preserved.
+
+Here is the original 3×4 transform matrix of type  `Matrix3x4` that is used with the `SetTransform` method of `Node`:
+
+![Matrix 3x4](Images/Matrix3x4.svg "Matrix 3x4")
+
+This matrix can be assembled to perform rotation and translation using the following rules:
+
+* Set the first column to the vector to which (1, 0, 0) is transformed;
+
+* Set the second column to the vector to which (0, 1, 0) is transformed;
+
+* Set the third column is the vector to which (0, 0, 1) is transformed; and
+
+* Set the fourth column to the point to which (0, 0, 0) is translated.
+
+Constructing that `Matrix3x4` value from four `Vector3` values is the job of the following method:
+
+```csharp
+Matrix3x4 MakeMatrix(Vector3 xRotate, Vector3 yRotate, Vector3 zRotate, Vector3 translate)
+{
+    return new Matrix3x4(xRotate.X, yRotate.X, zRotate.X, translate.X,
+                         xRotate.Y, yRotate.Y, zRotate.Y, translate.Y,
+                         xRotate.Z, yRotate.Z, zRotate.Z, translate.Z);
+}
+```
+
+## Applying the Matrix
+
+The event handler named `UpdateCarPosition` show below will be attached to the `Update` event of the `SimpleApplication` object created at the begining of this Workbook to animate the cars on the road. The `Update` handler is called frequently as the application runs.
+
+The event argument has a property named `TimeStep` that is the time in seconds since the last time the handler was called. For this reason, generally a variable external to the method is maintained. It is traditionally named `t` for “time.” Also defined is a constant indicating that a complete revolution around the track will be 5 seconds long:
+
+```csharp
+float t = 0;
+const float RevolutionsPerSecond = 0.20f;
+```
+
+Within the method, `t` is increased by the product of `TimeStep` and `RevolutionsPerSecond`. Normally the modulo operator would strip the integer part so that `t` ranges from 0 to 1. But for the Möbius strip, the car needs to go around the track twice during one complete cycle, so `t` is made to range from 0 to 2. In the body of the method, this `t` is adjusted in various ways for the call to `GetCarPosition`, so `t` only ranges from 0 to 1 within that method.
+
+For the first car, when `t` is less than 1, the car is on the outside lane on the upper side, so both Boolean arguments to `GetCarPosition` are set to `true`. On return from `GetCarPosition`,
+
+* the `forward` vector is parallel to the road pointing in the direction of increasing indices;
+
+* the `outer` vector points to the outside of the road; and
+
+* the `perpendicular` vector is perpendicular to the road.
+
+In its unrotated state, the X axis of the Blue Racer points right towards the front of the car. That must be rotated to point in the direction of the `forward` vector, so `forward` is the first argument to `MakeMatrix`.
+
+The Y axis of the Blue Racer points up through the driver’s side door. That must be rotated to point to the inside of the track, so the second argument to `MakeMatrix` is `–outer`.
+
+The Z axis of the Blue Racer points through the bottom of the car. That must be rotated to point downwards from the road, so the third argument to `MakeMatrix` is `–perpendicular`.
+
+The last argument to `MakeMatrix` is the `position` value. This indicates the point to which the (0, 0, 0) point of the car is translated.
+
+```csharp
+void UpdateCarPosition(UpdateEventArgs args)
+{
+    t += args.TimeStep * RevolutionsPerSecond;
+    t %= 2;
+
+    Vector3 forward;
+    Vector3 outer;
+    Vector3 perpendicular;
+
+    if (t < 1)
+    {
+        Vector3 position = GetCarPosition(t, true, true, out forward, out outer, out perpendicular);
+        Matrix3x4 matx = MakeMatrix(forward, -outer, -perpendicular, position);
+        car1Node.SetTransform(matx);
+
+        position = GetCarPosition(1 - t, false, true, out forward, out outer, out perpendicular);
+        matx = MakeMatrix(forward, outer, perpendicular, position);
+        car2Node.SetTransform(matx);
+    }
+    else
+    {
+        Vector3 position = GetCarPosition(t - 1, false, false, out forward, out outer, out perpendicular);
+        Matrix3x4 matx = MakeMatrix(forward, outer, perpendicular, position);
+        car1Node.SetTransform(matx);  
+
+        position = GetCarPosition(2 - t, true, false, out forward, out outer, out perpendicular);
+        matx = MakeMatrix(forward, -outer, -perpendicular, position);
+        car2Node.SetTransform(matx);       
+    }
+
+}
+```
+
+When `t` ranges from 1 to 2, the `else` clause is executed. The first car is now on the inside bottom of the track, so the two Boolean arguments become `false`, and the signs of the `outer` and `perpendicular` arguments to `MakeMatrix` are positive rather than negative.
+
+The second car is similar, except that its original orientation is a little different (it faces left rather than right), and it travels in the opposite direction as the first car, beginning on the bottom of the track.
+
+## Two Animations
+
+Now all that’s necessary is to attach the `UpdateCarPosition` handler to the `Update` event of the `SimpleApplication` object.
+
+However, code blocks in Workbooks can be re-executed, and it’s undesirable that the handler be attached multiple times. Also, the handler can’t be detached using normal C# syntax because the handler itself might be recreated. For this reason, .NET reflection code is used to detach all handlers from the `Update` event:
+
+```csharp
+using System.Reflection;
+FieldInfo field = typeof(Application).GetField("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+field.SetValue(app, null);
+
+app.Update += UpdateCarPosition;
+```
+
+Finally, `mainNode` itself is animated. The `RemoveAllActions` method first clears all animations from the node, and then `RunActions` attaches an animation that runs forever and rotates the node around the Y axis by 15 degrees every second:
+
+```csharp
+using Urho.Actions;
+mainNode.RemoveAllActions();
+mainNode.RunActions(new RepeatForever(new RotateBy (1f, 0, 15, 0)));
+```
+
+This animation affects all the subnodes of `mainNode` as well, which encompasses all the visual objects created in the Workbook. As the Möbius strip rotates, it seems to morph in shape. The cars drive by each other twice in each double cycle, and pass each other on opposite sides of the road as well.

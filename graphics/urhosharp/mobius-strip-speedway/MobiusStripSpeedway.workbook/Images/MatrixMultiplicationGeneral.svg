@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="285" height="102">
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(5 16.5)" d="M0 0L0 69"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(5 16.5)" d="M171.828 0L171.828 69"/>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="5" y="18">
+			m00
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="5" y="41">
+			m10
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="5" y="64">
+			m20
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="49.207031" y="18">
+			m01
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="49.207031" y="41">
+			m11
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="49.207031" y="64">
+			m21
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="90.414063" y="18">
+			m02
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="90.414063" y="41">
+			m12
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="90.414063" y="64">
+			m22
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="133.62109" y="18">
+			m03
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="133.62109" y="41">
+			m13
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 16.5)" font-size="18" font-family="Segoe UI" x="133.62109" y="64">
+			m23
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(191.328 51)" font-size="18" font-family="Segoe UI" x="-4.5" y="5.5">
+			×
+	</text>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(205.828 5)" d="M0 0L0 92"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(205.828 5)" d="M20 0L20 92"/>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(205.828 5)" font-size="18" font-family="Segoe UI" x="5" y="16">
+			x
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(205.828 5)" font-size="18" font-family="Segoe UI" x="5" y="37">
+			y
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(205.828 5)" font-size="18" font-family="Segoe UI" x="5.5" y="62">
+			z
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(205.828 5)" font-size="18" font-family="Segoe UI" x="5" y="87">
+			1
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(240.828 51)" font-size="18" font-family="Segoe UI" x="-5" y="5">
+			=
+	</text>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(255.828 10.5)" d="M0 0L0 81"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(255.828 10.5)" d="M23.71 0L23.71 81"/>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(255.828 10.5)" font-size="18" font-family="Segoe UI" x="5.2241211" y="20">
+			x′
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(255.828 10.5)" font-size="18" font-family="Segoe UI" x="5" y="45">
+			y′
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(255.828 10.5)" font-size="18" font-family="Segoe UI" x="5.7856445" y="74">
+			z′
+	</text>
+</svg>

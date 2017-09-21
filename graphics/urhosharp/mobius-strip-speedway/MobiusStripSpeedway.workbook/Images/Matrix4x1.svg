@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="30" height="102">
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(5 5)" d="M0 0L0 92"/>
+	<path fill="none" stroke="rgb(0,0,0)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" transform="translate(5 5)" d="M20 0L20 92"/>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 5)" font-size="18" font-family="Segoe UI" x="5" y="16">
+			x
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 5)" font-size="18" font-family="Segoe UI" x="5" y="37">
+			y
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 5)" font-size="18" font-family="Segoe UI" x="5.5" y="62">
+			z
+	</text>
+	<text fill="rgb(0,0,0)" stroke="none" transform="translate(5 5)" font-size="18" font-family="Segoe UI" x="5" y="87">
+			1
+	</text>
+</svg>
