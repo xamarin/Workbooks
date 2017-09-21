@@ -1,4 +1,6 @@
 ---
+id: 4839602e-a48d-41fa-b4ab-ffbab6cc39b7
+title: MobiusStripSpeedway
 uti: com.xamarin.workbook
 platforms:
 - Console
@@ -10,7 +12,7 @@ This Workbook creates a circular road in the form of a Möbius strip, and then a
 
 ![Speedway Preview](Images/SpeedwayPreview.png "Speedway Preview")
 
-A variation of this Workbook was described in the webinar “Exploring UrhoSharp 3D with Xamarin Workbooks” broadcast on September 21, 2017.
+A variation of this Workbook was described in the webinar [“Exploring UrhoSharp 3D with Xamarin Workbooks”](https://channel9.msdn.com/Events/Xamarin/Recent-Webinars/Exploring-UrhoSharp-3D-with-Xamarin-Workbooks "Webinar") broadcast on September 21, 2017.
 
 This Workbook uses UrhoSharp, Xamarin’s cross-platform C# and .NET wrapper on the open-source Urho3D graphics system. It demonstrates creating 3D objects algorithmically and loading predefined 3D models available on the new Microsoft-curated **Remix 3D** web site.
 
