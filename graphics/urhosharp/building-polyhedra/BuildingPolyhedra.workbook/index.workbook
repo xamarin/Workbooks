@@ -1,4 +1,4 @@
----
+﻿---
 id: 8254f6d9-784a-4a79-bc0b-a5f7fe9705d6
 uti: com.xamarin.workbook
 title: "UrhoSharp: Building Polyhedra"
@@ -6,7 +6,7 @@ platforms:
 - Console
 packages:
 - id: UrhoSharp
-  version: 1.4.47
+  version: 1.5.22
 ---
 
 # Building Polyhedra with UrhoSharp

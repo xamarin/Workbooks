@@ -1,4 +1,4 @@
----
+﻿---
 id: 0cee522c-9c60-4860-9681-50124c220680
 uti: com.xamarin.workbook
 title: "UrhoSharp: Physics"
@@ -6,7 +6,7 @@ platforms:
 - Console
 packages:
 - id: UrhoSharp
-  version: 1.5.20
+  version: 1.5.22
 ---
 
 # Physics

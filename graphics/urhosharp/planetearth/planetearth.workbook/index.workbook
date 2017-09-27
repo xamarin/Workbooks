@@ -1,4 +1,4 @@
----
+﻿---
 id: 72272456-553a-465a-be48-20b922321c19
 uti: com.xamarin.workbook
 title: "UrhoSharp: Planet Earth in C#"
@@ -6,7 +6,7 @@ platforms:
 - Console
 packages:
 - id: UrhoSharp
-  version: 1.5.20
+  version: 1.5.22
 ---
 
 # UrhoSharp: Planet Earth in C#

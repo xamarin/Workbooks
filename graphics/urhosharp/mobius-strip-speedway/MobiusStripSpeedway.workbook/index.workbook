@@ -1,9 +1,12 @@
 ---
 id: 4839602e-a48d-41fa-b4ab-ffbab6cc39b7
-title: MobiusStripSpeedway
 uti: com.xamarin.workbook
+title: MobiusStripSpeedway
 platforms:
 - Console
+packages:
+- id: UrhoSharp
+  version: 1.5.22
 ---
 
 # Möbius Strip Speedway
@@ -18,13 +21,11 @@ This Workbook uses UrhoSharp, Xamarin’s cross-platform C# and .NET wrapper on 
 
 The Workbook discusses in detail the technique of rotating the cars so that they properly tilt along the surface of the curved Möbius strip as they drive around it. Also explored is the ability of UrhoSharp to draw lines in 3D space. This is often useful for experimentation and to erect a type of “scaffolding” that is helpful to visualize 3D surfaces.
 
-The first step in any UrhoSharp Workbook is referencing the **Urho.dll** dynamic link library:
+The first step in any UrhoSharp Workbook is to add the UrhoSharp NuGet package from the **File > Add Package** or **File > Add NuGet Package** menu item. Within the workbook, reference the UrhoSharp libraries:
 
 ```csharp
-#r "Urho.dll"
+#r "Urho"
 ```
-
-The directory in which the Workbook is located must also contain the **mono-urho.dll** library if the Workbook is run under Windows, and the **libmono-urho.dylib** library if the Workbook is run under MacOS. The best way to obtain these files is from an existing UrhoSharp Workbook.
 
 Most of this Workbook requies only one `using` directive:
 

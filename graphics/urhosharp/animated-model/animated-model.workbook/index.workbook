@@ -1,4 +1,4 @@
----
+﻿---
 id: 6b6c224f-07e3-4b6e-b006-c5291041792f
 uti: com.xamarin.workbook
 title: "UrhoSharp: Animated Model"
@@ -6,7 +6,7 @@ platforms:
 - Console
 packages:
 - id: UrhoSharp
-  version: 1.5.20
+  version: 1.5.22
 ---
 
 # Animated Models

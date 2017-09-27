@@ -1,4 +1,4 @@
----
+﻿---
 id: 4792faac-5c28-4cef-98bb-89f4af10fee9
 uti: com.xamarin.workbook
 title: "UrhoSharp: Compound Shapes"
@@ -6,7 +6,7 @@ platforms:
 - Console
 packages:
 - id: UrhoSharp
-  version: 1.4.47
+  version: 1.5.22
 ---
 
 # Creating (and Animating) Urho Compound Shapes
