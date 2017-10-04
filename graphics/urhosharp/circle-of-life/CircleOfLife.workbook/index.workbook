@@ -1,0 +1,571 @@
+---
+packages:
+- id: UrhoSharp
+  version: 1.5.22
+uti: com.xamarin.workbook
+id: 799c372c-6de9-4481-8bf5-a4c36a13262d
+title: Circle of Life
+platforms:
+- Console
+---
+
+# Circle of Life:
+
+# UrhoSharp Actions and Animations
+
+UrhoSharp is a cross-platform 3D graphics framework suitable for gaming or 3D visualization. This workbook focuses on animation, in particular the classes in the `Urho.Actions` namespace that you can use with the `RunActions` and `RunActionsAsync` methods of `Node`.
+
+Towards the end of this workbook you’ll see an animated 3D monkey grow from a newborn to an adult while navigating the uncertainties of life, and then give birth to a new baby monkey before expiring, continuing the circle of life for as long as you care to watch it.
+
+A UrhoSharp workbook begins as a console app. Starting with Workbooks 1.3.1, you no longer need to copy the library files manually. You can invoke the menu item **File > Add Package** (under Windows) or **File > Add NuGet Package** (on the Mac) to search for and add the UrhoSharp NuGet library. That’s already been done for this workbook.
+
+Add a reference to that library:
+
+```csharp
+#r "Urho"
+```
+
+Three UrhoSharp namespaces will be required for this workbook:
+
+```csharp
+using Urho;
+using Urho.Actions;
+using Urho.Shapes;
+```
+
+The following call creates a window for the UrhoSharp graphics:
+
+```csharp
+SimpleApplication app = SimpleApplication.Show(new ApplicationOptions("Data"));
+```
+
+The **Data** directory contains the resources used by the workbook, in this case the model, material, and texture (bitmap) used to render the 3D monkey. After the window has been created, you can move and resize it. The size of the 3D visuals are relative to the *height* of the window.
+
+The `SimpleApplication.Show` method creates a camera and light source. The camera is located at the point (0, 0, 0) and points in the direction of the vector **(0, 0, 1)**, which is the positive Z axis that conceptually goes into the screeen. All visuals will have positive Z coordinates. Also created is a root node at the position (0, –2, 8) accessible by the `RootNode` property of the `SimpleApplication` property.
+
+All UrhoSharp visuals are organized into a tree of nodes. Often it’s useful to have a node that encompasses all the visuals to be created in a workbook. This new node is called `mainNode` and is a child of `RootNode`:
+
+```csharp
+app.RootNode.RemoveChild(app.RootNode.GetChild("mainNode"));
+Node mainNode = app.RootNode.CreateChild("mainNode");
+```
+
+As usual, any code block in a workbook that creates a node must first remove the node that might have been created in an earlier execution of the code block.
+
+All the action in this workbook will take place on a flat desert. The sky is created by coloring the entire window blue:
+
+```csharp
+app.Viewport.SetClearColor(new Color(0.53f, 0.81f, 0.92f));
+```
+
+The surface of the desert is a `Plane` shape from the UrhoSharp `Shapes` namespace.
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("desertNode", false));
+Node desertNode = mainNode.CreateChild("desertNode");
+Shape desertShape = desertNode.CreateComponent<Urho.Shapes.Plane>();
+desertShape.SetMaterial(Material.FromColor(Color.FromByteFormat(0xC1, 0x9A, 0x6B, 0xFF)));
+```
+
+The color here corresponds to the “Desert” color in the Wikipedia article on [Desert Sand (Color)](https://en.wikipedia.org/wiki/Desert_sand_\(color\) "Desert Sand \(color\)").
+
+The previous code block creates only a small patch of desert sand 1 unit wide by 1 unit deep on the XZ axis. You can then scale that node along the X and Z axes to encompass a wider span and simulate a horizon:
+
+```csharp
+desertNode.Scale = new Vector3(1000, 1, 1000);
+```
+
+## The Monkey Model
+
+The 3D monkey is described in a binary file named **monkey.mdl** in the **Data** subdirectory of this workbook. The **Materials** subdirectory of **Data** contains a material file **phong1.xml**, which references the **UV.jpg** file in the **Textures** subdirectory.
+
+The following code loads and displays the model. The surface of the monkey is covered with the material and JPEG file:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("monkeyNode"));
+Node monkeyNode = mainNode.CreateChild("monkeyNode");
+StaticModel monkey = monkeyNode.CreateComponent<StaticModel>();
+monkey.Model = app.ResourceCache.GetModel("monkey.mdl");
+monkey.SetMaterial(app.ResourceCache.GetMaterial("Materials/phong1.xml"));
+```
+
+The monkey sits a little above the XZ plane. It is roughly centered on the origin of the coordinate system: The positive Y axis goes through the middle of the body and out the center of the top of the head. The monkey is about 6 units tall and 6 units wide (from paw to paw).
+
+The monkey is a little too close but you can move `mainNode` down and back relative to its parent, `RootNode`:
+
+```csharp
+mainNode.Position = new Vector3(0, -2.5f, 6);
+```
+
+## Experimenting with Actions
+
+The `Node` class defines two methods that allow you to run animations on the node:
+
+`void RunActions(params FiniteTimeAction[])`\
+\
+`Task<ActionsState> RunActions(params FiniteTimeAction[])`
+
+Each animation is a derivative of the `FiniteTimeAction` class. The `params` keyword allows you to specify multiple `FiniteTimeAction` objects as the argument to these methods . The multiple animations run consecutively. (There’s also a way to run animations in parallel that you’ll see later in this workbook.) In addition, `Node` defines `PauseAllActions` and `ResumeAllActions` methods, as well as `RemoveAction` and `RemoveAllActions`.
+
+The `Urho.Actions` namespace includes over 50 classes that derive from `FiniteTimeAction`. These classes are immutable: You specify everything that the class needs in the class’s constructor. The most basic classes that derive from `FiniteTimeAction` perform standard types of graphical transforms:
+
+* Translation: `MoveTo` and `MoveBy`
+
+* Scaling: `ScaleTo` and `ScaleBy`
+
+* Rotation: `RotateTo` and `RotateBy`
+
+The difference between the `To` and `By` suffixes is easy to demonstrate. `MoveTo` moves a node from the node’s current position, which for the monkey node is initially (0, 0, 0), to the point specified in the `MoveTo` constructor. The first argument to the constructor is the duration of the animation in seconds, in this case 2 seconds:
+
+```csharp
+await monkeyNode.RunActionsAsync(new MoveTo(2, new Vector3(2, 0, 0)));
+```
+
+When running animations in a workbook, you should use use `RunActionsAsync` with `await` rather than `RunActions`. This prevents the code block from concluding until the animation has completed, and also prevents you from this animation or another one while it’s still executing. (The only exception is for animations that run forever. You’ll see an example towards the end of this workbook.)
+
+If you execute that previous code block again, it will still require two seconds to complete, but the monkey won’t move. It’s already at the point (2, 0, 0). To move the monkey *by* a certain distance relative to its current position, use `MoveBy`:
+
+```csharp
+await monkeyNode.RunActionsAsync(new MoveBy(1, new Vector3(-2, 0, 0)));
+```
+
+Now the monkey moves two units to the left every time that code block is executed.
+
+The `params` keyword on the argument to `RunActionsAsync` indicates that you can specify multiple objects that derive from `FiniteTimeAction`. The multiple animations run in sequence:
+
+```csharp
+await monkeyNode.RunActionsAsync(new Place(new Vector3(0, 0, 0)),
+                                 new MoveTo(1, new Vector3(0, 0, 100)),
+                                 new DelayTime(1),
+                                 new JumpTo(3, new Vector3(0, 0, 0), 5, 7));
+```
+
+The `Place` class derives from `ActionInstant`, which derives from `FiniteTimeAction`, and moves the node immediately. (It’s the same as a `MoveTo` with a duration of 0.) The `DelayTime` class does nothing for a particular duration (here 1 second). The `JumpTo` class also moves the node, but with a series of 7 jumps 5 units high.
+
+If the node is already at the position specified in the `JumpTo` constructor, then the node hops up and down in place. Here are 4 jumps 10 units high over a duration of 3 seconds:
+
+```csharp
+await monkeyNode.RunActionsAsync(new JumpTo(3, new Vector3(0, 0, 0), 10, 4));
+```
+
+## Scaling and Repetition
+
+Scaling changes the size of a visual object by a multiplicative factor. Keep in mind that a default scaling factor is 1 rather than 0.
+
+The `ScaleBy` class in the following code block increases the size of the monkey by 25%. As usual, the first argument is the duration in seconds:
+
+```csharp
+await monkeyNode.RunActionsAsync(new ScaleBy(1, 1.25f));
+```
+
+The `By` suffix indicates that the size increases by 25% every time the code block is executed. (Try it!) You can return the monkey to its normal size using a `ScaleTo` constructor with a duration of 0 and a scaling factor of 1:
+
+```csharp
+await monkeyNode.RunActionsAsync(new ScaleTo(0, 1));
+```
+
+It‘s also possible to apply different scaling factors in the X, Y, and Z directions. The following operation increases the width and depth of the monkey (but not the height) by a factor of 3 over 2 seconds. The arguments are named to clarify them:
+
+```csharp
+await monkeyNode.RunActionsAsync(new ScaleTo(duration: 2, scaleX: 3, scaleY: 1, scaleZ: 3));
+```
+
+You can make the monkey large and then small again by combining `ScaleTo` objects:
+
+```csharp
+await monkeyNode.RunActionsAsync(new ScaleTo(0, 1),
+                                 new ScaleTo(2, 3),
+                                 new ScaleTo(2, 1));
+```
+
+The first `ScaleTo` sets the scaling factor as 1, the second animates it to 3 over 2 seconds, and the third animates it back to 1.
+
+What if you wanted to repeat that operation three times? There’s a class for that! The `Repeat` class derives from `FiniteTimeAction`. Its constructor has an argument of type `FiniteTimeAction` as well as a repetition factor:
+
+`public Repeat(FiniteTimeAction action, UInt32 times)`
+
+The animation object passed to the constructor is repeated *times* times. Unfortunately the first argument is only a single `FiniteTimeAction` object. However, there’s another class that also derives from `FiniteTimeAction` with a constructor that lets you combine multiple `FiniteTimeAction` objects:
+
+`public Sequence(params FiniteTimeAction[] actions)`
+
+You can combine the `Repeat` and `Sequence` constructors:
+
+```csharp
+await monkeyNode.RunActionsAsync(new Repeat(new Sequence(new ScaleTo(1, 3),
+                                                         new ScaleTo(1, 1)),
+                                            times: 3));
+```
+
+> ⚠️ The documentation for `Sequence` indicates that the constructor parameter includes the `params` keyword, but as of UrhoSharp 1.5.22, that is not the case. For three or more arguments, you’ll need to create an array for them.
+
+## Easing Functions
+
+So far, all the animations have been linear. Whether the node is moving or changing size, at the animation’s halfway point, the visual object is midway between the starting and ending values.
+
+The word *ease* is often used in computer graphics to describe non-linear animations. In the implementation of animations, generally a value of `t` (for *time*) increases linearly from 0 at the beginning of the animation to 1 at the end. An easing function alters this value of `t`. The function maps 0 to 0 and 1 to 1, but returns other values in between based on a mathematical formula.
+
+The source code for the easing functions is available in the **[Ease](https://github.com/xamarin/urho/tree/master/Bindings/Portable/Actions/Ease "Ease directory")**[ directory](https://github.com/xamarin/urho/tree/master/Bindings/Portable/Actions/Ease "Ease directory") of the Xamarin **urho** repository. Much of the math can be found in **[EaseMath.cs](https://github.com/xamarin/urho/blob/master/Bindings/Portable/Math/EaseMath.cs "EaseMath.cs")**.
+
+The easing classes have a consistent naming convention:
+
+* `EaseTypeIn`, which applies the easing to the beginning of the animation
+
+* `EaseTypeOut`, which applies the easing to the end of the animation
+
+* `EaseTypeInOut`, which applies the easing to the beginning and end
+
+The `Type` part of the name is one of the following:
+
+* nothing, which uses the `Math.Pow` function
+
+* `Back`, which overshoots the initial and/or final value
+
+* `Bounce`, which bounces at the beginning and/or end
+
+* `Elastic`, which applies a combination of powers and trigonometry to simulate damped harmonic motion
+
+* `Exponential`, which applies an exponential function
+
+* `Sine`, which applies a trigonometric function
+
+You can also create custom easing functions using the `EaseCustom` class.
+
+To use an easing function, pass the animation object to the construction of the easing class. This animation scales the monkey up and down using `EaseBackOut` for the first action, and `EaseBounceOut` for the second:
+
+```csharp
+await monkeyNode.RunActionsAsync(new EaseBackOut(new ScaleTo(1, 3)),
+                                 new EaseBounceOut(new ScaleTo(1, 1)));
+```
+
+Feel free to experiment!
+
+## Rotation and Parallel Actions
+
+The `RotateTo`, `RotateBy`, and `RotateAroundBy` actions rotate the node.
+
+> ⚠️ The `RotateTo` class does not work correctly as of UrhoSharp 1.5.22.
+
+The rotations are based on Euler angles. In the 18th century, Swiss mathematician Leonhard Euler proved that any rotation in 3D space can be described as a combination of simple rotations around the X, Y, and Z axes. Euler angles are common in flight dynamics. One problem, however, is that the order of the simple rotations makes a difference in the final composite rotation, and the order is not standard. The convention in UrhoSharp is Z first, then X, and finally Y. These three rotations are also referred to as *roll*, *pitch*, and *yaw*, respectively.
+
+A rotation based on Euler angles can be defined using the three-parameter constructor of `Quaternion`. It might be advantageous to get accustomed to setting a rotation using Euler angles prior to animating a rotation.
+
+Here’s a rotation of 90 degrees around the Z axis:
+
+```csharp
+monkeyNode.Rotation = new Quaternion(0, 0, 90);
+```
+
+UrhoSharp uses a left-hand coordinate system, which means that if you point the thumb of your left hand in the direction of the positive rotation axis (into the screen for rotation around the Z axis), then the direction of rotation for positive angles is given by the curl of your fingers.
+
+After the rotation around the Z axis, the monkey becomes half buried in the desert sand. Add to that a rotation of 90 degrees around the X axis:
+
+```csharp
+monkeyNode.Rotation = new Quaternion(90, 0, 90);
+```
+
+Finally, add another rotation around the Y axis:
+
+```csharp
+monkeyNode.Rotation = new Quaternion(90, 90, 90);
+```
+
+Feel free to experiment, but return the monkey to normal before continuing:
+
+```csharp
+monkeyNode.Rotation = Quaternion.Identity;
+```
+
+Rotation animations are easiest when restricting yourself to just one simple axis. For example, the following operation rotates the monkey 360 degrees 3 times around the Y axis:
+
+```csharp
+await monkeyNode.RunActionsAsync(new Repeat(new RotateBy(duration: 2, 
+                                                         deltaAngleX: 0, 
+                                                         deltaAngleY: 360, 
+                                                         deltaAngleZ: 0), 
+                                            times: 3));
+```
+
+This one goes twice around the X axis:
+
+```csharp
+await monkeyNode.RunActionsAsync(new Repeat(new RotateBy(duration: 2, 
+                                                         deltaAngleX: 360, 
+                                                         deltaAngleY: 0, 
+                                                         deltaAngleZ: 0), 
+                                            times: 2));
+```
+
+The following sequence of animations swing the monkey between the left and the right:
+
+```csharp
+await monkeyNode.RunActionsAsync(
+    new Repeat(
+        new Sequence(
+            new FiniteTimeAction[]
+            {
+                new RotateBy(0.5f, 0, 90, 0),
+                new RotateBy(1f, 0, -180, 0),
+                new RotateBy(0.5f, 0, 90, 0)
+            }),
+        times: 4));
+```
+
+Notice the use of an array of `FiniteTimeAction` objects. In UrhoSharp 1.5.22, the `Sequence` constructor can’t handle more than two arguments.
+
+The first `RotateBy` rotates the monkey 90 degrees to the left in 0.5 seconds, the second rotates 180 degrees to the right in 1 second, and the third rotates back to the center position in 0.5 seconds. This is repeated 4 times.
+
+This animation needs an easing function. It should slow down at the left and right before reversing direction. The `EaseSine` classes are ideal for simulating simple harmonic motion:
+
+```csharp
+await monkeyNode.RunActionsAsync(
+    new Repeat(
+        new Sequence(
+            new FiniteTimeAction[]
+            {
+                new EaseSineOut(new RotateBy(0.5f, 0, 90, 0)),
+                new EaseSineInOut(new RotateBy(1f, 0, -180, 0)),
+                new EaseSineIn(new RotateBy(0.5f, 0, 90, 0))
+            }),
+        times: 4));
+```
+
+To run two or more animations simultaneously, use the `Parallel` class:
+
+`public Parallel(params FiniteTimeAction[] actions)`
+
+The following code scales the monkey up and down while rotating it around the Y axis:
+
+```csharp
+await monkeyNode.RunActionsAsync(new Parallel(new Sequence(new ScaleTo(2, 3),
+                                                           new ScaleTo(2, 1)),
+                                              new RotateBy(4, 0, 360, 0)));
+```
+
+## A Ride Around an Infinity Sign
+
+The next goal is to give the monkey a ride around an infinity sign. As discussed in the SkiaSharp article [Three Types of Bézier Curves](https://developer.xamarin.com/guides/xamarin-forms/advanced/skiasharp/curves/beziers/ "Three Types of Bezier Curves"), an infinity sign can be constructed using eight Bézier curves, and the UrhoSharp `BezierTo` class can animate a node along those curves.\
+\
+The following array defines an infinity sign using the UrhoSharp `BezierConfig` structure. The curve is constructed on the XZ plane  with a Y coordinate of zero. The implicit start position is (0, 0, 0). The `Vector3`constructors imply a radius of 1 unit of the circular part of the infinity sign, but the scaling factor increases that size:
+
+```csharp
+float infinityScale = 15;
+
+BezierConfig[] bezierInfinity = 
+{
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(0.55f, 0, 0),
+        ControlPoint2 = infinityScale * new Vector3(1, 0, 0.45f),
+        EndPosition = infinityScale * new Vector3(1, 0, 1)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(1, 0, 1.55f),
+        ControlPoint2 = infinityScale * new Vector3(0.5f, 0, 2),
+        EndPosition = infinityScale * new Vector3(0, 0, 2.5f)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(-0.5f, 0, 3),
+        ControlPoint2 = infinityScale * new Vector3(-1, 0, 3.45f),
+        EndPosition = infinityScale * new Vector3(-1, 0, 4)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(-1, 0, 4.55f),
+        ControlPoint2 = infinityScale * new Vector3(-0.55f, 0, 5),
+        EndPosition = infinityScale * new Vector3(0, 0, 5)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(0.55f, 0, 5),
+        ControlPoint2 = infinityScale * new Vector3(1, 0, 4.55f),
+        EndPosition = infinityScale * new Vector3(1, 0, 4)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(1, 0, 3.45f),
+        ControlPoint2 = infinityScale * new Vector3(0.5f, 0, 3),
+        EndPosition = infinityScale * new Vector3(0, 0, 2.5f)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(-0.5f, 0, 2),
+        ControlPoint2 = infinityScale * new Vector3(-1, 0, 1.55f),
+        EndPosition = infinityScale * new Vector3(-1, 0, 1)
+    },
+    new BezierConfig
+    {
+        ControlPoint1 = infinityScale * new Vector3(-1, 0, 0.45f),
+        ControlPoint2 = infinityScale * new Vector3(-0.55f, 0, 0),
+        EndPosition = infinityScale * new Vector3(0, 0, 0)
+    }
+};
+```
+
+To animate the monkey along these eight Bézier curves, an array of `BezierTo` objects must be created. The first argument to the constructor is the animation duration for that part of the curve:
+
+```csharp
+BezierTo[] bezierTos = new BezierTo[8];
+for (int i = 0; i < 8; i++)
+{
+    bezierTos[i] = new BezierTo(1, bezierInfinity[i]);
+}
+```
+
+The position of the monkey can then be animated based on the array of `BezierTo` objects:
+
+```csharp
+await monkeyNode.RunActionsAsync(bezierTos);
+```
+
+The result is disappointing. The monkey is moving along the infinity sign but always facing forward. It would be more “realistic” if the monkey faced in the direction that it’s moving. The monkey must be dynamically rotated as well as translated.
+
+There is no class in the `Urho.Actions` namespace that does this. Fortunately, you can implement custom animations using the `ActionTween` class.  (The word “tween” is short for “in-betweening,” which refers to the interpolation performed between the start and end values in an animation.)
+
+## Breaking down the Béziers
+
+The eight Bézier curves must first be approximated with polylines. Here’s a function that will do that for one Bézier:
+
+```csharp
+void BezierToPolyline(Vector3 pt0, Vector3 pt1, Vector3 pt2, Vector3 pt3, int numPoints, IList<Vector3> points)
+{
+    for (int i = 0; i < numPoints; i++)
+    {
+        float t = (float)i / numPoints;
+        Vector3 pt = (1 - t) * (1 - t) * (1 - t) * pt0 +
+                     3 * (1 - t) * (1 - t) * t  * pt1 +
+                     3 * (1 - t) * t * t * pt2 +
+                     t * t * t * pt3;
+        points.Add(pt);                     
+    }
+}
+```
+
+Now all eight Bézier curves can be converted to one big polyline stored in a `List<Vector3>` object:
+
+```csharp
+List<Vector3> bezierPoints = new List<Vector3>();
+
+for (int i = 0; i < bezierInfinity.Length; i++)
+{
+    int iPrevious = (i - 1 + bezierInfinity.Length) % bezierInfinity.Length;
+
+    BezierToPolyline(bezierInfinity[iPrevious].EndPosition,
+                     bezierInfinity[i].ControlPoint1,
+                     bezierInfinity[i].ControlPoint2,
+                     bezierInfinity[i].EndPosition,
+                     100,
+                     bezierPoints);
+}
+```
+
+The `ActionTween` class derives from `FiniteTimeAction` and has the following constructor:
+
+`public ActionTween(Single duration, String key, Single from, Single to, Action<float, string> tweenAction)`
+
+The first parameter is the duration in seconds. You can use the second argument to identify this animation. The `from` and `to` arguments can be anything you want, but often it’s easiest to set them to 0 and 1. Set the last argument to a callback function. That function is called repeatedly with values between `from` and `to`.
+
+Here’s a callback function for `ActionTween`. The `t` parameter ranges from 0 to 1 for each complete cycle. This is used to calculate an `index` value based on the number of points in the `bezierPoints` collection. The two integer indices `i1` and `i2` can then be used for interpolation. The `Position` property of `monkeyNode` is set to this interpolated value:
+
+```csharp
+void UpdateMonkey(float t, string key)
+{
+    float index = t * bezierPoints.Count % bezierPoints.Count;
+    int i1 = (int)index;
+    int i2 = (i1 + 1) % bezierPoints.Count;
+
+    monkeyNode.Position = (i2 - index) * bezierPoints[i1] + (index - i1) * bezierPoints[i2];
+
+    Vector3 tangent = bezierPoints[i2] - bezierPoints[i1];
+    float angle = (float)(180 * Math.Atan2(-tangent.X, -tangent.Z) / Math.PI);
+    monkeyNode.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, angle);
+}
+```
+
+The two points are also used to determine a tangent to the curve. The angle of this vector is obtained from the `Math.Atan2` function, and then used to set the `Rotation` property of the node.
+
+The `ActionTween` constructor references this  `UpdateMonkey` callback, and the object is passed to the `RunActionsAsync` method:
+
+```csharp
+await monkeyNode.RunActionsAsync(new ActionTween(8, "bezier", 0, 1, UpdateMonkey));
+```
+
+Now the monkey travels along the Bézier curves while facing in the direction that it’s moving.
+
+## Life and Death
+
+The following code block defines the most extensive `Sequence` object in this workbook. It begins by positioning the monkey at the origin and decreasing it to one-tenth of its normal size. This is the newborn baby monkey. Over the next 40 seconds, the monkey travels around the Bézier curve 4 times, while simultaneously increasing in size as the years pass and it grows up:
+
+```csharp
+const float cycleTime = 10;
+const uint numCycles = 4;
+
+Sequence monkeySequence = new Sequence(
+    new FiniteTimeAction[]
+    {
+        new Place(new Vector3(0, 0, 0)),
+        new ScaleTo(0, 0.1f),
+        new Parallel(
+            new Repeat(new ActionTween(cycleTime, "bezier", 0, 1, UpdateMonkey), numCycles),
+            new ScaleTo(cycleTime * numCycles, 1)),
+        new DelayTime(0.5f),
+        new ScaleTo(0.25f, 1.25f),
+        new ScaleTo(0.25f, 1),
+        new DelayTime(0.5f),
+        new RotateBy(4.5f, 180, 0, 0)
+    }
+)
+```
+
+After those 4 trips around the Bézier curve, the monkey stops, swells in size briefly, and then descends into the earth. This final part of the animation lasts a total of 6 seconds.
+
+To see what it looks like, run that sequence:
+
+```csharp
+await monkeyNode.RunActionsAsync(monkeySequence);
+```
+
+In its bleak portrayal of death and disintegration, the animation might seem to be somewhat dreary. To add a little hope for the future, a second monkey is created:
+
+```csharp
+mainNode.RemoveChild(mainNode.GetChild("monkey2Node"));
+Node monkey2Node = mainNode.CreateChild("monkey2Node");
+StaticModel monkey2 = monkey2Node.CreateComponent<StaticModel>();
+monkey2.Model = app.ResourceCache.GetModel("monkey.mdl");
+monkey2.SetMaterial(app.ResourceCache.GetMaterial("Materials/phong1.xml"));
+```
+
+This new monkey is set to one-tenth its original size and rotated 90 degrees:
+
+```csharp
+monkey2Node.SetScale(0.1f);
+monkey2Node.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, -90);
+```
+
+The animation sequence for the second monkey defined below begins by hiding the monkey for 40 seconds. The monkey is then made visible and jumps into the air:
+
+```csharp
+Sequence monkey2Sequence = new Sequence(
+    new FiniteTimeAction[]
+    {
+        new Hide(),
+        new DelayTime(cycleTime * numCycles),
+        new Show(),
+        new JumpTo(6, new Vector3(), 10, 1),
+        new Hide(),
+    }
+)
+```
+
+You can run that sequence by itself, but it’s more comprehensible when the two sequences are run together. The `RepeatForever` class runs the sequences forever. For this reason, `RunActions` rather than `RunActionsAsync` is called because `RunActionsAsync` would never return:
+
+```csharp
+monkeyNode.RemoveAllActions();
+monkey2Node.RemoveAllActions();
+
+monkeyNode.RunActions(new RepeatForever(monkeySequence));
+monkey2Node.RunActions(new RepeatForever(monkey2Sequence));
+```
+
+If the code block is re-executed, then the calls to `RemoveAllActions` stop any animations that might be in progress before restarting the animations at the beginning.

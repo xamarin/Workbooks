@@ -8,6 +8,7 @@
     "barchart/charts.workbook":"Charts",
     "physics/physics.workbook":"Physics",
     "planetearth/planetearth.workbook":"Planet Earth",
-    "mobius-strip-speedway/MobiusStripSpeedway.workbook": "Möbius Strip Speedway"
+    "mobius-strip-speedway/MobiusStripSpeedway.workbook": "Möbius Strip Speedway",
+    "circle-of-life/CircleOfLife.workbook": "Circle of Life: Actions and Animations"
   }
 }
