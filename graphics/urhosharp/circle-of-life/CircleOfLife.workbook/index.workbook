@@ -1,4 +1,4 @@
----
+﻿---
 packages:
 - id: UrhoSharp
   version: 1.5.22
@@ -77,7 +77,7 @@ desertNode.Scale = new Vector3(1000, 1, 1000);
 
 ## The Monkey Model
 
-The 3D monkey is described in a binary file named **monkey.mdl** in the **Data** subdirectory of this workbook. The **Materials** subdirectory of **Data** contains a material file **phong1.xml**, which references the **UV.jpg** file in the **Textures** subdirectory.
+The 3D monkey was created by Vic Wang at [http://vidavic.weebly.com](http://vidavic.weebly.com "Vidavic"). It is described in a binary file named **monkey.mdl** in the **Data** subdirectory of this workbook. The **Materials** subdirectory of **Data** contains a material file **phong1.xml**, which references the **UV.jpg** file in the **Textures** subdirectory.
 
 The following code loads and displays the model. The surface of the monkey is covered with the material and JPEG file:
 
