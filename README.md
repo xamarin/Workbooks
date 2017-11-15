@@ -1,8 +1,9 @@
 
-This directory contains various Xamarin workbooks to learn various APIs across
-Android, iOS and Windows.
+This repository contains Xamarin workbooks to learn various APIs across
+Android, iOS and Windows. If you are looking for the Workbooks app source code,
+head to https://github.com/Microsoft/workbooks.
 
-To use, simply checkout this repository and open any of the `.workbook` files 
+To use these samples, simply checkout this repository and open any of the `.workbook` files 
 with [Xamarin Workbooks](https://developer.xamarin.com/guides/cross-platform/workbooks/)
 
 The examples are organized by categories:
