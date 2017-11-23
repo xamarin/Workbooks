@@ -163,7 +163,7 @@ When you start workbooks, a number of namespaces and libraries have already been
 
 That works as long as the library that you need is already referenced, but if you need to use functionality from a library that is not referenced, you will need to do that using the “#r” instruction.
 
-Previously in this workbook, we changed our Sum method from integers to floats, that was an acceptable workaround.   With .NET you can use BigInteger, from the System.Numerics library, to use it, just reference that Library like this:
+Previously in this workbook, we changed our Sum method from integers to doubles, that was an acceptable workaround.   With .NET you can use BigInteger, from the System.Numerics library, to use it, just reference that Library like this:
 
 ```csharp
 #r "System.Numerics"
