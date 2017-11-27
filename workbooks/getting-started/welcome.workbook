@@ -157,7 +157,7 @@ Time (()=> new WebClient ().DownloadString ("http://www.google.com"));
 
 The help will be different based on the Workbook style that you use, but more on that in the “Workbook Styles” section.
 
-# Consumig Libraries
+# Consuming Libraries
 
 When you start workbooks, a number of namespaces and libraries have already been included for your convenience.   Previously you referenced the `WebClient` from the `System.Net` namespace by using the “using” directive.
 
