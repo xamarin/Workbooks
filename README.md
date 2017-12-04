@@ -18,4 +18,4 @@ Platform specific:
 * Android - Android workbooks
 * Mac - Mac workbooks 
 * iOS - iOS workbooks 
-* WPF - Windows WPF workbooks
+* WPF - Windows Presentation Foundation workbooks
