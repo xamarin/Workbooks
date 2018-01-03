@@ -190,7 +190,7 @@ Console.WriteLine ($"Adding with Sum={Sum (Int32.MaxValue, 1)}");
 Console.WriteLine ($"Adding with Big={BigSum (Int32.MaxValue, 1)}");
 ```
 
-In addition to system libraries like `System.Numerics`, there is a universe of third party libraries available for .NET called NuGets (pronounced “new-ge”).   For example, a very popular library is the Newtonsoft.Json library.   To use this library in your project, you will want to use “File/Add Package” which will contact the NuGet server and obtain a list of packages that are available for you to use.
+In addition to system libraries like `System.Numerics`, there is a universe of third party libraries available for .NET called NuGet (pronounced “new-get”) Packages.   For example, a very popular library is the Newtonsoft.Json library.   To use this library in your project, you will want to use “File/Add NuGet Package” which will contact the NuGet server and obtain a list of packages that are available for you to use.
 
 Go ahead and bring the Newtonsoft.Json library, and once you do that, remove the comments around the code in the next cell and run it.   The result will be our list of flights serialized into Json.
 
@@ -209,7 +209,7 @@ You are currently reading a Console workbook. This is a universal workbook that 
 
 Additionally, you can explore, prototype and play not only with this universally portable Workbooks, but also with Workbooks that run on a specific environment. There are Workbooks available for exploring and developing Android applications, iOS applications, Mac applications and Windows applications.
 
-Each Workbook style has special knowledge about the target platform.   For example, the iOS workbooks know how to launch the iOS Simulator on demand, and can be used to inspect  the hierarchy of the visual elements in Apple’s UIKit and CoreAnimation layers.
+Each Workbook style has special knowledge about the target platform. For example, the iOS workbooks know how to launch the iOS Simulator on demand, and can be used to inspect the hierarchy of the visual elements in Apple’s UIKit and CoreAnimation layers.
 
 # Creating your own Workbooks
 
@@ -243,7 +243,7 @@ Explore the “Format” menu to see the kind of formatting changes that you can
 
 We wanted to make it easy to work with Workbooks.   Workbooks are just [Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet#code "GitHub flavored Markdown") files that contain a small header that describe the needs of the Workbook.   The header contains the default agent to use at startup (Console, Android, iOS, Windows, etc) as well as a list of NuGet packages that might be needed to run the workbook.
 
-If you were to save this Workbook, you would see that any packages that you added with “File/Add Package” would be listed in this header.
+If you were to save this Workbook, you would see that any packages that you added with “File/Add NuGet Package” would be listed in this header.
 
 It is thus very easy to edit Workbook contents even when you do not have the Workbook environment around.
 
