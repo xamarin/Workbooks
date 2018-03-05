@@ -1,7 +1,8 @@
 ---
+id: ee57cfd4-3bc0-4069-952d-4fa85802fceb
 uti: com.xamarin.workbook
-id: 65086702-3d18-4c76-acb6-8a80846a5539
-title: OxyPlot
+copyright: © Copyright 2015, OxyPlot Contributors.
+title: OxyPlot Function Series
 platforms:
 - Console
 packages:
@@ -9,37 +10,124 @@ packages:
   version: 1.0.0
 ---
 
+# Plotting with OxyPlot
+
 ```csharp
 #r "OxyPlot"
-```
 
-```csharp
 using OxyPlot;
 using OxyPlot.Series;
+using OxyPlot.Axes;
+
+using static System.Math;
 ```
 
+## Function Series
+
+First we create a model, and then add a data series to it.
+
 ```csharp
-var plotModel = new PlotModel {
+var plot = new PlotModel {
     Title = "Trigonometric functions",
     Subtitle = "Example using the FunctionSeries",
     PlotType = PlotType.Cartesian
 };
 
-plotModel.Series.Add (new FunctionSeries (
-    Math.Sin, -10, 10, 0.1, "sin(x)"));
+plot.Series.Add (new FunctionSeries (
+    Sin, -10, 10, 0.1, "sin(x)"));
 
-plotModel.Series.Add (new FunctionSeries (
-    Math.Cos, -10, 10, 0.1, "cos(x)"));
+plot.Series.Add (new FunctionSeries (
+    Cos, -10, 10, 0.1, "cos(x)"));
 
-plotModel.Series.Add (new FunctionSeries (
-    t => 5 * Math.Cos (t),
-    t => 5 * Math.Sin (t),
+plot.Series.Add (new FunctionSeries (
+    t => 5 * Cos (t),
+    t => 5 * Sin (t),
     0,
-    2 * Math.PI,
+    2 * PI,
     0.1,
-    "cos(t),sin(t)"));
+    "5cos(t), 5sin(t)"));
 ```
+
+And finally render the result by ensuring the cell yields a `PlotModel` object as its last result.
 
 ```csharp
-plotModel
+plot
 ```
+
+## Bonus: Fun with bats!
+
+```csharp
+double batFn1 (double x) =>
+    2 * Sqrt(-Abs(Abs(x) - 1) *
+        Abs(3 - Abs(x)) / ((Abs(x) - 1) *
+            (3 - Abs(x)))) *
+    (1 + Abs(Abs(x) - 3) / (Abs(x) - 3)) *
+    Sqrt(1 - Pow((x / 7), 2)) + (5 + 0.97 *
+        (Abs(x - 0.5) + Abs(x + 0.5)) - 3 *
+        (Abs(x - 0.75) + Abs(x + 0.75))) *
+    (1 + Abs(1 - Abs(x)) / (1 - Abs(x)));
+
+double batFn2 (double x) =>
+    -3 * Sqrt(1 - Pow((x / 7), 2)) *
+    Sqrt(Abs(Abs(x) - 4) / (Abs(x) - 4));
+
+double batFn3 (double x) =>
+    Abs(x / 2) - 0.0913722 *
+    (Pow(x, 2)) - 3 + Sqrt(1 - Pow((Abs(Abs(x) - 2) - 1), 2));
+
+double batFn4 (double x) =>
+    (2.71052 + (1.5 - .5 * Abs(x)) - 1.35526 *
+    Sqrt(4 - Pow((Abs(x) - 1), 2))) *
+    Sqrt(Abs(Abs(x) - 1) / (Abs(x) - 1)) + 0.9;
+
+var plot = new PlotModel { Title = "Fun with Bats" };
+plot.Series.Add (new FunctionSeries (batFn1, -8, 8, 0.0001)); 
+plot.Series.Add (new FunctionSeries (batFn2, -8, 8, 0.0001)); 
+plot.Series.Add (new FunctionSeries (batFn3, -8, 8, 0.0001)); 
+plot.Series.Add (new FunctionSeries (batFn4, -8, 8, 0.0001));
+
+plot;
+```
+
+## Heat Map Series
+
+```csharp
+var plot = new PlotModel { Title = "Heatmap" };
+
+// Color axis (the X and Y axes are generated automatically)
+
+plot.Axes.Add(new LinearColorAxis {
+    Palette = OxyPalettes.Rainbow(100)
+});
+
+// generate 1d normal distribution
+var singleData = new double[100];
+for (int x = 0; x < 100; ++x)
+    singleData[x] = Exp ((-1.0 / 2.0) *
+        Pow (((double)x - 50.0) / 20.0, 2.0));
+
+// generate 2d normal distribution
+var data = new double[100, 100];
+for (int x = 0; x < 100; ++x) {
+    for (int y = 0; y < 100; ++y)
+        data[y, x] = singleData[x] *
+            singleData[(y + 30) % 100] *
+            100;
+}
+
+var heatMapSeries = new HeatMapSeries {
+    X0 = 0,
+    X1 = 99,
+    Y0 = 0,
+    Y1 = 99,
+    Interpolate = true,
+    RenderMethod = HeatMapRenderMethod.Bitmap,
+    Data = data
+};
+
+plot.Series.Add (heatMapSeries);
+
+plot;
+```
+
+> ℹ️ This workbook was adapted from the official [OxyPlot documentation](http://docs.oxyplot.org/en/latest/).
