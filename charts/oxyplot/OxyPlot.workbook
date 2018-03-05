@@ -2,7 +2,7 @@
 id: ee57cfd4-3bc0-4069-952d-4fa85802fceb
 uti: com.xamarin.workbook
 copyright: © Copyright 2015, OxyPlot Contributors.
-title: OxyPlot Function Series
+title: Plotting with OxyPlot
 platforms:
 - Console
 packages:
