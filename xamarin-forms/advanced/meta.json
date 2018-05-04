@@ -1,6 +1,6 @@
 {
   "order":{
     "MandelbrotTouch.workbook":"Mandelbrot Touch",
-    "RPNCalculator/RpnCalculator-ios.workbook":"RPN Calculator"
+    "RPNCalculator/RpnCalculator.workbook":"RPN Calculator"
   }
 }
