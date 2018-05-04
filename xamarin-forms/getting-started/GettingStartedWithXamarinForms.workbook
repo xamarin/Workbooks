@@ -1,66 +1,50 @@
 ---
 uti: com.xamarin.workbook
+id: EFA61668-239E-4C12-8535-97661698D5B8
+title: Getting Started with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
-# Getting Started with Xamarin.Forms (iOS)
+# Getting Started with Xamarin.Forms (Hello, Xamarin.Forms)
 
-> ⚠️ This workbook is deprecated - see **GettingStartedWithXamarinForms.workbook** instead
+Follow these steps to learn about the basics of Xamarin.Forms through experimentation with the `Label` text control.
 
-If you want to create a Xamarin.Forms application in Xamarin Workbooks, you must create either a new Xamarin.iOS or Xamarin.Android workbook. This discussion focuses on using Xamarin.Forms from an iOS application.
+## 1. Add references
 
-After creating a new iOS workbook, you must add the Xamarin.Forms NuGet package. That’s already been done for this particular workbook,  but normally you would invoke the **File** and **Add Package** menu item, and search for **Xamarin.Forms**. Select the top item and click the **Add Package** button.
-
-Now use the `#r` command to reference the following Xamarin.Forms assemblies:
+Xamarin.Forms Workbooks already include the NuGet, so the required assemblies can be referenced like this:
 
 ```csharp
 #r "Xamarin.Forms.Core"
 #r "Xamarin.Forms.Xaml"
 #r "Xamarin.Forms.Platform"
-#r "Xamarin.Forms.Platform.iOS"
 ```
 
-You’ll also want a few standard `using` directives:
+Then, just like a regular C# file, add the `using` directives:
 
 ```csharp
 using System;
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.iOS;
 ```
 
-The first step is to define a class that derives from `Application` that creates a Xamarin.Forms `ContentPage` object and sets it to its `MainPage` property:
+## 2. Create the ContentPage
 
-```csharp
-class App : Application
-{
-    public App()
-    {
-        MainPage = new ContentPage();
-    }
-}
-```
+Workbooks has already initialized Xamarin.Forms, so `Application.Current.MainPage` can be set directly.
 
 The `ContentPage` is the simplest kind of page in Xamarin.Forms. This is the page that will contain all your program’s Xamarin.Forms visual elements.
 
-Now you must execute some iOS startup code. You first need to call the `Forms.Init` method to initialize Xamarin.Forms. You can then instantiate the `App` class defined above, and call the `CreateViewController` method of the page that the `App` class creates. This you set to the `RootViewController` property of the iOS window that Workbooks has created for you:
-
-```csharp
-Xamarin.Forms.Forms.Init();
-App app = new App();
-KeyWindow.RootViewController = app.MainPage.CreateViewController();
+```
+var page = new ContentPage();
+Application.Current.MainPage = page;
 ```
 
-At this point, you have a Xamarin.Forms program running on the iOS simulator. Now get access to the `ContentPage` instance that the `App` class constructor created:
+## 3. Add a Label
 
-```csharp
-ContentPage page = app.MainPage as ContentPage;
-```
-
-You use the Xamarin.Forms `Label` element to display up to a paragraph of text. Create a `Label` and set it to the `Content` property of the `ContentPage`:
+The Xamarin.Forms `Label` element can display up to a paragraph of text. Create a `Label` and set it to the `Content` property of the `ContentPage`:
 
 ```csharp
 Label label = new Label
@@ -70,13 +54,19 @@ Label label = new Label
 page.Content = label;
 ```
 
-You’ll see the `Label` on the iOS Simulator, but it overlaps the iOS status bar. One way to avoid that is to set the `Padding` property on the page. This sets an area within the page that content cannot intrude. The four arguments to the `Thickness` constructor are in the order left, top, right, and bottom. The 20-unit space at the top is the height of the status bar:
+You’ll see the `Label` on the iOS Simulator, but it overlaps the iOS status bar. 
+
+## 4. Add some Padding
+
+One way to avoid that is to set the `Padding` property on the page. This sets an area within the page that content cannot intrude. The four arguments to the `Thickness` constructor are in the order left, top, right, and bottom. The 20-unit space at the top is the height of the status bar:
 
 ```csharp
 page.Padding = new Thickness(0, 20, 0, 0);
 ```
 
 Now the `Label` is directly under the status bar.
+
+## 5. Add some Layout
 
 You can also center the `Label` on the page by setting its `HorizontalOptions` and `VerticalOptions` properties:
 
@@ -86,6 +76,8 @@ label.VerticalOptions = LayoutOptions.Center;
 ```
 
 Try the `Start` and `End` fields of the `LayoutOptions` structure to position the `Label` in one of nine locations around the page.
+
+## 6. Change the Color
 
 You can set the color of the `Label` with the `TextColor` property. One convenient approach is to obtain a `Color` value from one of the static read-only properties of the `Color` class:
 
@@ -98,6 +90,8 @@ Another approach is using the static `Color.FromRgb`, `Color.FromRgba`, or `Colo
 ```csharp
 page.BackgroundColor = new Color(1.0, 1.0, 0, 1.0);
 ```
+
+## 7. Set the Font
 
 You can set the `FontFamily` property to a string specifying a font that you know is available on the phone:
 
@@ -118,6 +112,8 @@ label.FontSize = 30;
 ```
 
 You should see the text string wrap to two lines. If not, try a larger value.
+
+## 8. Experiment with WordWrap
 
 The wrapping behavior is governed by the `LineBreakMode` property that you can set to a member of the `LineBreakMode` enumeration:
 
@@ -152,6 +148,8 @@ label.Text = "Alice was beginning to get very tired of sitting by " +
 
 You might want to adjust the `FontSize` so it fits comfortably on the page. If you flip the iOS Simulator between portrait and landscape you can see how the `Label` dynamically reformats the text.
 
+## 9. Text Alignment
+
 By default, the lines of the paragraph are left-justified, but you can set the `HorizontalTextAlignment` property to right justify or center each line:
 
 ```csharp
@@ -169,6 +167,8 @@ label.TranslationY = 0;
 
 These two properties move the element from the location determined for the element by the Xamarin.Forms layout system. There is nothing to prevent you from setting `TranslationX` or `TranslationY` values that move the element right off the screen!
 
+## 10. Scaling
+
 The `Scale` property has a default value of 1:
 
 ```csharp
@@ -182,6 +182,8 @@ Finally, there is `Rotation`, which you can set to an angle in degrees to rotate
 ```csharp
 label.Rotation = 0;
 ```
+
+## 11. Animation
 
 Xamarin.Forms also has a facility to animate these properties. For example, you can apply an animation to the `Label` that is triggered when the user taps the `Label`. To do this, you need to add a `TapGestureRecognizer` object to the `GestureRecognizers` collection of the `Label`:
 
@@ -198,4 +200,6 @@ tap.Tapped += async (sender, args) =>
 label.GestureRecognizers.Add(tap);
 ```
 
-The `Tapped` event handler is executed when you tap the `Label` on the phone or click the `Label` in the iOS Simulator. It rotates the text in a 360-degree circle in 5,000 milliseconds.  Notice that the `RotateTo` method is asynchronous. It completes execution when the rotation has completed. This means that you can add other animations to run in sequence, and you can use the static `Task.WhenAll` and `Task.WhenAny` methods to combine animations. Have fun!
+The `Tapped` event handler is executed when you tap the `Label` on the phone or click the `Label` in the iOS Simulator. It rotates the text in a 360-degree circle in 5,000 milliseconds.  Notice that the `RotateTo` method is asynchronous. It completes execution when the rotation has completed. This means that you can add other animations to run in sequence, and you can use the static `Task.WhenAll` and `Task.WhenAny` methods to combine animations. 
+
+Have fun!
