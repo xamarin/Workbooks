@@ -1,11 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: 959F41D8-3A09-4D6C-A3F6-19C4C9108925
+title: Xamarin.Forms Picker
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
+
 
 # Selecting Items with a Picker
 
@@ -17,7 +21,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: A7C4BA53-474A-49B3-92A2-E4C2D1D26FE5
+title: Setting LayoutOptions with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Setting LayoutOptions
@@ -29,13 +32,8 @@ Every Xamarin.Forms view has `HorizontalOptions` and `VerticalOptions` propertie
 
 The `Start`, `Center`, `End`, and `Fill` values are used to define the view's alignment within the parent view, and the `StartAndExpand`, `CenterAndExpand`, `EndAndExpand`, and `FillAndExpand` values are used to define whether the view will occupy more space if available.
 
----
+> ℹ️  The default value of a view's `HorizontalOptions` and `VerticalOptions` properties is `LayoutOptions.Fill`.
 
-###### Note
-
-The default value of a view's `HorizontalOptions` and `VerticalOptions` properties is `LayoutOptions.Fill`.
-
----
 
 ## Initializing the Workbook
 
@@ -43,7 +41,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 
@@ -92,13 +90,8 @@ AddButton("FillAndExpand", LayoutOptions.FillAndExpand);
 
 Alignment controls how a view is positioned within its parent view when the parent view contains unused space (that is, the parent view is larger than the combined size of all of its children).
 
----
+> ℹ️  When all the space in a parent view is used, the alignment options have no effect.
 
-###### Note
-
-When all the space in a parent view is used, the alignment options have no effect.
-
----
 
 ### Start
 
@@ -128,13 +121,8 @@ Clicking the *Fill* `Button` vertically aligns the `StackLayout` and `Button` in
 
 Expansion controls whether a view will occupy more space if available. If a parent view contains unused space (that is, the parent view is larger than the combined size of all of its children), the unused space is given to any child views that use the `AndExpand` suffix.
 
----
+> ℹ️  When all the space in a parent view is used, the expansion options have no effect.
 
-###### Note
-
-When all the space in a parent view is used, the expansion options have no effect.
-
----
 
 ### StartAndExpand
 

@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: 3B5760CA-367F-4A93-AF53-FB33006A3DE1
+title: Displaying Web Content with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Displaying Web Content
@@ -17,7 +20,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 
@@ -35,15 +38,8 @@ var webView = new WebView
 page.Content = webView;
 ```
 
----
-
-###### ⚠ Warning
-
-In iOS 9 and greater, App Transport Security (ATS) enforces secure connections between internet resources (such as the app's back-end server) and the app, thereby preventing accidental disclosure of sensitive information. Since ATS is enabled by default in apps built for iOS 9 and greater, all connections will be subject to ATS security requirements. If connections do not meet these requirements, they will fail with an exception.
-
-ATS can be opted out of if it is not possible to use the `HTTPS` protocol and secure communication for internet resources. This can be achieved by updating the app's **Info.plist** file. For more information see [App Transport Security](https://developer.xamarin.com/guides/ios/platform_features/introduction_to_ios9/ats/).
-
----
+> ⚠️ In iOS 9 and greater, App Transport Security (ATS) enforces secure connections between internet resources (such as the app's back-end server) and the app, thereby preventing accidental disclosure of sensitive information. Since ATS is enabled by default in apps built for iOS 9 and greater, all connections will be subject to ATS security requirements. If connections do not meet these requirements, they will fail with an exception.
+> ATS can be opted out of if it is not possible to use the `HTTPS` protocol and secure communication for internet resources. This can be achieved by updating the app's **Info.plist** file. For more information see [App Transport Security](https://developer.xamarin.com/guides/ios/platform_features/introduction_to_ios9/ats/).
 
 ## Displaying HTML Strings
 
@@ -106,13 +102,8 @@ webView.Source = "https://www.xamarin.com";
 
 If the `WebView.CanGoBack` property is `true`, the `WebView.GoBack` method will navigate to the last visited page when the `backButton` is clicked. If the `WebView.CanGoForward` property is `true`, the `WebView.GoForward` method will navigate forward to the next visited page when the `forwardButton` is clicked.
 
----
+> ℹ️  When placing a `WebView` inside a `StackLayout`, the `WebView` requires that `HeightRequest` and `WidthRequest` property values are specified, otherwise the `WebView` will not render.
 
-###### Note
-
-When placing a `WebView` inside a `StackLayout`, the `WebView` requires that `HeightRequest` and `WidthRequest` property values are specified, otherwise the `WebView` will not render.
-
----
 
 ## Responding to Navigation
 

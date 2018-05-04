@@ -1,11 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: C0BF140E-EF37-43B8-B0E2-35645D0800F3
+title: Xamarin.Forms StackLayout
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
+
 
 # Using a StackLayout
 
@@ -17,7 +21,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

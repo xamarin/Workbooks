@@ -1,11 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: E73FB600-A386-495A-9D28-5F8163E62265
+title: Presenting Multiple Pages with Xamarin.Forms TabbedPage
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
+
 
 # Presenting Multiple Pages with `TabbedPage`
 
@@ -17,7 +21,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: F36A7045-ABF6-411E-8F1A-EB3374BAC78D
+title: Displaying Text with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Displaying Text
@@ -17,7 +20,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

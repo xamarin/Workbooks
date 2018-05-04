@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: 1EA7D80E-032E-46ED-9A5A-CADCD9EC9F96
+title: Entering Text with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Entering Text
@@ -17,7 +20,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 
@@ -40,13 +43,8 @@ To read text, access the `Text` property:
 var text = entry.Text;
 ```
 
----
+> ⚠️ The width of an `Entry` is defined by settings its `WidthRequest` property. Do not depend on the width of an `Entry` being defined based on the value of its `Text` property.
 
-###### ⚠ Warning
-
-The width of an `Entry` is defined by settings its `WidthRequest` property. Do not depend on the width of an `Entry` being defined based on the value of its `Text` property.
-
----
 
 ## Changing the Virtual Keyboard
 
@@ -107,13 +105,8 @@ entry.TextColor = Color.White;
 entry.BackgroundColor = Color.Blue;
 ```
 
----
+> ℹ️  Placeholder text color can't be customized and will be the same regardless of the the `TextColor` setting.
 
-###### Note
-
-Placeholder text color can't be customized and will be the same regardless of the the `TextColor` setting.
-
----
 
 ## Interacting with an Entry
 

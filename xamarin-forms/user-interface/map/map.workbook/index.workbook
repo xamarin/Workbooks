@@ -1,12 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: 1E3C44B6-F2D5-4471-9F76-9AF54305E9E1
+title: Displaying a Map with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
-- id: Xamarin.Forms.Maps
-  version: 2.3.2.127
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
+- id: Xamarin.Forms.Maps
+  version: 2.5.0.121934
 ---
 
 # Displaying a Map
@@ -28,7 +31,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 using Xamarin.Forms.Maps;
 ```

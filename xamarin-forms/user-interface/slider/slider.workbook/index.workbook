@@ -1,11 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: AE1F68C3-17C6-440F-9F4B-C11413115334
+title: Xamarin.Forms Sliders
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
+
 
 # Changing A Color Value with Sliders
 
@@ -17,7 +21,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

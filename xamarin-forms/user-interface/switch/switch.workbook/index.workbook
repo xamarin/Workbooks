@@ -1,11 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: BDEF46FA-E954-4F73-8C18-8D5505ADB6B0
+title: Xamarin.Forms Switches
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
+
 
 # Binary Choices with Switches
 
@@ -17,7 +21,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 

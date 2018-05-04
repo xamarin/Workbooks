@@ -54,13 +54,8 @@ stackLayout.Children.Add(label2);
 stackLayout.Children.Add(label3);
 ```
 
----
+> ⚠️ `Thickness` values can be negative, which typically clips or overdraws the content.
 
-###### ⚠ Warning
-
-`Thickness` values can be negative, which typically clips or overdraws the content.
-
----
 
 ## 👍 Try it now!
 

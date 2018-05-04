@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: 4D72C07E-8595-4575-A1F6-0CF473774077
+title: Displaying Pop-ups with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Displaying Pop-ups
@@ -17,7 +20,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 ```
 
@@ -33,13 +36,8 @@ await page.DisplayAlert("Alert", "You have been alerted.", "OK");
 
 The alert displays modally and once dismissed you can continue interacting with the application.
 
----
+> ℹ️  The `DisplayAlert` method is asynchronous, and should be preceded by the `await` keyword.
 
-###### Note
-
-The `DisplayAlert` method is asynchronous, and should be preceded by the `await` keyword.
-
----
 
 An alert can also be used to capture a user's response by presenting two buttons:
 
@@ -59,13 +57,8 @@ string result = await page.DisplayActionSheet("Send to?", "Cancel", null, "Email
 
 The response to the action sheet is returned as a `string` value.
 
----
+> ℹ️  The `DisplayActionSheet` method is asynchronous, and should be preceded by the `await` keyword.
 
-###### Note
-
-The `DisplayActionSheet` method is asynchronous, and should be preceded by the `await` keyword.
-
----
 
 The third argument to the `DisplayActionSheet` method is known as the *destruct* button, and can be `null` or given a value:
 
@@ -75,13 +68,7 @@ string result = await page.DisplayActionSheet("Save Photo to?", "Cancel", "Delet
 
 Notice that the *destruct* button is rendered differently from the other action sheet buttons.
 
----
-
-###### Note
-
-The fourth argument to the `DisplayActionSheet` method is of type `params string[]`. Therefore, an action sheet can display any number of responses for the user to select from.
-
----
+> ℹ️  The fourth argument to the `DisplayActionSheet` method is of type `params string[]`. Therefore, an action sheet can display any number of responses for the user to select from.
 
 ## 👍 Try it now!
 
