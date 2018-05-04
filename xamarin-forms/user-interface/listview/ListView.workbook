@@ -1,0 +1,89 @@
+---
+uti: com.xamarin.workbook
+id: 2e681a85-d259-48cd-bda0-2dc4541ee184
+title: Xamarin.Forms ListView
+platforms:
+- Android
+- iOS
+packages:
+- id: Newtonsoft.Json
+  version: 11.0.1
+- id: Xamarin.Forms
+  version: 2.5.0.121934
+---
+
+# Xamarin.Forms ListView with Json
+
+...borrowing some ideas from James Montemagno’s [sample](https://github.com/jamesmontemagno/MonkeysApp-AppIndexing "Monkey Sample App")
+
+## 1. Add references
+
+Start by adding the references that we need to the NuGet packages installed in the workbook
+
+```csharp
+#r "Xamarin.Forms.Core"
+#r "Xamarin.Forms.Platform"
+#r "Xamarin.Forms.Xaml"
+#r "Newtonsoft.Json"
+```
+
+## 2. We need `using` statements too
+
+```csharp
+using Xamarin.Forms;
+using Xamarin.Forms.Platform;
+```
+
+## 3. Create the ContentPage
+
+Workbooks has already initialized Xamarin.Forms, so `Application.Current.MainPage` can be set directly.
+
+```csharp
+public class MonkeyPage : ContentPage
+{
+    public ListView MonkeyList { get; set; }
+    public MonkeyPage () {
+        Title = "Monkey List";
+        MonkeyList = new ListView();
+        Content = MonkeyList;
+    }
+}
+
+var monkeyPage = new MonkeyPage();
+Application.Current.MainPage = monkeyPage;
+```
+
+## 4. Grab the monkey data from GitHub
+
+```csharp
+using Newtonsoft.Json;
+using System.Net.Http;
+
+public class Monkey
+{
+	public string Name { get; set; }
+	public string Location { get; set; }
+	public string Details { get; set; }
+	public string Image { get; set; }
+	public int Population { get; set; }
+}
+
+var client = new HttpClient();
+var json = await client.GetStringAsync ("https://raw.githubusercontent.com/jamesmontemagno/MonkeysApp-AppIndexing/master/MonkeysApp/monkeydata.json");
+var monkeys = JsonConvert.DeserializeObject<List<Monkey>>(json);
+```
+
+## 5. Bind the data to the list ListView
+
+Use the built-in `ImageCell` template and assigning properties from the monkey model:
+
+```csharp
+var dt = new DataTemplate(typeof(ImageCell));
+dt.SetBinding(TextCell.TextProperty, "Name");
+dt.SetBinding(ImageCell.DetailProperty, "Location");
+dt.SetBinding(ImageCell.ImageSourceProperty, "Image");
+monkeyPage.MonkeyList.ItemTemplate = dt;
+monkeyPage.MonkeyList.ItemsSource = monkeys;
+```
+
+## 6. Now we see a list of monkey and their pictures!
