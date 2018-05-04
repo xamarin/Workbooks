@@ -34,15 +34,11 @@ The `UINavigationController` only controls a small amount of screen space — th
 navController.PushViewController(cyanController, false);
 ```
 
----
-
-###### ⚠ Warning
-
-* A `UIViewController` may only be contained in a single `UINavigationController`. Attempting to add it twice will result in an exception.
-
-* The interactive nature of a Xamarin Workbook makes the above mistake easy to make! If you crash the `navController`, it's probably best to reload the Workbook before continuing.
-
----
+> ⚠️ Warning
+>
+> * A `UIViewController` may only be contained in a single `UINavigationController`. Attempting to add it twice will result in an exception.
+> 
+> * The interactive nature of a Xamarin Workbook makes the above mistake easy to make! If you crash the `navController`, it's probably best to reload the Workbook before continuing.
 
 Because the `cyanController` is the `navController`’s first child (and therefore it’s `RootViewController`), the navigation bar does not display a “back” navigation control, but if we add another `UIViewController`, the navigation bar creates a standard navigation experience, with a back button labeled “Back”:
 
@@ -122,5 +118,3 @@ navController.PopToRootViewController(true);
 * Push and pop the `redController`, `greenController`, and `blueController` view controllers
 
 * Set a new `Title` and `BackgroundImage` for the navigation bar. 
-
----

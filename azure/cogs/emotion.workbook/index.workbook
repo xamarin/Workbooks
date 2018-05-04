@@ -21,11 +21,8 @@ packages:
 
 Image analysis with the Cognitive Services' `EmotionServiceClient`
 
----
+> ⚠️  Visit [Microsoft Cognitive Services](https://www.microsoft.com/cognitive-services) and get a key before you begin.
 
-⚠️  Visit [Microsoft Cognitive Services](https://www.microsoft.com/cognitive-services) and get a key before you begin.
-
----
 
 ```csharp
 var emotionKey = "YOUR_EMOTION_SERVICE_KEY_HERE";
@@ -175,8 +172,6 @@ KeyWindow.RootViewController = new UINavigationController (new UITableViewContro
 })
 ```
 
----
-
 ### Exercises
 
 * Change the background color of the `UITableViewCell` based on the happiness of the employee.
@@ -184,5 +179,3 @@ KeyWindow.RootViewController = new UINavigationController (new UITableViewContro
 * The Emotions API covers more than just happiness. Try adding information about anger, available in `emotionData`.
 
 * Implement a custom `UITableViewCell` that shows all emotion data.
-
----
