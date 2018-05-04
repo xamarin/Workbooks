@@ -1,12 +1,16 @@
 ---
 uti: com.xamarin.workbook
-platform: iOS
-packages: []
+id: FED481A0-3465-4A72-87F1-4335D7F0C9DB
+title: Building a Xamarin.Forms RPN Calculator
+platforms:
+- Android
+- iOS
+packages:
+- id: Xamarin.Forms
+  version: 2.5.0.121934
 ---
 
-# Building a Xamarin.Forms RPN Calculator (iOS)
-
-> ⚠️ This workbook is deprecated - see **RpnCalculator.workbook** instead
+# Building a Xamarin.Forms RPN Calculator
 
 This workbook describes how to use the `Grid` layout in Xamarin.Forms as the foundation for a calculator. The `Grid` arranges visual elements in rows and columns, so it is ideal for arranging the calculator buttons and elements on the page. To keep the operational logic reasonably simple, this calculator uses Reverse Polish notation (RPN).
 
@@ -40,7 +44,7 @@ When programming a calculator, basing it on RPN simplifies the operational logic
 
 ## The iOS Prerequisites
 
-As usual, a Xamarin.Forms workbook requires the Xamairn.Forms NuGet package. This packages has already been added to this workbook, but for a new Xamarin.Forms workbook, you can add it by invoking the **File** and **Add Package** menu item and searching for **Xamarin.Forms**.
+As usual, a Xamarin.Forms workbook requires the Xamairn.Forms NuGet package.
 
 Now use the **#r** command to reference the following Xamarin.Forms assemblies:
 
@@ -48,7 +52,6 @@ Now use the **#r** command to reference the following Xamarin.Forms assemblies:
 #r "Xamarin.Forms.Core"
 #r "Xamarin.Forms.Xaml"
 #r "Xamarin.Forms.Platform"
-#r "Xamarin.Forms.Platform.iOS"
 ```
 
 You’ll also want a few standard `using` directives:
@@ -57,28 +60,13 @@ You’ll also want a few standard `using` directives:
 using System;
 using System.Collections.Generic; // for Stack<T>
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.iOS;
 ```
 
-A Xamarin.Forms application requies a class that derives from `Application` that instantiates a `Page` object in its constructor. This `App` class instantiates a `ContentPage`:
+Workbooks has already initialized Xamarin.Forms, so `Application.Current.MainPage` can be set directly:
 
 ```csharp
-class App : Application
-{
-    public App()
-    {
-        MainPage = new ContentPage();
-    }
-}
-```
-
-The standard iOS startup code makes a call to the static `Forms.Init` method, and then instantiates the `App` class. An iOS `ViewController` is obtained from the created page:
-
-```csharp
-Forms.Init();
-App app = new App();
-ContentPage page = app.MainPage as ContentPage;
-KeyWindow.RootViewController = page.CreateViewController();
+var page = new ContentPage();
+Application.Current.MainPage = page;
 ```
 
 With that code, the Xamarin.Forms `ContentPage` is displayed.
@@ -166,16 +154,18 @@ When you execute that code, you’ll see the `Label` displayed in the `Grid`.
 The next step is to create some buttons, but first consider that not every button press is invalid. For example, when entering a number, you can’t press the decimal point twice. The following static `Beeper.Error` method is iOS specific and is intended to notify the user of an invalid button press:
 
 ```csharp
-static class Beeper
-{
-    static AudioToolbox.SystemSound systemSound =
-        systemSound = new AudioToolbox.SystemSound(1000);
+// UNCOMMENT FOR iOS 
 
-    public static void Error()
-    {
-        systemSound.PlaySystemSound();
-    }
-}
+// static class Beeper
+// {
+//     static AudioToolbox.SystemSound systemSound =
+//         systemSound = new AudioToolbox.SystemSound(1000);
+// 
+//     public static void Error()
+//     {
+//         systemSound.PlaySystemSound();
+//     }
+// }
 ```
 
 A calculator number pad has ten `Button` elements for the digits 0 through 9, and another `Button` for the decimal point. One approach to creating several similar elements for a `Grid` is to first define an array of `Tuple` objects. The following tuples indicate the text for each `Button` in the number pad, and the row and column numbers. The `span` value is the number of columns the `Button` occupies:
@@ -224,7 +214,8 @@ foreach (var numButtonInfo in numButtonInfos)
         }
         else
         {
-            Beeper.Error();
+// UNCOMMENT FOR iOS
+//            Beeper.Error();
         }
     };
     mainGrid.Children.Add(button, numButtonInfo.col,
@@ -398,7 +389,8 @@ swapButton.Clicked += (args, sender) =>
 {
     if (stack.Count < 2)
     {
-        Beeper.Error();
+// UNCOMMENT FOR iOS
+//            Beeper.Error();
     }
     else
     {
@@ -464,7 +456,8 @@ foreach (BinaryOpInfo binaryOpInfo in binaryOpInfos)
         }
         if (stack.Count < 2)
         {
-            Beeper.Error();
+// UNCOMMENT FOR iOS
+//            Beeper.Error();
         }
         else
         {
@@ -544,7 +537,8 @@ foreach (UnaryOpInfo unaryOpInfo in unaryOpInfos)
         }
         if (stack.Count < 1)
         {
-            Beeper.Error();
+// UNCOMMENT FOR iOS
+//            Beeper.Error();
         }
         else
         {

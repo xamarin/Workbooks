@@ -1,13 +1,16 @@
 ---
 uti: com.xamarin.workbook
+id: D13B7651-1663-4030-A55F-903A3893773D
+title: Mandelbrot with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
-# Mandelbrot Touch (iOS)
+# Mandelbrot Touch
 
 In 1980, while working at an IBM research center, Polish born mathematician Benoit Mandelbrot saw a crude computer-generated image that had been published two years earlier:
 
@@ -54,7 +57,7 @@ This workbook includes several C# Script files for support:
 ```csharp
 #load "MandelbrotModel.csx"
 #load "BmpMaker.csx"
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 ```
 
 The MandelbrotModel.csx file contains a class named `MandelbrotModel` with a single asynchronous method named `CalculateAsync` that performs the basic Mandelbort calculation for an array of points. The results are later used to create a bitmap, so several parameters to this method indicate the pixel size of this bitmap, and the complex coordinates corresponding to that array of pixels.
