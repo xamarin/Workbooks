@@ -18,7 +18,7 @@ packages:
 
 ## 1. Add references
 
-Start by adding the references that we need to the NuGet packages installed in the workbook
+Start by adding the references that we need to the NuGet packages installed in the workbook:
 
 ```csharp
 #r "Xamarin.Forms.Core"
@@ -86,4 +86,4 @@ monkeyPage.MonkeyList.ItemTemplate = dt;
 monkeyPage.MonkeyList.ItemsSource = monkeys;
 ```
 
-## 6. Now we see a list of monkey and their pictures!
+## 6. Now we see a list of monkeys and their pictures!

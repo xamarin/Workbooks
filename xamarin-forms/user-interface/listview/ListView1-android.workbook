@@ -10,6 +10,8 @@ packages:
 
 # Xamarin.Forms REST —> ListView
 
+> ⚠️ This workbook is deprecated - see **Listview.workbook** instead
+
 ## A little hack to demo Xamarin.Forms on iOS with Workbooks...
 
 ...borrowing some ideas from James Montemagno’s [sample](https://github.com/jamesmontemagno/MonkeysApp-AppIndexing "Monkey Sample App")
