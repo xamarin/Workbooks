@@ -1,16 +1,15 @@
 ---
 uti: com.xamarin.workbook
+id: 6AA7FBF5-DF9D-4F0A-B890-15391D71FE9E
+title: Accessing a Local Database with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 - id: sqlite-net-pcl
-  version: 1.1.2
-- id: SQLitePCL.bundle_green
-  version: 0.9.3
-- id: SQLitePCL.raw
-  version: 0.9.3
+  version: 1.4.118
 ---
 
 # Accessing a Local Database
@@ -33,7 +32,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -67,13 +66,8 @@ The database schema is defined through attributes that are applied to the class 
 
 Therefore, the `ID` property is used to uniquely identify each row in the `todoitem` table, and will be automatically incremented each time a row is inserted into the table.
 
----
+> ℹ️ Insert, update, and delete operations all require a primary key to be defined.
 
-###### Note
-
-Insert, update, and delete operations all require a primary key to be defined.
-
----
 
 ## Creating a Database Connection
 
@@ -94,13 +88,8 @@ public SQLiteConnection GetConnection()
 
 This method places the SQLite database file in the **Library** folder within the application's sandbox.
 
----
+> ℹ️ In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `GetConnection` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Working with a Local Database](https://developer.xamarin.com/guides/xamarin-forms/working-with/databases/).
 
-###### Note
-
-In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `GetConnection` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Working with a Local Database](https://developer.xamarin.com/guides/xamarin-forms/working-with/databases/).
-
----
 
 The `GetConnection` method is invoked as follows:
 
@@ -111,15 +100,11 @@ database.CreateTable<TodoItem>();
 
 Once a database connection is established, the `todoitem` table is created with the `CreateTable<T>` method. This method operates on an `SQLiteConnection` object, and specifies the class which maps to the underlying database table.
 
----
+> ℹ️  
+> * A table is only created once per entity. If the table already exists, `CreateTable<T>` has no effect.
+>
+> * Existing tables are automatically updated with new columns when `CreateTable<T>` is called based on the current schema and the attributed class. This auto-upgrade will not change the schema in another other way.
 
-###### Note
-
-* A table is only created once per entity. If the table already exists, `CreateTable<T>` has no effect.
-
-* Existing tables are automatically updated with new columns when `CreateTable<T>` is called based on the current schema and the attributed class. This auto-upgrade will not change the schema in another other way.
-
----
 
 ## Defining Database Operations
 
@@ -185,13 +170,8 @@ public int DeleteItem(int id)
 
 The `Insert`, `Update`, and `Delete` methods all return the number of rows that were affected by the operation.
 
----
+> ⚠️ Simultaneously running two database operations will most likely crash an application, and may even corrupt the database file. Therefore, a `lock` is used to guard each database operation, which ensures that only one thread uses the database connection at once.
 
-###### ⚠ Warning
-
-Simultaneously running two database operations will most likely crash an application, and may even corrupt the database file. Therefore, a `lock` is used to guard each database operation, which ensures that only one thread uses the database connection at once.
-
----
 
 ## Adding Data to the Database
 

@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: 500CEAC8-8D46-4305-A1B5-00A6C5A62BEC
+title: Performing Hierarchical Navigation with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Performing Hierarchical Navigation
@@ -27,9 +30,8 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
-using Xamarin.Forms.Platform.iOS;
 ```
 
 For more information about the initialization code, see the Getting Started with Xamarin.Forms workbook.
@@ -44,17 +46,10 @@ var firstContentPage = new ContentPage
   Title = "First Page"
 };
 
-App.Current.MainPage = new NavigationPage(firstContentPage);
-KeyWindow.RootViewController = app.MainPage.CreateViewController();
+app.MainPage = new NavigationPage(firstContentPage);
 ```
 
----
-
-###### Note
-
-In a Xamarin Studio or Visual Studio solution, the code that sets `KeyWindow.RootViewController` will be created by the project template, and will reside in the iOS project.
-
----
+> ℹ️ In a Xamarin Studio or Visual Studio solution, the code that sets `KeyWindow.RootViewController` will be created by the project template, and will reside in the iOS project.
 
 The first page added to the navigation stack is referred to as the *root* page of the application, and the value of the `Page.Title` property will be displayed as the page title.
 
@@ -82,13 +77,7 @@ When the `PushAsync` method is invoked, the following events occur:
 
 However, the precise order in which these events occur is platform dependent.
 
----
-
-###### ⚠ Warning
-
-Calls to the `OnDisappearing` and `OnAppearing` overrides cannot be treated as guaranteed indications of page navigation. For example, on iOS, the `OnDisappearing` override is called on the active page when the application terminates.
-
----
+> ⚠️ Calls to the `OnDisappearing` and `OnAppearing` overrides cannot be treated as guaranteed indications of page navigation. For example, on iOS, the `OnDisappearing` override is called on the active page when the application terminates.
 
 ## Popping Pages from the Navigation Stack
 
@@ -149,7 +138,7 @@ Sometimes it's necessary for a page to pass data to another page during navigati
 
 The simplest technique for passing data to another page during navigation is through a page constructor parameter:
 
-```
+```csharp
 public class FourthContentPage : ContentPage
 {
   public FourthContentPage(string date)

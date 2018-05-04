@@ -1,15 +1,17 @@
 ---
 uti: com.xamarin.workbook
+id: 520731C2-FD34-445A-96EA-A27490B66B24
+title: Translating Text to Speech with Xamarin.Forms (iOS)
 platforms:
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
-# Translating Text to Speech
+# Translating Text to Speech (iOS-specific)
 
-Each platform provides a native text to speech API that can be invoked from Xamarin.Forms.
+Each platform provides a native text to speech API that can be invoked from Xamarin.Forms. This workbook uses `AVFoundation` from iOS.
 
 ## Initializing the Workbook
 
@@ -17,7 +19,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 using AVFoundation;
 ```
@@ -59,13 +61,7 @@ The `SpeechSynthesizer` class synthesizes the text to speech, with the `AVSpeech
 
 * `PitchMultiplier` – a value between 0.5 and 2.0 to control the speech text.
 
----
-
-###### Note
-
-In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `Speak` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Implementing Text-to-Speech](https://developer.xamarin.com/guides/xamarin-forms/dependency-service/text-to-speech/).
-
----
+> ℹ️ In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `Speak` method should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see [Implementing Text-to-Speech](https://developer.xamarin.com/guides/xamarin-forms/dependency-service/text-to-speech/).
 
 ## Invoking the Platform-Specific Speech Method
 

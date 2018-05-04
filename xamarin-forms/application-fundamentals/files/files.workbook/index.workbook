@@ -1,10 +1,13 @@
 ---
 uti: com.xamarin.workbook
+id: C82F7D1A-AB49-473C-A97E-64DF3EB7212F
+title: Saving and Loading Text Files with Xamarin.Forms
 platforms:
+- Android
 - iOS
 packages:
 - id: Xamarin.Forms
-  version: 2.3.2.127
+  version: 2.5.0.121934
 ---
 
 # Saving and Loading Text Files
@@ -15,7 +18,7 @@ In order to run a Xamarin.Forms workbook, some initialization code must be execu
 
 ```csharp
 // The Xamarin.Forms initialization code isn't important to understanding this workbook
-#load "FormsInit-iOS.csx"
+#load "FormsInit.csx"
 using Xamarin.Forms;
 using System.IO;
 ```
@@ -49,13 +52,8 @@ The `SaveText` and `LoadText` methods use `System.IO` functionality to save and 
 
 Text is saved to, or loaded from, the folder represented by the `Environment.SpecialFolder.Personal` enumeration constant. This constant identifies the directory that serves as a common repository for documents.
 
----
+> ℹ️ In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `SaveText` and `LoadText` methods should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see  [Working with Files](https://developer.xamarin.com/guides/xamarin-forms/working-with/files/).
 
-###### Note
-
-In a Xamarin Studio or Visual Studio Xamarin.Forms solution, the `SaveText` and `LoadText` methods should reside in the iOS platform project, and be invoked from the Xamarin.Forms project using the `DependencyService` class. For more information, see  [Working with Files](https://developer.xamarin.com/guides/xamarin-forms/working-with/files/).
-
----
 
 ## Invoking the Platform-Specific FileSystem Access Methods
 
