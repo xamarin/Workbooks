@@ -128,8 +128,6 @@ var testSentiments = new [] {
     "Joe versus the Volcano Coffee Company is a great film."
 }.Select(s => new SentimentData { SentimentText = s });
 
-static string ToAnalysis (this bool b) => b ? "Positive" : "Negative";
-
 var predictions = model.Predict(testSentiments);
 
 testSentiments.Zip (predictions, (s, p) => new {
