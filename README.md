@@ -1,7 +1,13 @@
+# Sample Workbooks
 
-This repository contains Xamarin workbooks to learn various APIs across
-Android, iOS and Windows. If you are looking for the Workbooks app source code,
-head to https://github.com/Microsoft/workbooks.
+This repository contains workbooks to learn various APIs across
+Android, iOS and Windows.
+
+**If you are looking to file issues or contribute to development of
+the Xamarin Workbooks app, please head to
+https://github.com/Microsoft/workbooks.**
+
+---
 
 To use these samples, simply checkout this repository and open any of the `.workbook` files 
 with [Xamarin Workbooks](https://developer.xamarin.com/guides/cross-platform/workbooks/)
