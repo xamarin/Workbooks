@@ -37,7 +37,7 @@ Workbooks has already initialized Xamarin.Forms, so `Application.Current.MainPag
 
 The `ContentPage` is the simplest kind of page in Xamarin.Forms. This is the page that will contain all your program’s Xamarin.Forms visual elements.
 
-```
+```csharp
 var page = new ContentPage();
 Application.Current.MainPage = page;
 ```
@@ -54,7 +54,7 @@ Label label = new Label
 page.Content = label;
 ```
 
-You’ll see the `Label` on the iOS Simulator, but it overlaps the iOS status bar. 
+You’ll see the `Label` on the iOS Simulator, but it overlaps the iOS status bar.
 
 ## 4. Add some Padding
 
@@ -200,6 +200,6 @@ tap.Tapped += async (sender, args) =>
 label.GestureRecognizers.Add(tap);
 ```
 
-The `Tapped` event handler is executed when you tap the `Label` on the phone or click the `Label` in the iOS Simulator. It rotates the text in a 360-degree circle in 5,000 milliseconds.  Notice that the `RotateTo` method is asynchronous. It completes execution when the rotation has completed. This means that you can add other animations to run in sequence, and you can use the static `Task.WhenAll` and `Task.WhenAny` methods to combine animations. 
+The `Tapped` event handler is executed when you tap the `Label` on the phone or click the `Label` in the iOS Simulator. It rotates the text in a 360-degree circle in 5,000 milliseconds.  Notice that the `RotateTo` method is asynchronous. It completes execution when the rotation has completed. This means that you can add other animations to run in sequence, and you can use the static `Task.WhenAll` and `Task.WhenAny` methods to combine animations.
 
 Have fun!
